@@ -892,3 +892,4 @@ html.pc :is(.live-pc, .enemy-pc) .rec.ban.first .hero .lab { background: var(--p
 .tv-n { font-weight: 800; font-size: 16px; color: var(--text); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .tv-n small { font-weight: 500; color: var(--muted); margin-left: 2px; } .tv-n:hover { color: var(--hi); }
 .tv-alt { font-size: 12px; color: var(--muted); } .tv-t { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 .tv-pool { gap: 6px; }
+.hovercard { overflow: hidden; }

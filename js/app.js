@@ -615,7 +615,7 @@
     if (neg) lines += line("warn", reasonShort(neg), "bad");
     const lab = r.comp || r.label;
     const goods = muted ? [] : (r.good || []).filter((g) => !/조합에 맞음$/.test(g) && !pos.some((x) => x.t === g)).slice(0, 2), bads = muted ? [] : (r.bad || []).slice(0, 1);
-    return `<button class="rec ${type} ${muted ? "muted" : ""} ${rank === 1 || r.comp ? "first" : ""} ${r.comp ? "comp" : ""}" data-act="pick" data-id="${r.id}" ${r.role ? `data-role="${r.role}"` : ""} title="${esc(full)}">
+    return `<button class="rec ${type} ${muted ? "muted" : ""} ${rank === 1 || r.comp ? "first" : ""} ${r.comp ? "comp" : ""}" data-act="pick" data-id="${r.id}" ${r.role ? `data-role="${r.role}"` : ""} aria-label="${esc(CH[r.id].ko + (full ? " · " + full.replace(/\n/g, " · ") : ""))}">
       <span class="hero">${icon(r.id, "hero").replace(/ title="[^"]*"/, "")}${rank ? `<b class="rk3" aria-label="${rank}순위">${rank}</b>` : ""}${lab ? `<span class="lab">${esc(lab)}</span>` : ""}</span>
       <span class="nm"><span class="cn">${esc(CH[r.id].ko)}</span>${r.role || r.tgt ? `<span class="pos">${ROLE_KO[r.role || r.tgt]}</span>` : ""}</span>
       <span class="why">${lines}${goods.length ? `<span class="rl gd">${esc(goods.join(" · "))}</span>` : ""}${bads.length && !neg ? `<span class="rl bd">${esc(bads[0])}</span>` : ""}</span>
@@ -1331,7 +1331,7 @@
         if (j.pending) {   // 한도에 걸려 다 못 읽음: 기다렸다가 자동으로 이어 읽기
           const wait = Math.max(3, j.retryIn || 30);
           gTimer = setTimeout(() => refreshRecent(true), wait * 1000);
-          refreshing = false; S.ui.rState = { msg: `경기 ${j.groups.length}판까지 읽음 · 남은 ${j.pending}경기는 ${wait}초 뒤 자동으로 이어 읽음(Riot 한도: 2분 100회)` }; render(); return;
+          refreshing = false; S.ui.rState = { wait: true, msg: `경기 ${j.groups.length}판까지 읽음 · 남은 ${j.pending}경기는 ${wait}초 뒤 자동으로 이어 읽음(Riot 한도: 2분 100회)` }; render(); return;
         }
         const fresh = j.groups.map((g) => {
           const picks = {}, playedRole = {};
@@ -2010,7 +2010,7 @@
     const R = window.RECENT || {}, cap = R.seasonCap || 100, since = md(PREP.since || R.since || "2026-11-10");
     const can = R.status === "ok" && !!window.RECENT_LIVE_URL && !guest(), msg = (S.ui.rState || {}).msg || "";
     // 기록 갱신: 아이콘 버튼 하나(사용자 요청 11-19) — 도는 중 → 끝나면 체크(실패면 느낌표), 자세한 내용은 마우스를 올리면
-    const bad = /실패|못 |오류|한도/.test(msg), st = refreshing ? "busy" : msg ? (bad ? "bad" : "done") : "";
+    const bad = /실패|오류/.test(msg), st = refreshing || (S.ui.rState || {}).wait ? "busy" : msg ? (bad ? "bad" : "done") : "";
     const tip = refreshing ? "갱신 중" : msg ? msg : "기록 갱신 · Riot에서 최근 경기를 바로 가져옴";
     const btn = can ? `<button class="cs-rb ${st}" data-act="grefresh" ${refreshing ? "disabled" : ""} title="${esc(tip)}" aria-label="${esc(tip)}">${st === "done" ? lbi("check", 18) : st === "bad" ? lbi("warn", 18) : lbi("refresh", 18)}</button>` : "";
     return `<div class="cs-row"><p class="cs-range">랭크 <b>${cap}판</b> 기준(최대 2년) · 함께 한 경기 <b>${since}~</b>${R.at ? ` · ${esc(String(R.at).slice(5, 16).replace("-", "/"))} 수집` : ""}</p>${btn}</div>`;
@@ -4316,7 +4316,13 @@
     el.setAttribute("aria-describedby", "hovercard");
     const r = el.getBoundingClientRect(), w = hc.offsetWidth, hgt = hc.offsetHeight, gap = 10;
     let left = r.right + gap; if (left + w > innerWidth - 8) left = r.left - w - gap; if (left < 8) left = Math.min(innerWidth - w - 8, Math.max(8, r.left));
-    let top = r.top; if (top + hgt > innerHeight - 8) top = innerHeight - hgt - 8; if (top < 8) top = 8;
+    let top = r.top;
+    // 추천 카드: 아래 기록 줄(#recDetail — 시즌·연습·팀원)을 가리지 않게 그 줄 아래, 카드 왼쪽에 맞춤(사용자 지적 11-19)
+    const det = el.closest(".lv-c") && document.getElementById("recDetail");
+    const below = det && el.closest(".now-box") && det.offsetHeight;
+    hc.style.maxHeight = "";
+    if (below) { const d = det.getBoundingClientRect(); top = d.bottom + gap; left = Math.min(innerWidth - w - 8, Math.max(8, r.left)); hc.style.maxHeight = Math.max(160, innerHeight - top - 8) + "px"; }
+    else { if (top + hgt > innerHeight - 8) top = Math.max(8, innerHeight - hgt - 8); if (top < 8) top = 8; }
     hc.style.left = left + "px"; hc.style.top = top + "px";
   }
   function hideHover() { if (hcFor) hcFor.removeAttribute("aria-describedby"); hc.hidden = true; hcFor = null; }
@@ -4344,6 +4350,7 @@
   loadRecent();
   loadSeed();
   loadProviders();
+  if (S.ui) { delete S.ui.rState; delete S.ui.pState; }   // 갱신 결과는 이번 화면에서만(사용자 지적 11-19: 새로고침해도 체크가 남음)
   loadMe();
   loadRoster();
   loadCollectStatus();
