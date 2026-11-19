@@ -623,7 +623,8 @@
       ${r.answers && r.answers.length ? `<span class="ans">대응 ${r.answers.map((id) => `<b>${esc(CH[id].ko)}</b>`).join("·")}</span>` : ""}</button>`;
   }
 
-  function renderNow() {
+  let NOW_HEAD = null;   // PC: 머리 줄(차례 제목·라인 칸·조합 방향)을 따로 두려고
+  function renderNow(split) {
     const st = curStep();
     if (!st) return `<div class="now-box"><div class="now-h"><span class="what">밴픽 완료</span><span class="step">아래 전략을 확인하세요</span></div></div>`;
     const [side, type] = st;
@@ -697,6 +698,8 @@
       body = `<div class="recs">${list.map((r, i) => recCard(r, type, who === "enemy", who === "our" || !MOB.matches ? i + 1 : 0, fxOf(r))).join("")}</div>`;
     }
     else body = `<div class="empty-recs">${who === "enemy" && !E.teamHasPools(t) ? "상대 챔프폭이 비어 있어 예상이 어렵습니다. 「상대팀 분석」에서 챔프폭을 넣으면 예상이 나옵니다." : "추천할 챔프가 없습니다. 아래에서 직접 고르세요."}</div>`;
+    NOW_HEAD = { step: title, tabs: roleTabs, dir: dirTxt };
+    if (split) return `<div class="now-box">${body}</div>`;
     return `<div class="now-box"><div class="now-h"><span class="what ${side}">${who === "our" ? "추천 순서" : "상대 예상"}</span><span class="step">${title}</span>${roleTabs}<span class="dir">${dirTxt}</span></div>${body}</div>`;
   }
 
@@ -1089,7 +1092,16 @@
       const done = !mine.length && E.picks(S, "our").length >= 5;
       plan = `<span class="gp-pc"><b>${esc(GP.sel.name.replace(/ 조합$/, ""))}</b><span class="dim">설계${done ? " 완성" : ""}</span>${mine.slice(0, 5).map((x) => `<span class="gp-c ${x.i === S.draft.idx ? "now" : ""}" title="${x.i + 1}. ${ROLE_KO[x.r] || ""} ${esc(CH[x.id].ko)}">${icon(x.id, "xs")}</span>`).join(`<span class="dim">→</span>`)}</span>`;
     }
-    return `<div class="gline">${goal}${plan ? `<span class="gsep"></span>${plan}` : ""}</div>`;
+    return { goal, plan };
+  }
+  // 한 줄: 왼쪽 차례 제목·라인 칸 · 가운데 되돌리기·밴 넘기기 · 오른쪽 목표 챔프 / 그 아래: 밴픽 설계 + 조합 방향 / 추천 카드
+  function liveCtrlPC() {
+    NOW_HEAD = null;
+    const now = renderNow(true), H = NOW_HEAD || {}, G = goalLinePC(), st = curStep();
+    const acts = `<span class="lc-c"><button class="lc-b" data-act="undo" ${S.draft.idx ? "" : "disabled"}>${ico("undo")}되돌리기</button>${st && st[1] === "ban" ? `<button class="lc-b" data-act="skip">${ico("skip")}밴 넘기기</button>` : ""}</span>`;
+    const row = `<div class="lv-ctrl"><span class="lc-l">${H.step ? `<span class="step">${H.step}</span>` : ""}${H.tabs || ""}</span>${acts}<span class="lc-r">${G.goal}</span></div>`;
+    const plan = G.plan || H.dir ? `<div class="gline">${G.plan || ""}${H.dir ? `<span class="dir">${H.dir}</span>` : ""}</div>` : "";
+    return row + plan + now;
   }
   const DOCK_PC = [["grid", "챔프 고르기"], ["comps", "추천 조합"], ["strat", "운영 전략"], ["threat", "요주의 인물"], ["prac", "상대 연습 픽"], ["plan", "픽 순서"], ["series", "피어리스·저장"]];
   function renderDockPC() {
@@ -1167,7 +1179,7 @@
     const lock = L.length ? `<div class="lock-pc">${lbi("lock", 16)}<span>앞 세트 사용</span>${L.map((x) => `<span title="${esc(CH[x.id] ? CH[x.id].ko : x.id)} · ${x.game}세트">${icon(x.id, "xs")}</span>`).join("")}</div>` : "";
     const tk = st ? `${S.draft.idx}:${who}` : "done", go = tk !== lastTurnKey; lastTurnKey = tk;
     return `<div class="live-pc ${who ? "turn-" + who : ""} ${go ? "go" : ""}">${renderSide("B", planned)}
-      <div class="lv-c">${renderStatus()}${goalLinePC()}${renderNow()}<div class="rdet" id="recDetail" aria-live="polite"></div>${renderDockPC()}${lock}</div>
+      <div class="lv-c">${renderStatus()}${liveCtrlPC()}<div class="rdet" id="recDetail" aria-live="polite"></div>${renderDockPC()}${lock}</div>
       ${renderSide("R", planned)}</div>`;
   }
 

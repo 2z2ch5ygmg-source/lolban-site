@@ -757,3 +757,42 @@ html.pc .sd-tm.our[aria-current="true"] { background: var(--bg2); }
 
 /* 이름표(data-tip)의 position: relative가 덮지 않게 */
 html.pc .sd-tm-inv, html.pc .sd-tm-x { position: absolute; }
+
+/* ---------- 실시간 밴픽 한 줄 정리(11-19) ---------- */
+html.pc .live-pc .dstat-act { display: none; }   /* 되돌리기·밴 넘기기는 아래 한 줄 가운데로 */
+html.pc .lv-c { display: flex; flex-direction: column; gap: 14px; }
+html.pc .lv-c > .dock-pc { flex: 1 1 auto; min-height: 0; }
+.lv-ctrl { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 16px; }
+.lc-l { display: flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap; } .lc-l .step { font-size: 13px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.lc-c { display: flex; gap: 8px; justify-content: center; }
+.lc-b { display: inline-flex; align-items: center; gap: 6px; border: 0; background: var(--bg2); color: var(--text); font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 10px; white-space: nowrap; }
+.lc-b:hover:not(:disabled) { box-shadow: 0 0 0 2px var(--hi); } .lc-b:disabled { opacity: .4; }
+.lc-b svg { width: 16px; height: 16px; }
+.lc-r { display: flex; justify-content: flex-end; min-width: 0; }
+.lc-r .gl-pc { flex-wrap: wrap; justify-content: flex-end; }
+html.pc .live-pc .gline .dir { margin-left: auto; font-size: 13px; color: var(--muted); } html.pc .live-pc .gline .dir b { color: var(--hi); }
+/* 챔프 고르기: 거르기·검색 한 줄, 검색은 오른쪽 끝 짧게 */
+html.pc .live-pc .pool-bar { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
+html.pc .live-pc .pool-bar #q { order: 3; margin-left: auto; flex: 0 0 260px; width: 260px; height: 38px; }
+/* 도움 탭: 알약(거르기)과 다르게 밑줄 탭 */
+html.pc .dock-pc .dock-tabs { display: flex; gap: 22px; background: none; border-radius: 0; padding: 0; border-bottom: 1px solid var(--line); justify-self: stretch; }
+html.pc .dock-pc .dock-tabs button { background: none; border-radius: 0; padding: 8px 2px 10px; font-size: 14px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+html.pc .dock-pc .dock-tabs button:hover { color: var(--text); }
+html.pc .dock-pc .dock-tabs button[aria-selected="true"] { background: none; color: var(--text); font-weight: 800; border-bottom-color: var(--hi); }
+html.pc .dock-pc { border-top: 0; padding-top: 0; }
+/* 1순위 카드 알약: 옛 휴대폰 규칙(짙은 바탕)이 덮지 않게 — 밴은 옅은 빨강, 픽은 옅은 보라 */
+html.pc :is(.live-pc, .enemy-pc) .rec.first .hero .lab { background: var(--hi-bg); color: var(--hi); box-shadow: 0 0 0 1px var(--hi); }
+html.pc :is(.live-pc, .enemy-pc) .rec.ban.first .hero .lab { background: var(--red-bg); color: var(--red); box-shadow: 0 0 0 1px var(--red); }
+html.pc :is(.live-pc, .enemy-pc) .rec:not(.first):not(.comp) .hero .lab { background: var(--panel); color: var(--muted); }
+/* 한 줄 정리 보강: 다른 줄은 줄어들지 않게(상세 줄 잘림), 라인 칸 글자 꺾임 막기 */
+html.pc .lv-c > * { flex: none; }
+html.pc .lv-c > .dock-pc { flex: 1 1 auto; }
+.lc-l .seg button, .lc-c .lc-b, .lc-r .gl-pc { white-space: nowrap; }
+.lc-r .gl-pc { flex-wrap: nowrap; } .lc-r .gl-in { width: 140px; }
+@media (max-width: 1599px) {
+  .lv-ctrl { gap: 10px; } .lc-l .step { display: none; }
+  .lc-l .seg button { padding: 5px 9px; font-size: 12px; }
+  .lc-b { padding: 6px 10px; font-size: 12px; }
+  .lc-r .gl-in { width: 110px; } .lc-r .gl-pc > b { font-size: 12px; }
+}
+.lv-ctrl { display: flex; } .lv-ctrl .lc-l, .lv-ctrl .lc-r { flex: none; } .lv-ctrl .lc-c { flex: 1 1 auto; min-width: 0; }
