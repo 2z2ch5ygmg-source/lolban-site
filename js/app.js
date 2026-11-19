@@ -1267,11 +1267,38 @@
         const before = window.RECENT, R = d.data;
         if (before && before.live && R.at === before.at) R.live = before.live;
         if (!before || before.at !== R.at) PG = null;
-        window.RECENT = R; REC.status = "ok"; render(); return R;
+        window.RECENT = R; REC.status = "ok"; mergeQuick(); render(); return R;
       }
       REC.status = res.ok ? "empty" : "error";
     } catch (e) { REC.status = "error"; }
     render(); return null;
+  }
+  // ---- 새 계정 챔프폭 바로 받기(11-19 사용자 요청): 저장하면 Worker /riot/pool(최근 랭크 30판·숙련도) → 0시 수집 전까지 기록 자리에 끼워 둠 ----
+  const QP_KEY = "lolban.pool.v1";
+  const qpLoad = () => { try { return JSON.parse(localStorage.getItem(QP_KEY) || "{}") || {}; } catch (e) { return {}; } };
+  const qpSave = (m) => { try { localStorage.setItem(QP_KEY, JSON.stringify(m)); } catch (e) { /* 무시 */ } };
+  function mergeQuick() {
+    const R = window.RECENT; if (!R || R.status !== "ok") return;
+    const m = qpLoad(); let keep = false;
+    Object.entries(m).forEach(([k, e]) => { const [tid, r] = k.split("|"), t = team(tid);
+      const cur = R.season && R.season[tid] && R.season[tid][r];
+      if (!t || !t.players[r] || t.players[r].riot !== e.riot || (cur && !cur.error && cur.riot === e.riot && !cur.quick)) { delete m[k]; return; }   // 계정이 바뀌었거나 0시 수집이 채웠으면 버림
+      R.season = R.season || {}; R.season[tid] = R.season[tid] || {}; R.season[tid][r] = e; keep = true; });
+    qpSave(m); return keep;
+  }
+  async function quickPools(pairs) {
+    if (!SPACE || SPACE.bad || !pairs.length) return;
+    let got = 0;
+    for (const [tid, r] of pairs) {
+      const t = team(tid), riot = t && t.players[r] && t.players[r].riot; if (!riot || !/#/.test(riot)) continue;
+      try {
+        const res = await wfetch(`/riot/pool?id=${encodeURIComponent(riot)}`); const d = await res.json().catch(() => ({}));
+        if (!res.ok || d.status !== "ok" || !d.data) continue;
+        const m = qpLoad(); m[`${tid}|${r}`] = { ...d.data, riot }; qpSave(m); got++;
+      } catch (e) { /* 다음 계정 */ }
+    }
+    if (got && !window.RECENT) window.RECENT = { status: "ok", season: {}, players: {}, groups: {}, stacks: {} };
+    if (got) { mergeQuick(); render(); toast(`새 계정 ${got}개 챔프폭을 받았습니다(최근 랭크 30판 · 0시 수집 때 100판으로)`); }
   }
   // 기록이 없을 때 이유: 팀 공간 밖·불러오는 중·아직 수집 전
   const recWhy = () => !SPACE || SPACE.bad ? "기록은 팀 공간에 들어온 뒤 보입니다(초대 링크로 들어오기)" : REC.status === "loading" || REC.status === "idle" ? "기록 불러오는 중…" : REC.status === "error" ? "기록을 불러오지 못했습니다 — 새로고침해 보세요" : "Riot 최근 경기 수집 전입니다.";
@@ -3660,7 +3687,8 @@
         applyTiers(); save(); rosterChanged(); ROLES.forEach((r) => shareChanged(now.id, r));
         // 저장: 계정이 바뀐 라인만 Riot에서 솔랭·자랭 다시 받기
         const accSig = (x, r) => JSON.stringify([((x.players[r] || {}).riot || ""), ((x.players[r] || {}).alts || [])]);
-        if (el.dataset.act === "tsave" && before) { const ch = ROLES.filter((r) => accSig(before, r) !== accSig(now, r) || accountsOf(now, r).some(([a]) => !(now.players[r].rk || {})[rkKey(a)])); if (ch.length && SPACE && !SPACE.bad) fetchTiers(ch.map((r) => [now.id, r])); }
+        if (el.dataset.act === "tsave" && before) { const nw = ROLES.filter((r) => ((now.players[r] || {}).riot || "") !== ((before.players[r] || {}).riot || "") && (now.players[r] || {}).riot); if (nw.length) { toast("새 계정 챔프폭 받는 중…"); quickPools(nw.map((r) => [now.id, r])); }
+          const ch = ROLES.filter((r) => accSig(before, r) !== accSig(now, r) || accountsOf(now, r).some(([a]) => !(now.players[r].rk || {})[rkKey(a)])); if (ch.length && SPACE && !SPACE.bad) fetchTiers(ch.map((r) => [now.id, r])); }
         toast(el.dataset.act === "tsave" ? "저장했습니다" : "수정을 취소했습니다"); render(); break; }
       case "delteam": { const t = team(el.dataset.id); if (!t || t.solo || t.id === S.ourTeam) break;
         if (!confirm(`「${t.name}」 팀을 지울까요? 명단·챔프폭 메모가 ${SPACE && !SPACE.bad ? "팀원 모두에게서 " : ""}지워집니다.`)) break;
