@@ -345,7 +345,7 @@
     const mine = new Set(pool.map((x) => x[0]));
     const recMap = (tt, rr) => E.poolMap({ ...tt, players: { ...tt.players, [rr]: { ...tt.players[rr], pool: [] } } }, rr);   // 직접 넣은 챔프를 뺀 기록만(우리 팀은 직접 넣으면 기록을 안 씀)
     const auto = Object.entries(recMap(t, r)).filter(([id, e]) => !mine.has(id) && CH[id] && (e.g || e.rg || e.scout)).sort((a, b) => E.lvScore(b[1]) - E.lvScore(a[1])).slice(0, 8);
-    const autoHtml = auto.length ? `<span class="auto-h">${pool.length && t.id === S.ourTeam ? "기록에만 있는 챔프 · 분석엔 직접 넣은 챔프만 씀(눌러서 넣기)" : "기록에서 자동 · 눌러서 고정하면 숙련도를 바꿀 수 있음"}</span>${auto.map(([id, e]) => `<button class="chip auto-chip" data-act="pinrec" data-team="${t.id}" data-role="${r}" data-id="${id}" data-lv="${e.lv}" data-one="${e.one ? 1 : ""}" title="눌러서 이 숙련도로 고정${e.g ? ` · ${e.g}판 ${Math.round(e.wr)}%` : ""}">${icon(id, "sm")}${esc(CH[id].ko)} ${lvTag({ lv: e.lv, one: e.one })}${e.g || e.rg ? `<span class="st">${e.g || e.rg}판</span>` : ""}</button>`).join("")}${auto.length > 1 ? `<button class="auto-all" data-act="pinrecall" data-team="${t.id}" data-role="${r}">모두 고정</button>` : ""}` : "";
+    const autoHtml = auto.length ? `<span class="auto-h">${pool.length && t.id === S.ourTeam ? "기록에만 있는 챔프 · 분석엔 직접 넣은 챔프만 씀(눌러서 넣기)" : "기록에서 찾은 챔프 · 누르면 위 목록에 넣고 숙련도를 바꿀 수 있음"}</span>${auto.map(([id, e]) => `<button class="chip auto-chip" data-act="pinrec" data-team="${t.id}" data-role="${r}" data-id="${id}" data-lv="${e.lv}" data-one="${e.one ? 1 : ""}" title="눌러서 목록에 넣기${e.g ? ` · ${e.g}판 ${Math.round(e.wr)}%` : ""}">${icon(id, "sm")}${esc(CH[id].ko)} ${lvTag({ lv: e.lv, one: e.one })}${e.g || e.rg ? `<span class="st">${e.g || e.rg}판</span>` : ""}</button>`).join("")}${auto.length > 1 ? `<button class="auto-all" data-act="pinrecall" data-team="${t.id}" data-role="${r}" title="기록에서 찾은 챔프를 모두 위 목록에 넣습니다 · 목록에서 ×로 빼면 여기로 돌아옴">전부 목록에 넣기</button>` : ""}` : "";
     if (!pool.length) return autoHtml || `<span class="dim">챔프폭·기록 없음 — 챔프를 직접 넣거나, 다음 수집 때 기록으로 채워집니다</span>`;
     return autoHtml ? pool.map(([id, lv, one]) => `<span class="chip ${opts && opts.edit ? "ed-chip" : ""}" ${opts && opts.edit ? `data-act="cycle" data-team="${t.id}" data-role="${r}" data-id="${id}"` : ""}>${icon(id, "sm")}${esc(CH[id] ? CH[id].ko : id)} ${lvTag({ lv, one })}${opts && opts.edit ? `<span class="del" data-act="del" data-team="${t.id}" data-role="${r}" data-id="${id}" title="삭제" role="button" aria-label="삭제"><svg class="ico-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span>` : ""}</span>`).join("") + `<span class="auto-sep"></span>` + autoHtml : poolHtml(pool, t, r, opts);
   }
@@ -1888,7 +1888,7 @@
   }
 
   // ---------- pool editor ----------
-  let editing = null;
+  let editing = null, editMode = "pool";   // 상대팀 편집 창: "pool" 챔프폭 편집 · "alts" 부계정 입력(11-20 사용자 요청: 설정 버튼에서 둘로 나눔)
   // 티어는 고르기: 티어 + (아이언~다이아) 단계 1~4 / (마스터 이상) LP. 저장 글자는 「골드 4」·「마스터 700LP」 그대로
   const TIERS = ["아이언", "브론즈", "실버", "골드", "플래티넘", "에메랄드", "다이아", "마스터", "그랜드마스터", "챌린저"];
   const HIGH = (t) => /마스터|챌린저/.test(t);
@@ -2038,7 +2038,9 @@
       return `<div class="ed-alts">${[0, 1].filter((k) => k < n).map((k) => `<span class="ed-alt-row"><input class="input ed-acc ed-alt" data-alt="${k}" data-role="${r}" value="${esc(alts[k] || "")}" placeholder="부계정 ${k + 1} 이름#태그" aria-label="${ROLE_KO[r]} 부계정 ${k + 1}"><button type="button" class="sd-altdel" data-act="altdel" data-team="${t.id}" data-role="${r}" data-k="${k}" aria-label="부계정 ${k + 1} 지우기" title="부계정 지우기"><svg class="ico-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>`).join("")}
         ${n < 2 ? `<button type="button" class="sd-altadd" data-act="altadd" data-role="${r}" data-team="${t.id}" data-n="${n + 1}">${lbi("plus", 14)}부계정 추가</button>` : ""}
         <p class="ed-chk" id="edchk-${r}" aria-live="polite"></p></div>`; };
-    const roles = MOB.matches ? edRolesFull(t) : ROLES.map((r) => { const p = t.players[r]; return `<div class="ed-role ed-pool-only" data-r="${r}"><div class="ed-row"><b style="width:40px">${ROLE_KO[r]}</b><span class="ed-who">${esc(nick(p.riot) || "계정 없음")}${p.riot ? `<small>#${esc(String(p.riot).split("#")[1] || "")}</small>` : ""}</span></div>${altsBox(r)}
+    const altMode = editMode === "alts" && t.id !== S.ourTeam && !t.solo;
+    const who = (p) => `<span class="ed-who">${esc(nick(p.riot) || "계정 없음")}${p.riot ? `<small>#${esc(String(p.riot).split("#")[1] || "")}</small>` : ""}</span>`;
+    const roles = MOB.matches ? edRolesFull(t) : altMode ? ROLES.map((r) => `<div class="ed-role ed-pool-only ed-altonly" data-r="${r}"><div class="ed-row"><b style="width:40px">${ROLE_KO[r]}</b>${who(t.players[r])}<small class="help">본계정</small></div>${altsBox(r)}</div>`).join("") : ROLES.map((r) => { const p = t.players[r]; return `<div class="ed-role ed-pool-only" data-r="${r}"><div class="ed-row"><b style="width:40px">${ROLE_KO[r]}</b>${who(p)}</div>
       <div class="row-chips">${poolChips(t, r, { edit: true })}</div>
       <div class="ed-row"><input class="input" style="flex:1" list="champList" data-add="${r}" placeholder="챔피언 추가 (이름 입력 후 Enter)">
       <select data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select>
@@ -2054,9 +2056,9 @@
       <div class="ed-row"><input class="input" style="flex:1" list="champList" data-add="${r}" placeholder="챔피언 추가 (이름 입력 후 Enter)">
       <select data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select>
       <button class="ib btn sm" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></div></div>`; }).join(""); }
-    root.innerHTML = `<div class="modal-bg" data-act="close"><div class="modal" role="dialog" aria-modal="true" aria-label="챔프폭 편집" ${MOB.matches ? `data-edr="${edLane}"` : ""}>
-      <div class="modal-h"><h2>${esc(t.name)} · ${t.id === S.ourTeam ? "자기평가 입력" : "챔프폭 편집"}</h2><button class="ib btn sm" data-act="close" aria-label="닫기" title="닫기">${ico("x")}</button></div>
-      ${MOB.matches ? `<p class="help ed-intro">${t.id === S.ourTeam ? "<b>대회에서 실제로 꺼낼 수 있는 챔프</b>만 넣고 자신감을 고르세요. 본인 평가가 있는 선수는 이 목록만 추천에 쓰고, 전적은 참고로만 붙습니다. " : ""}${t.id === S.ourTeam ? "" : "여기 넣은 챔프는 전적 추천에 <b>더해집니다</b>(전적 챔프는 그대로 남음). "}칩을 누르면 상 → 중 → 하 → 원챔 순서로 바뀝니다. ×는 삭제.</p>` : `<p class="help ed-intro">알약을 누르면 숙련도가 바뀝니다 · ×는 삭제 · 바로 저장됩니다</p>`}
+    root.innerHTML = `<div class="modal-bg" data-act="close"><div class="modal" role="dialog" aria-modal="true" aria-label="${t.id === S.ourTeam ? "자기평가 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}" ${MOB.matches ? `data-edr="${edLane}"` : ""}>
+      <div class="modal-h"><h2>${esc(t.name)} · ${t.id === S.ourTeam ? "자기평가 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}</h2><button class="ib btn sm" data-act="close" aria-label="닫기" title="닫기">${ico("x")}</button></div>
+      ${MOB.matches ? `<p class="help ed-intro">${t.id === S.ourTeam ? "<b>대회에서 실제로 꺼낼 수 있는 챔프</b>만 넣고 자신감을 고르세요. 본인 평가가 있는 선수는 이 목록만 추천에 쓰고, 전적은 참고로만 붙습니다. " : ""}${t.id === S.ourTeam ? "" : "여기 넣은 챔프는 전적 추천에 <b>더해집니다</b>(전적 챔프는 그대로 남음). "}칩을 누르면 상 → 중 → 하 → 원챔 순서로 바뀝니다. ×는 삭제.</p>` : altMode ? `<p class="help ed-intro">부계정을 넣으면 Riot에서 확인하고 그 계정 기록도 챔프폭에 합칩니다 · 바로 저장됩니다</p>` : `<p class="help ed-intro">알약을 누르면 숙련도가 바뀝니다 · ×를 누르면 목록에서 빠집니다(기록에 있는 챔프면 아래 「기록에서 찾은 챔프」로 돌아감) · 바로 저장됩니다</p>`}
       ${MOB.matches ? `<p class="help" id="shareNote" aria-live="polite">${t.solo ? "개인(솔랭) 상대는 이 브라우저에만 저장됩니다." : shareNote()}</p>${t.solo || !SH.url ? "" : shareRoles(t)}` : ""}
       ${MOB.matches ? laneChips("edlane", edLane, "라인", { noAll: true }) : ""}${roles}</div></div>`;
   }
@@ -2462,11 +2464,14 @@
   const TSM = { open: "" };
   function teamSetMenu(where, mob) {
     const ourT = team(S.ourTeam), en = team(S.enemyTeam), id = where + (mob ? "m" : "");
-    if (where === "enemy") return en && !en.solo && !guest() ? `<button class="btn sm primary tsm-b ${mob ? "mv-hb" : ""}" data-act="edit" data-team="${en.id}">${ico("gear")}<span>상대 챔프폭 편집</span></button>` : "";
     const it = (attrs, label, sub) => `<button class="tsm-i" role="menuitem" ${attrs}><b>${label}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</button>`;
+    if (where === "enemy") { if (!en || en.solo || guest()) return "";
+      const eo = TSM.open === id;
+      return `<span class="tsm ${mob ? "mv-hb" : ""}"><button class="btn sm primary tsm-b" data-act="tsm" data-k="${id}" aria-haspopup="menu" aria-expanded="${eo}">${ico("gear")}<span>설정</span></button>
+      ${eo ? `<div class="tsm-pop" role="menu" aria-label="상대팀 설정">${it(`data-act="edit" data-mode="pool" data-team="${en.id}"`, "챔프폭 편집", "챔프 넣기·빼기, 숙련도 바꾸기")}${it(`data-act="edit" data-mode="alts" data-team="${en.id}"`, "부계정 입력", "라인마다 부계정 2개까지")}</div>` : ""}</span>`; }
     const items = [
       ourT && !ourT.solo ? it(`data-act="edit" data-team="${ourT.id}"`, "우리팀 자기평가 입력", ourT.name) : "",
-      en && !en.solo ? it(`data-act="edit" data-team="${en.id}"`, "상대 챔프폭 편집", en.name) : "",
+      en && !en.solo ? it(`data-act="edit" data-mode="pool" data-team="${en.id}"`, "상대 챔프폭 편집", en.name) : "",
       it(`data-act="settings" data-k="basis"`, "분석 기준·대회 준비일", `티어 기준 ${QUEUE_TXT[CFG.queue][0]}`),
       it(`data-act="export"`, "엑셀 내보내기", "팀·챔프폭 한 시트"),
       it(`data-act="import"`, "엑셀 불러오기", "작성법·미리보기 뒤 적용"),
@@ -4001,7 +4006,7 @@
         // 휴대폰: 시트의 라인 칩은 지금 차례 화면에서 고른 라인으로 시작
         if (S.ui.sheet && MOB.matches) { const st = curStep(); S.ui.q = ""; S.ui.role = (st && E.whoOfSide(S, st[0]) === "enemy" ? S.ui.predRole : S.ui.ourRole) || ""; }
         render(); if (S.ui.sheet) { const q = document.getElementById("q"); if (q && matchMedia("(min-width: 761px)").matches) q.focus(); } break;
-      case "edit": editing = el.dataset.team; renderEditor(); pullShared(); break;
+      case "edit": { const wasOpen = !!TSM.open; TSM.open = ""; editing = el.dataset.team; editMode = el.dataset.mode === "alts" ? "alts" : "pool"; if (wasOpen || document.querySelector(".tsm-pop")) render(); renderEditor(); pullShared(); break; }
       case "close": editing = null; renderEditor(); break;
       case "edlane": edLane = el.dataset.r; renderEditor(); break;
       case "add": addChamp(el.dataset.role); break;
