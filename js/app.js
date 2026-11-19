@@ -1034,7 +1034,7 @@
   function goalLinePC() {
     const g = ((S.ui.goal && S.ui.goal.ids) || []).filter((id) => CH[id]);
     const GP = goalPlanNow();
-    const goal = `<span class="gl-pc"><b>목표 챔프</b>${g.map((id) => `<span class="gl-c">${icon(id, "xs")}${esc(CH[id].ko)}<button class="gl-x" data-act="goaldel" data-id="${id}" aria-label="${esc(CH[id].ko)} 목표에서 빼기">×</button></span>`).join("")}<input class="input gl-in" id="goalIn" list="champList" placeholder="${g.length ? "더 넣기" : "예: 블리츠"}" autocomplete="off" aria-label="목표 챔프 넣기"></span>`;
+    const goal = `<span class="gl-pc"><b>목표 챔프</b>${g.map((id) => `<span class="gl-c">${icon(id, "xs")}${esc(CH[id].ko)}<button class="gl-x" data-act="goaldel" data-id="${id}" aria-label="${esc(CH[id].ko)} 목표에서 빼기">×</button></span>`).join("")}<input class="input gl-in" id="goalIn" list="champList" placeholder="${g.length ? "더 넣기" : "예: 블리츠"}" autocomplete="off" aria-label="목표 챔프 넣기"><button class="ib mh-ib gl-addb" data-act="goaladd" aria-label="목표 챔프 넣기">${lbi("plus", 18)}</button></span>`;
     let plan = "";
     if (GP) {
       const mine = GP.steps.filter((x) => x.who === "our" && x.kind === "pick" && x.id && x.i >= S.draft.idx);
@@ -3484,7 +3484,7 @@
   function addGoal() {
     const inp = document.getElementById("goalIn"), msg = document.getElementById("goalMsg");
     const c = inp && findChamp(inp.value);
-    if (!c) { if (msg) msg.textContent = inp && inp.value.trim() ? "챔프 이름을 찾지 못했습니다." : "챔프 이름을 넣어 주세요."; return; }
+    if (!c) { const t = inp && inp.value.trim() ? "챔프 이름을 찾지 못했습니다." : "챔프 이름을 넣어 주세요."; if (msg) msg.textContent = t; else toast(t); return; }
     const ids = ((S.ui.goal && S.ui.goal.ids) || []).filter((x) => x !== c.id).concat([c.id]).slice(-3);
     S.ui.goal = { ids }; save(); render();
     const n = document.getElementById("goalIn"); if (n && !MOB.matches) n.focus();
@@ -3533,6 +3533,8 @@
   document.addEventListener("input", (ev) => {
     const t = ev.target;
     if (t.id === "ipText") { IMP.text = t.value; return; }
+    // 목표 챔프: 목록에서 고르면(정확한 이름) 바로 넣음 — 예전엔 Enter를 눌러야만 들어가서 「골라도 안 들어감」(사용자 지적 11-19)
+    if (t.id === "goalIn" && (ev.inputType === "insertReplacementText" || ev.inputType == null) && window.CHAMPIONS.some((c) => c.ko === t.value.trim() || c.id === t.value.trim())) { addGoal(); return; }
     if (t.id === "ipTeam") { IMP.team = t.value; return; }
     if (t.id === "q") { S.ui.q = t.value; const box = document.getElementById("champs"); if (box) box.innerHTML = champButtons(); else render();
       const sh = document.querySelector(".mv-pick"); if (sh) sh.classList.toggle("searching", !!t.value.trim()); return; }
