@@ -1992,16 +1992,22 @@
       if (["our", "enemy", "team", "live"].includes(S.tab)) render();
     } catch (e) { /* 다음에 */ }
   }
+  // 수집 범위(사용자 요청 11-19: 어디까지 모으는지 알려 주기). 실제 수집기(tools/recent.py)와 같게:
+  // 챔프폭 = 계정마다 최근 랭크 N판(Riot이 보관하는 최대 2년 안), 숙련도 = 전체 기간, 함께 한 경기 = 연습 기간부터
+  function rangeNote() {
+    const R = window.RECENT || {}, cap = R.seasonCap || 100, since = md(PREP.since || R.since || "2026-11-10");
+    return `<p class="cs-range">수집 범위 · 챔프폭은 계정(부계정 포함)마다 <b>최근 랭크 ${cap}판</b> — Riot이 보관하는 <b>최대 2년</b> 안 · 숙련도는 전체 기간 · 함께 한 경기는 <b>${since}부터</b>${R.at ? ` · 마지막 수집 ${esc(String(R.at).slice(5, 16).replace("-", "/"))}` : ""}</p>`;
+  }
   // 우리·상대 팀 기록이 아직 없으면 위쪽 띠
   function collectBanner() {
     if (guest()) return "";
     const R = window.RECENT, has = (t) => t && !t.solo && R && R.status === "ok" && R.players && R.players[t.id] && Object.keys(R.players[t.id]).length;
     const ids = [team(S.ourTeam), S.tab === "our" || S.tab === "team" ? null : team(S.enemyTeam)].filter((t) => t && !t.solo && ROLES.some((r) => /#/.test((t.players[r] || {}).riot || "")));
     const miss = ids.filter((t) => !has(t));
-    if (!miss.length) return "";
+    if (!miss.length) return ids.length ? rangeNote() : "";
     const hm = (v) => String(v || "").slice(11, 16);
-    if (CS.state === "running") return `<div class="cs-band run" role="status"><span class="cs-dot"></span><b>Riot 기록을 모으는 중입니다</b><span>${CS.startAt ? `${hm(CS.startAt)} 시작 · ` : ""}${miss.map((t) => esc(t.name)).join(" · ")} 시즌 기록·챔프폭·함께 한 경기 — 끝나면 자동으로 채워집니다(보통 10~20분)</span></div>`;
-    return `<div class="cs-band" role="status"><b>아직 기록이 없습니다</b><span>${miss.map((t) => esc(t.name)).join(" · ")} — 등록은 끝났고, Riot 기록은 다음 수집(매일 0시) 때 채워집니다${CS.state === "failed" ? " · 지난 수집이 실패해 다시 시도합니다" : ""}</span></div>`;
+    if (CS.state === "running") return `<div class="cs-band run" role="status"><span class="cs-dot"></span><b>Riot 기록을 모으는 중입니다</b><span>${CS.startAt ? `${hm(CS.startAt)} 시작 · ` : ""}${miss.map((t) => esc(t.name)).join(" · ")} 시즌 기록·챔프폭·함께 한 경기 — 끝나면 자동으로 채워집니다(보통 10~20분)</span></div>${rangeNote()}`;
+    return `<div class="cs-band" role="status"><b>아직 기록이 없습니다</b><span>${miss.map((t) => esc(t.name)).join(" · ")} — 등록은 끝났고, Riot 기록은 다음 수집(매일 0시) 때 채워집니다${CS.state === "failed" ? " · 지난 수집이 실패해 다시 시도합니다" : ""}</span></div>${rangeNote()}`;
   }
   // Riot에서 계정별 솔랭·자랭 받기: pairs = [[팀ID, 라인]…]. 팀 공간 열쇠가 있어야 조회됨
   const TQ = { busy: false, done: 0, all: 0, miss: 0, msg: "", fails: [] };

@@ -807,3 +807,7 @@ html.pc :is(.live-pc, .enemy-pc) .rec.ban.first .hero .lab { background: var(--p
 @keyframes csPulse { 50% { opacity: .25; } }
 @media (prefers-reduced-motion: reduce) { .cs-dot { animation: none; } }
 .settings-pc > .cs-wrap { grid-column: 1 / -1; }
+
+/* 수집 범위 한 줄 */
+.cs-range { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; } .cs-range b { color: var(--text); font-weight: 700; }
+.cs-band + .cs-range { margin-top: -6px; padding: 0 4px; }
