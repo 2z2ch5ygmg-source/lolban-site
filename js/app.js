@@ -2231,7 +2231,7 @@
     const fails = TQ.fails.length && !TQ.busy ? `<details class="tq-fails"><summary>티어를 못 받은 계정 ${TQ.fails.length}개</summary><ul>${TQ.fails.map((f) => `<li><b>${esc(f.team)}</b> ${ROLE_KO[f.r]} · ${esc(f.a)} <span class="dim">${esc(f.why)}</span></li>`).join("")}</ul></details>` : "";
     const bar = edit
       ? `<span class="dim sd-help">챔프 알약을 누르면 숙련도가 바뀝니다</span><span class="n-sp"></span><button class="soft-b" data-act="tcancel">취소</button><button class="n-new" data-act="tsave">저장</button>`
-      : `<span class="n-sp"></span><button class="soft-b" data-act="export">엑셀 내보내기</button><button class="soft-b" data-act="import">명단 등록</button>${t ? `<button class="n-new" data-act="tedit">${lbi("settings", 16)}수정</button>` : ""}`;
+      : `<span class="n-sp"></span>${t ? `<button class="n-new" data-act="tedit">${lbi("settings", 16)}수정</button>` : ""}`;
     const left = `<section class="sd-main-c"><div class="n-bar sd-bar"><h3 class="h-h">선수·챔프폭</h3>${bar}</div>
       ${TQ.busy ? `<p class="help" role="status">Riot에서 티어 받는 중 ${TQ.done} / ${TQ.all}</p>` : ""}${fails}
       ${!t ? `<p class="help">우리 팀이 없습니다 — 오른쪽에서 팀을 만들거나 초대 코드로 들어오세요.</p>` : edit ? `<div id="setEd" class="sd-ed" data-team=""></div>` : teamViewPC(t)}</section>`;
@@ -2256,6 +2256,8 @@
         <div class="seg" role="group" aria-label="티어 기준">${Object.entries(QUEUE_TXT).map(([k, [n]]) => `<button data-act="setq" data-v="${k}" aria-pressed="${CFG.queue === k}">${n}</button>`).join("")}</div>
         ${CFG.qMsg ? `<p class="help" role="status">${esc(CFG.qMsg)}</p>` : ""}
         <b class="sd-sub">대회 준비 시작일</b>${prepHtml(window.RECENT)}<p class="help">이 날짜부터 한 판을 연습으로 셈</p></section>
+      <section class="sd-card"><h3>명단</h3><p class="help">우리 팀·상대 팀 전체 명단(계정·부계정·챔프폭)을 엑셀 한 시트로 내려받습니다. 상대 팀 등록은 왼쪽 「상대 팀」 옆 ＋에서</p>
+        <span class="sd-btns"><button class="soft-b" data-act="export">${lbi("note", 16)}전체 명단 엑셀 내보내기</button></span></section>
       <section class="sd-card"><h3>이 브라우저</h3><p class="help">밴픽 진행·저장한 밴픽·팀 공간 열쇠·화면 상태는 이 브라우저에만 있습니다. 다른 기기는 초대 링크로 들어오면 팀 자료를 같이 봅니다.</p>
         <span class="sd-btns"><button class="soft-b" data-act="wipe">처음 상태로</button><small class="dim">팀 공간 열쇠와 팀 공유 자료는 그대로</small></span></section>
       <section class="sd-card"><h3>계정</h3>${acct}</section></div>`;
