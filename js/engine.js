@@ -176,6 +176,9 @@ window.Engine = (function () {
       if (st) Object.assign(m[id], { g: st.g, w: st.w, wr: st.wr, kda: st.kda, mp: st.mp, rg: st.rg, rw: st.rw, sscore: st.score, sone: st.one, share: st.share });
     });
     // 우리 팀: 자기평가가 있는 선수는 그 목록만 쓴다. 없는 선수와 상대 팀은 전적 전체(직접 넣은 챔프가 앞섬).
+    // 편집 창에서 ×로 뺀 기록 챔프는 분석에서도 뺀다(직접 넣은 챔프는 그대로)
+    const hide = new Set(p.hide || []);
+    hide.forEach((id) => { if (!m[id]) delete stats[id]; });
     if (!manual.length || team.id !== OUR_ID) Object.entries(stats).forEach(([id, e]) => {
       if (m[id] || e.score < 0.15) return;
       m[id] = e;

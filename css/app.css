@@ -1363,3 +1363,42 @@ button.gp-t { cursor: pointer; }
 
 /* 손님(로그인 전, 11-19): 휴대폰 아래 탭도 실시간 밴픽·로그인만 */
 html.guest .tabs .tab:not([data-tab="live"]):not([data-tab="our"]) { display: none; }
+
+/* ---------- 11-20: 편집 창 — 기록 챔프 자동 목록, 부계정 찾기·적용 ---------- */
+.chip.rec-chip { border-style: dashed; }
+.chip.rec-chip .st { color: var(--muted); font-size: 11px; margin-left: 2px; }
+.rec-hid { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); margin-left: 4px; }
+.rec-un { border: 0; background: var(--bg2); color: var(--muted); font: inherit; font-size: 12px; padding: 3px 8px; border-radius: 999px; cursor: pointer; text-decoration: line-through; }
+.rec-un:hover { color: var(--text); text-decoration: none; }
+.ed-who-row { flex-wrap: wrap; row-gap: 4px; }
+.ed-alt-who { display: inline-flex; align-items: baseline; gap: 2px; font-size: 14px; color: var(--muted); }
+.ed-alt-who i { font-style: normal; margin-right: 2px; }
+.ed-alt-who em { font-style: normal; font-size: 11px; font-weight: 700; margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--bg2); color: var(--muted); }
+.alt-st.in { color: var(--good); } .ed-alt-who em.in { background: var(--good-bg); }
+.alt-st.wait { color: var(--hi); }
+.ed-alts2 { display: grid; gap: 8px; margin: 8px 0 2px 52px; }
+.alt-ok { display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 0 4px 0 12px; border-radius: 10px; background: var(--bg2); }
+.alt-n { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .alt-n small { color: var(--muted); font-weight: 500; margin-left: 2px; }
+.alt-ok .alt-st { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.alt-ok .sd-altdel { width: 34px; height: 34px; background: transparent; }
+.alt-new { display: flex; gap: 8px; align-items: center; margin: 0; }
+.alt-new .input { flex: 1; min-width: 0; height: 40px; }
+.alt-new .btn { height: 40px; padding: 0 16px; flex: none; }
+.alt-res { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 13px; }
+.alt-res:empty, .alt-max { display: none; } .alt-max { display: block; margin: 0; font-size: 12px; }
+.alt-res .btn.primary { margin-left: auto; }
+@media (max-width: 760px) { .ed-alts2 { margin-left: 0; } .alt-new .input, .alt-new .btn { height: 44px; } }
+
+/* 라인 아이콘 알약 */
+.lane-ic { flex: none; display: block; }
+.pill.lane-pill { display: inline-flex; align-items: center; gap: 5px; }
+
+/* 오른쪽 위 다크 모드 토글(해·달) */
+.hd-theme { position: relative; width: 60px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: var(--bg2); box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); display: grid; grid-template-columns: 1fr 1fr; align-items: center; justify-items: center; cursor: pointer; flex: none; }
+.hd-theme > span { position: relative; z-index: 1; display: grid; place-items: center; transition: color .2s ease; }
+.hd-theme .ht-k { position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: var(--panel); box-shadow: 0 1px 3px rgba(0, 0, 0, .18), 0 0 0 1px var(--line); transition: transform .22s cubic-bezier(.2, .8, .2, 1); }
+.hd-theme[aria-checked="false"] .ht-sun, .hd-theme[aria-checked="true"] .ht-moon { color: var(--hi); }
+.hd-theme[aria-checked="true"] .ht-k { transform: translateX(28px); }
+.hd-theme:hover { color: var(--text); }
+.hd-theme:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .hd-theme .ht-k, .hd-theme > span { transition: none; } }
