@@ -433,7 +433,7 @@
         <button class="tab sd-tm sd-new" data-tab="our" aria-current="${S.tab === "our"}">${lbi("plus", 20)}<span class="nm">${SESS ? "팀 만들기 · 들어가기" : "로그인 · 팀 만들기"}</span></button>
         ${SESS && AUTH.user ? `<p class="help sd-guest">${esc(AUTH.user.nick || "로그인됨")}님 로그인됨</p>` : ""}
         <p class="help sd-guest">팀을 등록하면 우리 팀 홈 · 상대 분석 · 피드백 노트 · 공부자료를 씁니다. 지금은 솔랭·자랭 기준 밴픽만</p>
-        <div class="sd-foot">${meRow()}${themeBtn()}</div>`;
+        <div class="sd-foot">${themeBtn()}${SESS ? `<button class="sd-out" data-act="lgout">로그아웃</button>` : ""}</div>`;
       return;
     }
     el.innerHTML = `<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">${LOGO_MARK}<span>lolban<i>.</i></span></a>
@@ -442,10 +442,12 @@
       ${our ? `<div class="sd-tmw our-w"><button class="tab sd-tm our" data-tab="team" aria-current="${S.tab === "team"}">${crestOf(our, "b")}<span class="nm" title="${esc(our.name)}">${esc(our.name)}</span></button>${sp ? `<button class="sd-tm-inv" data-act="invite" aria-label="${SPACE && SPACE.viaLogin ? "초대 코드 복사" : "팀원 초대 링크 복사"}">${lbi("invite", 20)}</button>` : ""}</div>`
         : `<button class="sd-tm sd-new" data-act="team">${lbi("plus", 20)}<span class="nm">팀 만들기</span></button>`}
       <div class="sd-sec">상대 팀 <button data-act="import" aria-label="상대 팀 등록(엑셀)" title="상대 팀 등록(엑셀)">${lbi("plus", 18)}</button></div>
+      <div class="sd-opp" id="sdOpp">
       ${opp.map((t) => `<div class="sd-tmw"><button class="sd-tm" data-act="pickenemy" data-id="${t.id}" aria-current="${t.id === curOpp}">${crestOf(t, t.id === curOpp ? "r" : "")}<span class="nm" title="${esc(t.name)}">${esc(t.name)}</span></button><button class="sd-tm-x" data-act="delteam" data-id="${t.id}" aria-label="「${esc(t.name)}」 팀 삭제">×</button></div>`).join("")
         || `<span class="help" style="padding:4px 12px">아직 없음 · 위 + 로 등록</span>`}
       <button class="sd-tm" data-act="pickenemy" data-id="${SOLO.enemy}" aria-current="${curOpp === SOLO.enemy}"><span class="crest" aria-hidden="true">솔</span><span class="nm" style="color:var(--muted)">솔랭·자랭</span></button>
-      <div class="sd-foot">${meRow()}<button class="sd-mi" data-act="settings" aria-selected="${S.tab === "settings"}">${lbi("settings", 22)}설정</button>${themeBtn()}</div>`;
+      </div>
+      <div class="sd-foot">${themeBtn()}${SESS ? `<button class="sd-out" data-act="lgout">로그아웃</button>` : ""}</div>`;
   }
   // 글자 없는 아이콘 버튼에 이름표: aria-label(없으면 title)을 data-tip으로, 브라우저 기본 툴팁(늦게 뜸)은 지움
   function tipIcons() {
@@ -463,6 +465,13 @@
   // 사이드바 아래: 로그인한 사람 · 로그아웃(어디서든 보이게, 11-19 사용자 지적)
   function meRow() { return SESS ? `<div class="sd-me"><span title="${esc(AUTH.user && AUTH.user.nick || "")}">${esc((AUTH.user && AUTH.user.nick) || "로그인됨")}<small>${PROVIDER_KO[AUTH.user && AUTH.user.provider] || ""}</small></span><button class="nc-a" data-act="lgout">로그아웃</button></div>` : ""; }
   function themeBtn() { const d = isDark(); return `<button class="sd-mi sd-theme" role="switch" aria-checked="${d}" data-act="theme">${d ? MOON : SUN}<span>다크 모드</span><span class="sw" aria-hidden="true"><i></i></span></button>`; }
+  // 오른쪽 위: 설정 아이콘 + 프로필(로그인한 사람 첫 글자) — 11-20 사용자 요청: 사이드바 대신 로고와 같은 줄
+  function hdMe() {
+    const u = AUTH.user, nk = (u && u.nick) || "", pv = PROVIDER_KO[u && u.provider] || "";
+    const prof = SESS ? `<button class="hd-prof" data-act="settings" aria-label="${esc(`${nk || "로그인됨"} · ${pv} — 계정`)}" title="${esc(`${nk || "로그인됨"} · ${pv}`)}"><span>${esc((nk || "나").slice(0, 1))}</span>${pv ? `<i class="pv-${esc((u && u.provider) || "")}" aria-hidden="true"></i>` : ""}</button>`
+      : `<button class="hd-login tab" data-tab="our">로그인</button>`;
+    return `<span class="hd-me"><button class="ib mh-ib hd-set" data-act="settings" aria-label="설정" aria-pressed="${S.tab === "settings"}">${lbi("settings", 22)}</button>${prof}</span>`;
+  }
   function renderHead() {
     const el = document.getElementById("mhead");
     if (!el) return;
@@ -492,7 +501,7 @@
       const T = { team: ["우리 팀", `${esc(ourName)} · 선수·챔프폭 · 팀원 초대`], vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"] }[S.tab] || ["", ""];
       c = `<b class="mh-t">${T[0]}</b><span class="mh-s">${T[1]}</span>`;
     }
-    el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}</div>`;
+    el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}${hdMe()}</div>`;
   }
 
   // ---------- header ----------

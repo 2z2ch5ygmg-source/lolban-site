@@ -998,3 +998,18 @@ html.pc .e-thr .e-t { min-width: 0; } html.pc .e-thr .e-t small { overflow: hidd
 @media (max-width: 1599px) { html.pc .e-sum { gap: 22px; } html.pc .e-thr { max-width: 46%; } html.pc .e-thr .e-t small { max-width: 170px; } }
 html.pc .e-thr .e-t > span { min-width: 0; display: grid; } html.pc .e-thr .e-t b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 230px; }
 @media (max-width: 1599px) { html.pc .e-thr .e-t b { max-width: 170px; } }
+
+/* 사이드바 정리(11-20): 상대 팀은 5개 높이 안에서 스크롤, 아래엔 다크 모드·로그아웃, 프로필·설정은 오른쪽 위 */
+html.pc #side { overflow-y: auto; }   /* 상대 팀 목록이 5개 높이로 줄어 보통 화면에선 사이드바가 안 넘침 */
+.sd-opp { display: grid; gap: 2px; max-height: calc(5 * 48px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; margin-right: -6px; padding-right: 6px; }
+.sd-foot { display: grid; gap: 8px; }
+.sd-out { justify-self: center; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+.sd-out:hover { color: var(--red); }
+.mh-r { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.hd-me { display: inline-flex; align-items: center; gap: 8px; margin-left: 6px; }
+.hd-set[aria-pressed="true"] { color: var(--hi); }
+.hd-prof { position: relative; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--hi); color: var(--on-gold, #fff); font: inherit; font-size: 15px; font-weight: 800; display: grid; place-items: center; cursor: pointer; flex: none; }
+.hd-prof:hover { box-shadow: 0 0 0 3px var(--hi-bg); }
+.hd-prof i { position: absolute; right: -2px; bottom: -2px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--bg); background: var(--muted); }
+.hd-prof i.pv-naver { background: #03C75A; } .hd-prof i.pv-google { background: #fff; box-shadow: inset 0 0 0 3px #4285F4; } .hd-prof i.pv-kakao { background: #FEE500; }
+.hd-login { border: 0; background: var(--hi); color: var(--on-gold, #fff); font: inherit; font-weight: 700; font-size: 14px; padding: 8px 16px; border-radius: 999px; cursor: pointer; }
