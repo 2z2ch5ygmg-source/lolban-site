@@ -164,7 +164,7 @@
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 무시 */ } rosterChanged(); }
 
   // ---------- 팀 명단 서버 동기화(11-19): 팀 이름·우리팀·계정·부계정을 팀 공간에 하나로 — 팀원끼리 같고, 0시 수집기가 이 명단으로 기록을 모음 ----
-  const RS = { last: "", timer: null, loaded: false, msg: "" };
+  const RS = { last: "", timer: null, loaded: false, msg: "", sp: "" };   // sp = 이 브라우저가 명단을 받아 온 팀 공간(다른 공간에 올리지 않게)
   const rosterCan = () => !!(SPACE && !SPACE.bad && WURL() && SPACE.id !== "subin");
   function rosterOf() {
     const ok = (v) => /^[^#<>"'`\\]{1,32}#[^#<>"'`\\]{1,8}$/.test(String(v || "").trim());
@@ -172,24 +172,25 @@
       players: Object.fromEntries(ROLES.map((r) => { const p = t.players[r] || {}; return [r, { riot: ok(p.riot) ? String(p.riot).trim() : "", alts: (p.alts || []).filter(ok).map((a) => String(a).trim()).slice(0, 2) }]; })) })) };
   }
   function rosterChanged() {
-    if (!rosterCan() || !RS.loaded) return;
+    if (!rosterCan() || !RS.loaded || RS.sp !== SPACE.id) return;
     const sig = JSON.stringify(rosterOf());
     if (sig === RS.last) return;
     clearTimeout(RS.timer); RS.timer = setTimeout(pushRoster, 1000);
   }
   async function pushRoster() {
-    RS.timer = null; if (!rosterCan()) return;
+    RS.timer = null; if (!rosterCan() || !RS.loaded || RS.sp !== SPACE.id) return;   // 11-20 사고: 팀을 옮기는 사이 예전 공간 명단이 새 공간에 올라가 팀장 명단을 덮음
     const body = rosterOf(), sig = JSON.stringify(body);
-    try { const res = await wfetch(`/roster`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: sig }); const d = await res.json().catch(() => ({})); if (res.ok && d.status === "ok") { RS.last = sig; RS.msg = ""; } else RS.msg = "명단 저장 실패: " + (d.reason || res.status); }
+    try { const res = await wfetch(`/roster`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: sig }); const d = await res.json().catch(() => ({})); if (res.ok && d.status === "ok") { RS.last = sig; RS.msg = ""; } else if (res.status === 409 && d.code === "empty-roster") { RS.loaded = false; RS.last = ""; loadRoster(); return; } else RS.msg = "명단 저장 실패: " + (d.reason || res.status); }
     catch (e) { RS.msg = "명단 저장 실패 — 다시 바꾸면 또 올립니다"; }
   }
   async function loadRoster() {
     if (!rosterCan() || RS.timer) return;   // 올리기를 기다리는 동안에는 받지 않음(내 입력을 덮지 않게)
     try {
+      const spId = SPACE.id;
       const res = await wfetch(`/roster`); const d = await res.json().catch(() => ({}));
-      if (!res.ok || d.status !== "ok") return;
+      if (!res.ok || d.status !== "ok" || !SPACE || SPACE.id !== spId) return;   // 받는 사이 공간이 바뀌었으면 버림
       const R = d.roster;
-      if (!R || !Array.isArray(R.teams)) { RS.loaded = true; RS.last = ""; rosterChanged(); return; }   // 서버에 아직 없음 → 이 브라우저 명단을 올림
+      if (!R || !Array.isArray(R.teams)) { RS.loaded = true; RS.sp = SPACE.id; RS.last = ""; rosterChanged(); return; }   // 서버에 아직 없음 → 이 브라우저 명단을 올림
       let changed = false;
       const ids = new Set(R.teams.map((t) => t.id));
       R.teams.forEach((rt) => {
@@ -203,7 +204,7 @@
       S.teams = S.teams.filter((t) => t.solo || ids.has(t.id) || t.id === SPACE.id);
       if (S.teams.length !== before) changed = true;
       if (!team(S.enemyTeam)) S.enemyTeam = (S.teams.find((x) => !x.solo && x.id !== S.ourTeam) || { id: SOLO.enemy }).id;
-      RS.loaded = true; RS.last = JSON.stringify(rosterOf());
+      RS.loaded = true; RS.sp = SPACE.id; RS.last = JSON.stringify(rosterOf());
       if (changed) { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 무시 */ } render(); }
       rosterChanged();
     } catch (e) { /* 다음에 */ }
@@ -4392,10 +4393,12 @@
   }
   // 팀 공간에 들어온 직후: 공유 자료를 서버에서 다시 읽는다
   function spaceJoined() {
+    // 공간이 바뀌면 예전 공간 명단 올리기를 먼저 멈춤(ensureSpaceTeam의 save()가 예전 상태로 올리지 않게)
+    clearTimeout(RS.timer); RS.timer = null; RS.loaded = false; RS.last = ""; RS.sp = "";
+    TM2.list = null;
     SH.url = window.SELF_EVAL_SHARE_URL || ""; SH.status = SH.url ? "loading" : "unset";
     NT.list = null; NT.status = "idle";
     ensureSpaceTeam(true);
-    RS.loaded = false; RS.last = "";
     pullShared(); loadNotes(); loadPrep(); loadRecent(); loadSeed(); loadRoster(); loadCollectStatus(); render();
   }
   async function checkSpace() {
