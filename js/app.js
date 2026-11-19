@@ -2882,11 +2882,22 @@
   function studyData() {
     if (SDATA) return SDATA;
     const ST = window.STUDY || { theory: [], quiz: [], videos: [] }, V = window.VISION;
-    const theory = (ST.theory || []).slice(), quiz = (ST.quiz || []).slice();
+    const theory = (ST.theory || []).slice(), quiz = (ST.quiz || []).map((q) => {
+      if (!q.map || !V) return q;
+      // 지도 장면이 있는 문제는 예전 지도 문제와 같은 화면(장면 → 고르기 → 그 선택으로 벌어지는 일)
+      if (!V.drills.some((d) => d.id === q.id)) {
+        // 챔프 자리가 벽 안에 조금 걸린 것은 가장 가까운 걸을 수 있는 칸으로(11-19 검사: 1,653곳 중 182곳이 2% 안쪽으로 걸림)
+        const sn = (o) => (o && o.at && window.WORLD ? { ...o, at: window.WORLD.snap(o.at) } : o);
+        const fixA = (A) => Object.fromEntries(Object.entries(A || {}).map(([k, o]) => [k, sn(o)]));
+        const m = { ...q.map, scene: { ...q.map.scene, a: fixA(q.map.scene.a) }, opts: q.map.opts.map((o) => (o.after ? { ...o, after: { ...o.after, a: fixA(o.after.a) } } : o)) };
+        V.drills.push({ ...m, id: q.id, ytsrc: q.src, cat: "영상", sub: q.topic }); V._all = null;
+      }
+      return { ...q, drill: true };
+    });
     if (V) {
       V.units.forEach((un) => { const [cat, topic] = ST_UNIT[un.id] || [((un.pos || [])[0]) || "macro", "시야·와드"];
         theory.push({ id: "unit-" + un.id, cat, topic, title: un.title, summary: un.goal, unit: un.id, points: [], src: [] }); });
-      V.drills.forEach((d) => quiz.push({ id: d.id, cat: "macro", topic: ST_DRILL[dcatOf(d)] || "시야·와드", drill: true }));
+      V.drills.filter((d) => d.cat !== "영상").forEach((d) => quiz.push({ id: d.id, cat: "macro", topic: ST_DRILL[dcatOf(d)] || "시야·와드", drill: true }));
     }
     const videos = Object.fromEntries((ST.videos || []).map((x) => [x.v, x]));
     return (SDATA = { theory, quiz, videos });
@@ -3343,7 +3354,7 @@
     const verdict = done ? (d.opts[ans].ok ? `<p class="dres ok">맞음 — ${esc(d.opts[ans].why)}</p>` : `<p class="dres no">아쉬움 — 정답은 ${"ABCD"[d.opts.findIndex((o) => o.ok)]}. ${esc(d.opts.find((o) => o.ok).why)}</p>`) : "";
     const red = d.side === "R";
     const sides = d.kind === "map" ? `<span class="dside ${red ? "r" : "b"}">우리 = ${red ? "레드(오른쪽 위)" : "블루(왼쪽 아래)"}</span><span class="dside ${red ? "b" : "r"}">상대 = ${red ? "블루(왼쪽 아래)" : "레드(오른쪽 위)"}</span>` : "";
-    P.src = d.src != null ? vlink(V, d.src) : d.refs ? refLinks(V, d.refs) : `<span class="dim">기본 원칙</span>`;
+    P.src = d.ytsrc ? stSrc(studyData(), [d.ytsrc]) : d.src != null ? vlink(V, d.src) : d.refs ? refLinks(V, d.refs) : `<span class="dim">기본 원칙</span>`;
     P.head = `<div class="dhead"><span class="pill">${esc(d.cat)}</span><b>${numLabel ? esc(numLabel) + " " : ""}${esc(d.title)}</b><span class="dmeta">${ico("eye")}${esc(d.time)}${d.obj ? " · " + esc(d.obj) : ""}</span>${P.src}</div>`;
     P.sides = `<div class="dsides">${sides}${d.when ? `<span class="dwhen"><b>언제</b> ${esc(d.when)}</span>` : ""}</div>`;
     P.teams = `<div class="dteams"><div><span class="dt-l ${red ? "r" : "b"}">우리${d.kind === "map" ? " · " + (red ? "레드" : "블루") : ""}</span>${teamRow(d.us, "us")}</div><div><span class="dt-l ${red ? "b" : "r"}">상대${d.kind === "map" ? " · " + (red ? "블루" : "레드") : ""}</span>${teamRow(d.them, "them")}</div></div>`;
