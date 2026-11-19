@@ -731,3 +731,29 @@ html.pc #side [data-tip]:hover::after, html.pc #side [data-tip]:focus-visible::a
 .sd-me { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; }
 .sd-me > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; } .sd-me small { margin-left: 6px; font-weight: 500; color: var(--muted); }
 .sd-me .nc-a { margin-left: auto; flex: none; color: var(--muted); }
+
+.ip-our { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border-radius: 14px; background: var(--hi-bg); margin-bottom: 12px; }
+.ip-our select { height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: 14px; font-weight: 700; }
+.ip-our .help { font-size: 13px; }
+
+/* 사이드바 상대 팀: 마우스를 올리면 삭제 × */
+.sd-tmw { position: relative; }
+.sd-tmw .sd-tm { padding-right: 36px; }
+.sd-tm-x { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: 0; border-radius: 8px; background: none; color: var(--muted); font-size: 18px; line-height: 1; opacity: 0; transition: opacity .12s; }
+.sd-tmw:hover .sd-tm-x, .sd-tm-x:focus-visible { opacity: 1; } .sd-tm-x:hover { background: var(--red-bg); color: var(--red); }
+
+/* 우리 팀 화면·설정 나눔 */
+.settings-only { max-width: 760px; }
+.set-cards { display: grid; gap: 16px; }
+.sd-tmw.our-w .sd-tm { padding-right: 40px; }
+.sd-tm-inv { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--muted); padding: 5px; border-radius: 8px; display: inline-flex; }
+.sd-tm-inv:hover { color: var(--hi); background: var(--hi-bg); }
+.sd-tm.our .nm { color: var(--blue); font-weight: 700; }
+html.pc .sd-tm.our[aria-current="true"] { background: var(--bg2); }
+/* 명단 등록: 양식 내려받기 */
+.ip-tpl { display: flex; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 16px; background: var(--hi-bg); }
+.ip-tpl > span { display: grid; gap: 4px; flex: 1; } .ip-tpl b { font-size: 16px; } .ip-tpl small { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.ip-tpl .n-new { flex: none; display: inline-flex; align-items: center; gap: 8px; }
+
+/* 이름표(data-tip)의 position: relative가 덮지 않게 */
+html.pc .sd-tm-inv, html.pc .sd-tm-x { position: absolute; }

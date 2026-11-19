@@ -426,10 +426,10 @@
     el.innerHTML = `<a class="sd-logo" href="/" aria-label="lolban 처음 화면">lolban<i>.</i></a>
       ${SIDE_MENU.map(([k, ic, n]) => `<button class="tab sd-mi" data-tab="${k}" aria-selected="${S.tab === k}">${lbi(ic, 22)}${n}</button>`).join("")}
       <div class="sd-sec">우리 팀</div>
-      ${our ? `<div class="sd-tm our">${crestOf(our, "b")}<span class="nm" title="${esc(our.name)}">${esc(our.name)}</span>${sp ? `<button class="act" data-act="invite" aria-label="팀원 초대 링크 복사" title="팀원 초대 링크 복사">${lbi("invite", 22)}</button>` : ""}</div>`
+      ${our ? `<div class="sd-tmw our-w"><button class="tab sd-tm our" data-tab="team" aria-current="${S.tab === "team"}">${crestOf(our, "b")}<span class="nm" title="${esc(our.name)}">${esc(our.name)}</span></button>${sp ? `<button class="sd-tm-inv" data-act="invite" aria-label="${SPACE && SPACE.viaLogin ? "초대 코드 복사" : "팀원 초대 링크 복사"}">${lbi("invite", 20)}</button>` : ""}</div>`
         : `<button class="sd-tm sd-new" data-act="team">${lbi("plus", 20)}<span class="nm">팀 만들기</span></button>`}
       <div class="sd-sec">상대 팀 <button data-act="import" aria-label="상대 팀 등록(엑셀)" title="상대 팀 등록(엑셀)">${lbi("plus", 18)}</button></div>
-      ${opp.map((t) => `<button class="sd-tm" data-act="pickenemy" data-id="${t.id}" aria-current="${t.id === curOpp}">${crestOf(t, t.id === curOpp ? "r" : "")}<span class="nm" title="${esc(t.name)}">${esc(t.name)}</span></button>`).join("")
+      ${opp.map((t) => `<div class="sd-tmw"><button class="sd-tm" data-act="pickenemy" data-id="${t.id}" aria-current="${t.id === curOpp}">${crestOf(t, t.id === curOpp ? "r" : "")}<span class="nm" title="${esc(t.name)}">${esc(t.name)}</span></button><button class="sd-tm-x" data-act="delteam" data-id="${t.id}" aria-label="「${esc(t.name)}」 팀 삭제">×</button></div>`).join("")
         || `<span class="help" style="padding:4px 12px">아직 없음 · 위 + 로 등록</span>`}
       <button class="sd-tm" data-act="pickenemy" data-id="${SOLO.enemy}" aria-current="${curOpp === SOLO.enemy}"><span class="crest" aria-hidden="true">솔</span><span class="nm" style="color:var(--muted)">솔랭·자랭</span></button>
       <div class="sd-foot">${meRow()}<button class="sd-mi" data-act="settings" aria-selected="${S.tab === "settings"}">${lbi("settings", 22)}설정</button>${themeBtn()}</div>`;
@@ -476,7 +476,7 @@
       c = `<span class="mh-t">${crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b")}<span class="tb">${esc(ourName)}</span></span><span class="mh-s">연습 기간 ${since}~${g ? ` · 함께 한 경기 ${g.length}판 ${g.filter((x) => x.win).length}승` : ""}</span>`;
     } else {
       const VS = window.VISION, nD = typeof allDrills === "function" && VS ? allDrills().length : 0, nOk = Object.values(S.ui.dScore || {}).filter(Boolean).length;
-      const T = { vision: ["시야 공부", VS ? `맞힘 ${nOk} / ${nD} · 출처 ${esc(VS.source.author)}` : "배우기 · 문제 · 한눈에 보기"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"] }[S.tab] || ["", ""];
+      const T = { team: ["우리 팀", `${esc(ourName)} · 선수·챔프폭 · 팀원 초대`], vision: ["시야 공부", VS ? `맞힘 ${nOk} / ${nD} · 출처 ${esc(VS.source.author)}` : "배우기 · 문제 · 한눈에 보기"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"] }[S.tab] || ["", ""];
       c = `<b class="mh-t">${T[0]}</b><span class="mh-s">${T[1]}</span>`;
     }
     el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}</div>`;
@@ -1608,7 +1608,7 @@
     } else if (k === "five") {
       const t = team(spaceTeamId());
       body = `<div class="nu-five">${ROLES.map((r) => { const pl = t && t.players[r]; return `<span class="nu-p ${pl && /#/.test(pl.riot || "") ? "ok" : ""}"><small>${ROLE_KO[r]}</small><b>${esc((pl && nick(pl.riot)) || "비어 있음")}</b></span>`; }).join("")}</div>
-        <div class="nu-act"><button class="n-new" data-act="settings" data-k="teams">선수 넣기</button><button class="soft-b" data-act="import">엑셀로 한 번에</button></div>
+        <div class="nu-act"><button class="tab n-new" data-tab="team">선수 넣기</button><button class="soft-b" data-act="import">엑셀로 한 번에</button></div>
         <p class="help nu-foot">라인마다 본계정 라이엇 ID · 티어와 챔프폭은 기록에서 자동</p>`;
     } else if (k === "invite" && SPACE && SPACE.viaLogin) {
       body = loginBody();
@@ -1905,7 +1905,7 @@
   let edLane = "T";   // 휴대폰: 자기평가 창은 라인 하나씩
   function renderEditor() {
     const inl = document.getElementById("setEd");
-    if (inl && S.tab === "settings" && !MOB.matches) {
+    if (inl && S.tab === "team" && !MOB.matches) {
       // 설정 칸 안: 닫기(Esc)로 비우지 않고 고른 팀을 다시 그림
       editing = setTeamPC(); inl.dataset.team = editing;
       const ok = team(editing); if (!ok) { inl.innerHTML = ""; return; }
@@ -2046,7 +2046,7 @@
           <label class="sd-fl"><small>숙련도</small><select class="input" data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select></label>
           <span class="sd-fl"><small aria-hidden="true">&nbsp;</small><button class="ib btn sm sd-addb" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></span></div></div></div>`; }).join("");
   }
-  function renderSettingsPC() {
+  function renderTeamPC() {
     const ours = team(S.ourTeam), tid = setTeamPC(), t = tid ? team(tid) : null, isOur = !!t && t.id === S.ourTeam;
     const enemies = S.teams.filter((x) => !x.solo && x.id !== S.ourTeam);
     const tseg = `<div class="seg" role="group" aria-label="편집할 팀"><button data-act="setteam" data-v="our" aria-pressed="${S.ui.setTeam !== "enemy"}">우리 팀</button><button data-act="setteam" data-v="enemy" aria-pressed="${S.ui.setTeam === "enemy"}">상대 팀</button></div>`
@@ -2054,7 +2054,7 @@
     const canShare = t && !t.solo && SH.url && shareable(t.id);
     const left = `<section class="sd-main-c"><h3 class="h-h">선수·챔프폭<small>${t ? esc(t.name) : ""}</small></h3>
       <div class="n-bar sd-bar">${tseg}<span class="dim sd-help">${isOur ? "챔프 알약을 누르면 원챔 → 상 → 중 → 하 순서로 바뀜 · 우리 챔프폭은 자기평가" : "여기 넣은 챔프는 전적 추천에 더해짐"}</span><span class="n-sp"></span>
-        ${t && !t.solo ? `<button class="soft-b" data-act="tqall" ${TQ.busy ? "disabled" : ""} title="본계정·부계정 모두 솔랭·자랭 티어를 Riot에서 받기">${TQ.busy ? `받는 중 ${TQ.done}/${TQ.all}` : "Riot에서 티어 받기"}</button>` : ""}<button class="soft-b" data-act="export">엑셀 내보내기</button><button class="soft-b" data-act="import">엑셀 불러오기</button>${canShare ? `<button class="n-new sm" data-act="sharenow" title="지금 팀원에게 다시 올리기">팀에 공유</button>` : ""}</div>
+        ${t && !t.solo ? `<button class="soft-b" data-act="tqall" ${TQ.busy ? "disabled" : ""} title="본계정·부계정 모두 솔랭·자랭 티어를 Riot에서 받기">${TQ.busy ? `받는 중 ${TQ.done}/${TQ.all}` : "Riot에서 티어 받기"}</button>` : ""}${t && !isOur && !t.solo ? `<button class="soft-b bad" data-act="delteam" data-id="${t.id}">이 팀 삭제</button>` : ""}<button class="soft-b" data-act="export">엑셀 내보내기</button><button class="soft-b" data-act="import">명단 등록</button>${canShare ? `<button class="n-new sm" data-act="sharenow" title="지금 팀원에게 다시 올리기">팀에 공유</button>` : ""}</div>
       <p class="help" id="shareNote" aria-live="polite">${t && t.solo ? "" : shareNote()}</p>${TQ.msg ? `<p class="help" role="status">${esc(TQ.msg)}</p>` : ""}
       ${t ? `<div id="setEd" class="sd-ed" data-team=""></div>` : `<p class="help">${S.ui.setTeam === "enemy" ? "상대 팀이 없습니다 — 「엑셀 불러오기」로 상대 팀을 넣으세요." : "우리 팀이 없습니다 — 오른쪽에서 팀을 만들거나 초대 링크로 들어오세요."}</p>`}</section>`;
     const inv = (SESS || !SPACE) ? loginBody() : SPACE && !SPACE.bad ? `<span class="sd-team">${crestOf(ours && !ours.solo ? ours : { name: SPACE.name || "팀" }, "b")}<b>${esc(SPACE.name || "팀 공간")}</b>${SPACE.owner ? `<small>팀장 인증 ${esc(SPACE.owner)}</small>` : ""}</span>
@@ -2064,15 +2064,24 @@
         <p class="help">링크를 연 브라우저가 우리 팀에 들어옵니다 · 상대가 명단을 알아도 링크 없이는 못 봄</p>
         <span class="sd-btns"><button class="soft-b" data-act="trotate">${lbi("refresh", 16)}링크 새로 만들기</button><button class="soft-b bad" data-act="tleave">이 브라우저 열쇠 지우기</button></span>`
       : `<div class="sd-tb">${teamBody()}</div>`;
-    const right = `<aside class="sd-side">
-      <section class="sd-card"><h3>우리 팀·초대</h3>${inv}</section>
+    const right = `<aside class="sd-side"><section class="sd-card"><h3>우리 팀·초대</h3>${inv}</section></aside>`;
+    return `<div class="home settings-pc">${left}${right}</div>`;
+  }
+  // 설정(PC): 분석 기준 · 이 브라우저 · 계정
+  function renderSettingsPC() {
+    const acct = SESS ? `<p class="lg-who">${esc((AUTH.user && AUTH.user.nick) || "로그인됨")} · ${PROVIDER_KO[AUTH.user && AUTH.user.provider] || ""}</p>
+        <span class="sd-btns"><button class="soft-b" data-act="lgout">로그아웃</button><button class="nc-a del" data-act="lgdel">탈퇴</button></span>
+        <p class="help">탈퇴하면 로그인 정보와 소속이 지워지고, 혼자 있는 팀은 팀 자료까지 지워집니다</p>`
+      : `<p class="help">로그인하지 않았습니다</p><span class="sd-btns"><button class="tab n-new" data-tab="our">로그인</button></span>`;
+    const right = `<div class="set-cards">
       <section class="sd-card"><h3>분석 기준</h3><b class="sd-sub">티어 기준</b>
         <div class="seg" role="group" aria-label="티어 기준">${Object.entries(QUEUE_TXT).map(([k, [n]]) => `<button data-act="setq" data-v="${k}" aria-pressed="${CFG.queue === k}">${n}</button>`).join("")}</div>
         ${CFG.qMsg ? `<p class="help" role="status">${esc(CFG.qMsg)}</p>` : ""}
         <b class="sd-sub">대회 준비 시작일</b>${prepHtml(window.RECENT)}<p class="help">이 날짜부터 한 판을 연습으로 셈</p></section>
       <section class="sd-card"><h3>이 브라우저</h3><p class="help">밴픽 진행·저장한 밴픽·팀 공간 열쇠·화면 상태는 이 브라우저에만 있습니다. 다른 기기는 초대 링크로 들어오면 팀 자료를 같이 봅니다.</p>
-        <span class="sd-btns"><button class="soft-b" data-act="wipe">처음 상태로</button><small class="dim">팀 공간 열쇠와 팀 공유 자료는 그대로</small></span></section></aside>`;
-    return `<div class="home settings-pc">${left}${right}</div>`;
+        <span class="sd-btns"><button class="soft-b" data-act="wipe">처음 상태로</button><small class="dim">팀 공간 열쇠와 팀 공유 자료는 그대로</small></span></section>
+      <section class="sd-card"><h3>계정</h3>${acct}</section></div>`;
+    return `<div class="home settings-only">${right}</div>`;
   }
   function addChamp(r) {
     const inp = document.querySelector(`[data-add="${r}"]`);
@@ -2106,7 +2115,7 @@
   function flowSteps() {
     const ourId = spaceTeamId();
     const hasOpp = S.teams.some((t) => !t.solo && t.id !== (ourId || S.ourTeam));
-    // 처음 쓴 팀(수빈이의아이들, 팀 공간 subin)은 시작 절차를 모두 끝낸 것으로 본다(사용자 지시 11-19) — 팀원마다 안내 없이 바로
+    // 처음 쓴 팀(팀 공간 subin)은 시작 절차를 모두 끝낸 것으로 본다(사용자 지시 11-19) — 팀원마다 안내 없이 바로
     const legacy = ourId === "subin";
     return [
       { k: "team", n: "팀 만들기", d: "팀 이름 + 본인 라이엇 계정 확인", done: !!ourId, act: `data-act="team"`, cta: "팀 만들기" },
@@ -2140,7 +2149,7 @@
   async function loadProviders() {
     if (!WURL() || AUTH.providers) return;
     try { const d = await (await fetch(`${WURL()}/auth/providers`, { cache: "no-store", credentials: "omit" })).json(); AUTH.providers = d.status === "ok" ? d.providers : []; } catch (e) { AUTH.providers = []; }
-    if (guest() || S.tab === "settings" || S.tab === "our") render();
+    if (guest() || S.tab === "settings" || S.tab === "team" || S.tab === "our") render();
   }
   function startLogin(p) { location.href = `${WURL()}/auth/${p}/start?ret=${encodeURIComponent(location.origin + location.pathname)}`; }
   async function loadMe() {
@@ -2333,7 +2342,10 @@
   async function exportData() {
     try {
       const X = await loadXLSXStyle();
-      const rows = window.TeamSheet.toRows(S.teams.filter((t) => !t.solo), S.ourTeam, (id) => (CH[id] ? CH[id].ko : id), todayKST());
+      let list = S.teams.filter((t) => !t.solo), ourId = S.ourTeam;
+      if (!list.length) { list = [blankTeam("tpl-our", "우리 팀 이름"), blankTeam("tpl-opp", "상대 팀 이름")]; ourId = "tpl-our"; }
+      else if (list.length === 1) list = list.concat([blankTeam("tpl-opp", "상대 팀 이름")]);   // 상대 팀 칸 하나는 예시로
+      const rows = window.TeamSheet.toRows(list, ourId, (id) => (CH[id] ? CH[id].ko : id), todayKST());
       const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, styledSheet(X, rows), "팀 챔프폭");
       X.writeFile(wb, `팀챔프폭-${todayKST()}.xlsx`);
     } catch (e) { alert("내보내기 실패: " + (e.message || e)); }
@@ -2418,6 +2430,7 @@
     }
     if (!r.rows.length) { IMP.parsed = null; IMP.diff = null; IMP.msg = "「이름#태그」 계정을 찾지 못했습니다 — 예시처럼 한 줄에 라인과 계정을 적어 주세요"; render(); return; }
     IMP.parsed = window.TeamSheet.parse(r.rows, resolve);
+    markOurImport();
     r.notes.forEach((n) => IMP.parsed.warnings.push({ row: 0, msg: n }));
     if (!IMP.file || IMP.src === "text") IMP.file = "텍스트";
     IMP.diff = window.TeamSheet.diff(S.teams, IMP.parsed, S.ourTeam);
@@ -2466,6 +2479,18 @@
     }
     if (fixed && seq === IMP.seq) { IMP.msg = `사진 계정 ${fixed}개를 다른 읽기 결과로 고쳤습니다(Riot에 있는 계정으로 확인) — 남은 ✕는 텍스트 칸에서 직접 고쳐 주세요`; parseText(); }
   }
+  // 「우리 팀은?」: 파일에 우리팀 표시가 없으면 내 팀 이름과 같은 팀을 우리 팀으로(없으면 고르게)
+  function markOurImport(name) {
+    const P = IMP.parsed; if (!P) return;
+    const ourT = team(S.ourTeam), mine = ourT && !ourT.solo ? ourT.name : "";
+    if (name != null) P.teams.forEach((t) => (t.our = t.name === name));
+    else if (!P.teams.some((t) => t.our) && mine) P.teams.forEach((t) => (t.our = t.name === mine));
+  }
+  function impOurPick(P) {
+    const ourT = team(S.ourTeam); if (!P || !P.teams.length || !ourT || ourT.solo) return "";
+    const cur = (P.teams.find((t) => t.our) || {}).name || "";
+    return `<label class="ip-our"><b>우리 팀은?</b><select data-act="impour" aria-label="파일에서 우리 팀 고르기"><option value="" ${cur ? "" : "selected"}>없음 — 모두 상대 팀으로</option>${P.teams.map((t) => `<option value="${esc(t.name)}" ${t.name === cur ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select><span class="help">고른 팀의 선수는 「${esc(ourT.name)}」에 들어갑니다</span></label>`;
+  }
   function impCheckHtml(P) {
     if (!P) return "";
     const ids = [...new Set(P.teams.flatMap((t) => Object.values(t.players).flatMap((x) => [x.riot, ...(x.alts || [])])).filter(Boolean))];
@@ -2490,8 +2515,11 @@
         const X = await loadXLSX();
         const wb = X.read(await file.arrayBuffer(), { type: "array", cellFormula: false, cellHTML: false, cellStyles: false });
         const name = wb.SheetNames.includes("팀 챔프폭") ? "팀 챔프폭" : wb.SheetNames[0];
-        const rows = X.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "", raw: false, blankrows: true });
+        let rows = X.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "", raw: false, blankrows: true });
+        // 설문처럼 「팀 이름 | 탑 | 정글 …」 한 줄에 팀 하나인 파일도 우리 양식으로(11-19)
+        if (window.TeamSheet.isWide(rows)) { rows = window.TeamSheet.fromWide(rows); IMP.wide = true; } else IMP.wide = false;
         IMP.parsed = window.TeamSheet.parse(rows, (n) => { const c = findChamp(n); return c ? c.id : null; });
+        markOurImport();
         IMP.diff = window.TeamSheet.diff(S.teams, IMP.parsed, S.ourTeam);
       }
     } catch (e) { IMP.msg = "읽지 못했습니다: " + (e.message || e); }
@@ -2535,19 +2563,20 @@
         : `<span class="imp-c">챔프폭 ${c.add.length ? `<span class="cpills">${champList(c.add, "good")}</span>` : ""}${c.del.length ? `<span class="cpills">${champList(c.del, "bad")}</span>` : ""}</span>`).join("") : `<span class="help">새로 넣음</span>`}</li>`;
       const cards = changed.map((x) => `<div class="card imp-team"><h3>${esc(x.name)} ${x.isNew ? `<span class="pill gold">새 팀</span>` : `<span class="pill">바뀜</span>`}${x.becomesOur ? `<span class="pill blue">우리팀으로</span>` : x.our ? `<span class="pill blue">우리팀</span>` : ""}</h3><ul class="imp-lanes">${x.lanes.map(lane).join("")}</ul></div>`).join("");
       pv = `<section class="imp-pv"><div class="imp-sum"><b>${esc(IMP.file)}</b><span class="help">팀 ${D.length}개 · 바뀌는 팀 ${changed.length}${same ? ` · 그대로 ${same}` : ""}${D.some((x) => x.isNew) ? ` · 새 팀 ${D.filter((x) => x.isNew).length}` : ""}</span></div>
-        ${impCheckHtml(P)}${errs}${warns}${cards || (P.errors.length ? "" : `<p class="help">바뀌는 것이 없습니다.</p>`)}
+        ${impOurPick(P)}${impCheckHtml(P)}${errs}${warns}${cards || (P.errors.length ? "" : `<p class="help">바뀌는 것이 없습니다.</p>`)}
         <div class="dnav"><button class="btn primary" data-act="impapply" ${P.errors.length || !changed.length ? "disabled" : ""}>적용</button><button class="btn ghost" data-act="impclear">다시 고르기</button></div></section>`;
     }
     return pv;
   }
   function renderImportPC() {
     const busy = IMP.busy && IMP.ocr != null;
-    const ex = "팀: 반클러치 (상대)\n탑 도도한낫츠#kr1 마스터 레넥톤 상, 아트록스 중\n정글 김진규#0516\n부계정 김진규부캐#KR2\n미드 달 구#1234\n원딜 해피#KR1\n서폿 판도라#KR3";
+    const ex = "팀: 새벽반 (상대)\n탑 바람개비#KR1 마스터 레넥톤 상, 아트록스 중\n정글 숲지기#0001\n부계정 숲지기부캐#KR2\n미드 별빛#1234\n원딜 화살#KR1\n서폿 방패#KR3";
     const input = `<section class="ip-in">
+      <div class="ip-tpl"><span><b>엑셀 양식</b><small>우리 팀·상대 팀을 팀마다 「팀 줄 + 라인 5줄」로. 지금 명단이 채워진 파일로 받아 고쳐 쓰면 됩니다</small></span><button class="n-new" data-act="export">${lbi("note", 18)}엑셀 양식 내려받기</button></div>
       <label class="ip-drop" id="impDrop"><input type="file" id="impFile" accept="image/*,.xlsx,.xls,.json,.txt" hidden>
         <span class="ip-ic">${lbi("note", 30)}</span><b>사진 · 엑셀 파일을 여기로 끌어다 놓기</b><span>눌러서 고르기 · 캡처한 사진은 <kbd>Ctrl</kbd>+<kbd>V</kbd>로 바로 붙여 넣기</span></label>
       ${busy ? `<div class="ip-bar"><i id="ipBar" style="--w:${Math.round((IMP.ocr || 0) * 100)}%"></i><span id="ipBarT">사진 글자 읽는 중 ${Math.round((IMP.ocr || 0) * 100)}%</span><small>처음 한 번은 글자 인식 자료(약 2MB)를 받습니다 · 사진은 이 브라우저 밖으로 나가지 않음</small></div>` : IMP.busy ? `<p class="help">읽는 중…</p>` : ""}
-      <div class="ip-team"><label class="sd-fl"><small>팀 이름 · 글에 「팀:」 줄이 없을 때</small><input class="input" id="ipTeam" maxlength="30" value="${esc(IMP.team)}" placeholder="예: 반클러치"></label>
+      <div class="ip-team"><label class="sd-fl"><small>팀 이름 · 글에 「팀:」 줄이 없을 때</small><input class="input" id="ipTeam" maxlength="30" value="${esc(IMP.team)}" placeholder="예: 새벽반"></label>
         <div class="seg" role="group" aria-label="우리팀인지"><button data-act="ipour" data-v="0" aria-pressed="${!IMP.our}">상대</button><button data-act="ipour" data-v="1" aria-pressed="${!!IMP.our}">우리팀</button></div></div>
       <label class="sd-fl ip-txt"><small>텍스트 · 사진에서 읽은 글도 여기 나옵니다(고쳐도 됨)</small><textarea class="input" id="ipText" rows="9" spellcheck="false" placeholder="${esc(ex)}">${esc(IMP.text)}</textarea></label>
       <div class="nu-act"><button class="n-new" data-act="ipparse">명단으로 바꾸기</button><span class="dim">계정은 「이름#태그」 · 라인 이름이 없으면 순서대로 탑·정글·미드·원딜·서폿</span></div>
@@ -2558,12 +2587,12 @@
       <p class="help"><b>텍스트</b> 한 줄에 라인과 계정. 「팀: 이름」 줄로 팀을 나누고, 「부계정」 줄은 바로 위 라인에 붙습니다</p>
       <pre class="ip-ex">${esc(ex)}</pre>
       <p class="help">적용하면 본계정·부계정의 솔랭·자랭 티어를 Riot에서 받고, 챔프폭은 기록으로 채웁니다</p>
-      <span class="sd-btns"><button class="soft-b" data-act="export">지금 명단 엑셀로 내려받기</button></span></section></aside>`;
+      <p class="help">설문처럼 「팀 이름 | 탑 | 정글 | 미드 | 원딜 | 서폿」 한 줄에 팀 하나인 엑셀도 그대로 됩니다</p></section></aside>`;
     return `<div class="home imp-pc"><div class="ip-grid">${input}${help}</div>${impPreview()}</div>`;
   }
   function renderImport() {
-    const ex = [["팀", "수빈이의아이들", "우리팀"], ["라인", "본계정", "부계정1", "부계정2", "티어", "점수", "챔프폭"],
-      ["탑", "loegu#kr1", "", "", "에메랄드 4 24LP", "45", "다리우스:상, 말파이트:상, 케넨:중"], ["정글", "키아나#1234", "장국보#KR1", "", "챌린저 630LP", "90", "키아나:원챔, 누누:중"], ["…", "", "", "", "", "", ""]];
+    const ex = [["팀", "새벽반", "우리팀"], ["라인", "본계정", "부계정1", "부계정2", "티어", "점수", "챔프폭"],
+      ["탑", "바람개비#KR1", "", "", "에메랄드 4 24LP", "45", "다리우스:상, 말파이트:상, 케넨:중"], ["정글", "숲지기#0001", "숲지기부캐#KR2", "", "챌린저 630LP", "90", "키아나:원챔, 누누:중"], ["…", "", "", "", "", "", ""]];
     const exHtml = `<div class="tbl-wrap"><table class="imp-ex"><tbody>${ex.map((r, i) => `<tr class="${i === 0 ? "t" : i === 1 ? "h" : ""}">${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
     const pv = impPreview();
     return `<div class="section-title"><h2>팀·챔프폭 불러오기</h2><p>엑셀로 팀 명단·계정·챔프폭을 한 번에 넣습니다</p><button class="ib btn sm" data-act="impback" aria-label="돌아가기" title="돌아가기">${ico("back")}</button></div>
@@ -3350,11 +3379,11 @@
     turnTitle();
     if (!mob) { renderSideNav(); renderHead(); }
     if (!mob) setTimeout(tipIcons, 0);
-    const keepEd = !mob && S.tab === "settings" ? document.getElementById("setEd") : null;
+    const keepEd = !mob && S.tab === "team" ? document.getElementById("setEd") : null;
     const keepEdF = keepEd && keepEd.contains(document.activeElement) ? keepEd : null;
     const edAE = keepEdF ? document.activeElement : null;
-    v.innerHTML = mobV ? mobV() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderVisionPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : (mob ? renderEnemy() : renderEnemyPC());
-    if (!mob && S.tab === "settings") { const ph = document.getElementById("setEd"); if (ph) { if (keepEdF && keepEdF.dataset.team === setTeamPC()) { ph.replaceWith(keepEdF); if (edAE && keepEdF.contains(edAE)) { const c = edAE.selectionStart; edAE.focus(); try { edAE.setSelectionRange(c, c); } catch (e) { /* select */ } } } else renderEditor(); } }
+    v.innerHTML = mobV ? mobV() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderVisionPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : S.tab === "team" ? (mob ? renderSettings() : renderTeamPC()) : (mob ? renderEnemy() : renderEnemyPC());
+    if (!mob && S.tab === "team") { const ph = document.getElementById("setEd"); if (ph) { if (keepEdF && keepEdF.dataset.team === setTeamPC()) { ph.replaceWith(keepEdF); if (edAE && keepEdF.contains(edAE)) { const c = edAE.selectionStart; edAE.focus(); try { edAE.setSelectionRange(c, c); } catch (e) { /* select */ } } } else renderEditor(); } }
     // 휴대폰: 챔프 고르기·「⋯」 메뉴는 화면 아래 시트로
     const ms = document.getElementById("msheet") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "msheet" }));
     ms.innerHTML = mob ? (S.tab === "live" && S.ui.sheet ? renderPickM() : "") + (MV.more ? renderMoreM() : "") : "";
@@ -3454,6 +3483,13 @@
       case "edfill": { const p = editing && team(editing).players[el.dataset.role]; if (p) { p.tier = el.dataset.v; const pv = ptsOf(p.tier); if (pv != null) p.pts = pv; save(); shareChanged(editing, el.dataset.role); renderEditor(); render(); } break; }
       case "setsec": S.ui.setSec = el.dataset.k; save(); render(); break;
       case "setteam": S.ui.setTeam = el.dataset.v; save(); render(); break;
+      case "delteam": { const t = team(el.dataset.id); if (!t || t.solo || t.id === S.ourTeam) break;
+        if (!confirm(`「${t.name}」 팀을 지울까요? 명단·챔프폭 메모가 ${SPACE && !SPACE.bad ? "팀원 모두에게서 " : ""}지워집니다.`)) break;
+        S.teams = S.teams.filter((x) => x.id !== t.id);
+        if (S.enemyTeam === t.id) { S.enemyTeam = (S.teams.find((x) => !x.solo && x.id !== S.ourTeam) || { id: SOLO.enemy }).id; syncQueue(true); }
+        if (S.ui.setEnemy === t.id) S.ui.setEnemy = "";
+        if (S.tab === "enemy" && S.enemyTeam === SOLO.enemy) S.tab = "our";
+        save(); render(); toast(`「${t.name}」 팀을 지웠습니다`); break; }
       case "lglogin": startLogin(el.dataset.k); break;
       case "lgnew": case "lgjoin": case "lgcode": case "lgleave": case "lgout": case "lgcopy": case "lgdel": authAction(a, el); break;
       case "lgswitch": try { localStorage.setItem("lolban.space.v1", el.dataset.id); } catch (e) { /* 이번만 */ } SPACE = loginSpace(); spaceJoined(); break;
@@ -3611,6 +3647,7 @@
     if (t.id === "ourSel" || t.id === "ourSelM") { S.ourTeam = t.value; E.setOurTeam(S.ourTeam); if (S.enemyTeam === S.ourTeam) S.enemyTeam = S.teams.find((x) => x.id !== S.ourTeam && !x.solo).id; syncQueue(true); save(); render(); }
     else if (t.dataset && t.dataset.rkf && editing) { setRkFrom(t); return; }
     else if (t.dataset && t.dataset.ptsu != null && editing) { const p = team(editing).players[t.dataset.role]; p.ptsU = t.value === "" ? null : Math.max(0, Math.min(100, Number(t.value) || 0)); applyTiers(); save(); renderEditor(); render(); }
+    else if (t.dataset && t.dataset.act === "impour" && IMP.parsed) { markOurImport(t.value); IMP.diff = window.TeamSheet.diff(S.teams, IMP.parsed, S.ourTeam); render(); }
     else if (t.dataset && t.dataset.act === "setenemy") { S.ui.setEnemy = t.value; save(); render(); }
     else if (t.dataset && t.dataset.act === "nfc") { S.ui.nf = { ...(S.ui.nf || {}), champ: t.value }; render(); }
     else if (t.id === "enemySel" || t.id === "enemySelM" || t.id === "enemyPick") { S.enemyTeam = t.value; syncQueue(true); save(); render(); }
@@ -3979,7 +4016,7 @@
     return d;
   }
   // 팀 공간 본문은 설정 페이지 「팀 공간」 칸에 그린다(11-19 정식 배포: 설정을 한 곳에)
-  function renderTeam() { if (S.tab === "settings" || (S.tab === "our" && !MOB.matches)) render(); }
+  function renderTeam() { if (S.tab === "settings" || S.tab === "team" || (S.tab === "our" && !MOB.matches)) render(); }
   function teamBody() {
     const msg = TM.msg ? `<p class="help tm-msg" role="status">${esc(TM.msg)}</p>` : `<p class="help tm-msg" role="status"></p>`;
     let body;
@@ -4000,7 +4037,7 @@
       body = `${SPACE && SPACE.bad ? `<p class="warn">이 브라우저의 팀 공간 열쇠가 바뀌었습니다. 팀원에게 새 초대 링크를 받아 여세요.</p>` : ""}
         <ol class="tm-flow"><li class="cur"><b>팀 만들기</b><small>팀 이름과 본인 라이엇 계정</small></li><li><b>본인 확인</b><small>롤 아이콘을 잠깐 바꾸기</small></li><li><b>초대 링크 공유</b><small>팀원은 링크만 열면 끝</small></li></ol>
         <p class="help">팀원에게 초대 링크를 받았다면 만들 필요 없이 그 링크를 여세요. 본인 확인은 남이 우리 명단으로 「우리팀」을 만들지 못하게 하려는 것입니다.</p>
-        <div class="tm-form"><label>팀 이름<input class="input" id="tmName" maxlength="30" value="${esc(TM.name)}" placeholder="예: 수빈이의아이들"></label>
+        <div class="tm-form"><label>팀 이름<input class="input" id="tmName" maxlength="30" value="${esc(TM.name)}" placeholder="예: 새벽반"></label>
         <label>팀원 라이엇 ID(본인 계정)<input class="input" id="tmRiot" maxlength="42" value="${esc(TM.riot)}" placeholder="이름#태그"></label></div>
         ${msg}
         <div class="dnav"><button class="btn primary" data-act="tstart" ${TM.busy ? "disabled" : ""}>${TM.busy ? "확인 중…" : "팀 공간 만들기"}</button>${SPACE ? `<button class="btn ghost" data-act="tleave">열쇠 지우기</button>` : ""}</div>`;

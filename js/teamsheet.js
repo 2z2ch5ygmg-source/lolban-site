@@ -2,9 +2,9 @@
 // 엑셀 파일 읽고 쓰기는 js/vendor/xlsx(SheetJS 0.20.3)가 하고, 여기는 표(줄 배열)만 다룬다 — 화면 없이 시험할 수 있게.
 //
 // 시트 모양(섹션 하나):
-//   팀     | 수빈이의아이들 | 우리팀            ← 셋째 칸: 「우리팀」 또는 「상대」(비우면 상대)
+//   팀     | 새벽반 | 우리팀            ← 셋째 칸: 「우리팀」 또는 「상대」(비우면 상대)
 //   라인   | 본계정 | 부계정1 | 부계정2 | 티어 | 점수 | 챔프폭
-//   탑     | loegu#kr1 |  |  | 에메랄드 4 24LP | 45 | 다리우스:상, 말파이트:상, 케넨:중
+//   탑     | 바람개비#KR1 |  |  | 에메랄드 4 24LP | 45 | 다리우스:상, 말파이트:상, 케넨:중
 //   …(정글·미드·원딜·서폿)
 //   (빈 줄)
 (function (root) {
@@ -17,7 +17,7 @@
   const HEAD = ["라인", "본계정", "부계정1", "부계정2", "티어", "점수", "챔프폭"];
   const MAX = { teams: 40, rows: 2000, name: 30, tier: 30, pool: 40 };
   const txt = (v) => (v == null ? "" : String(v)).replace(/\s+/g, " ").trim();
-  // 라이엇 ID: 「이름 #태그」처럼 # 앞뒤 빈칸은 붙임. 이름 1~32자·태그 1~8자(둘 다 가운데 빈칸 가능 — 실제 「Loki#살 하」 같은 태그가 있음)
+  // 라이엇 ID: 「이름 #태그」처럼 # 앞뒤 빈칸은 붙임. 이름 1~32자·태그 1~8자(둘 다 가운데 빈칸 가능 — 「별빛#살 하」처럼 태그에 빈칸이 있는 계정도 있음)
   const riotOf = (v) => { const t = txt(v).replace(/\s*#\s*/, "#"); return /^[^#<>"`\\]{1,32}#[^#<>"`\\]{1,8}$/.test(t) ? t : null; };
 
   // ---- 내보내기: 팀 목록 → 줄 배열 ----
@@ -109,8 +109,9 @@
   const sameList = (a, b) => JSON.stringify(a || []) === JSON.stringify(b || []);
   const poolKey = (pool) => (pool || []).map(([id, lv, one]) => `${id}:${one ? "one" : lv}`);
   function diff(current, parsed, ourId) {
+    const ourNow = current.find((t) => !t.solo && t.id === ourId) || null;
     return parsed.teams.map((pt) => {
-      const cur = current.find((t) => !t.solo && t.name === pt.name) || null;
+      const cur = (pt.our && ourNow) || current.find((t) => !t.solo && t.name === pt.name && (!ourNow || t.id !== ourNow.id)) || null;
       const lanes = [];
       LANES.forEach(([r, ko]) => {
         const n = pt.players[r];
@@ -136,8 +137,10 @@
     const teams = JSON.parse(JSON.stringify(current));
     const touched = [];
     let our = ourId;
+    // 「우리팀」 표시 팀은 이름과 상관없이 지금 우리 팀에(11-19: 로그인으로 만든 팀 이름과 엑셀 이름이 달라 새 팀이 생기던 문제)
+    const ourNow = teams.find((x) => !x.solo && x.id === ourId) || null;
     parsed.teams.forEach((pt) => {
-      let t = teams.find((x) => !x.solo && x.name === pt.name);
+      let t = pt.our && ourNow ? ourNow : teams.find((x) => !x.solo && x.name === pt.name && (!ourNow || x.id !== ourNow.id || pt.our));
       if (!t) {
         t = { id: newId(), name: pt.name, players: Object.fromEntries(LANES.map(([r]) => [r, { riot: "", alts: [], tier: "", pts: 50, pool: [] }])) };
         teams.push(t);
@@ -200,10 +203,10 @@
 
   // ---- 텍스트 → 줄 배열(사용자 요청 11-19: 엑셀·사진·텍스트 어느 것이든 명단으로) ----
   // 받는 모양(섞여도 됨):
-  //   팀: 반클러치 (상대)          ← 「팀」으로 시작하는 줄 = 새 팀. 「우리」가 있으면 우리팀
-  //   탑 도도한낫츠#kr1 / 부계정#kr2 에메랄드 2 다리우스 상, 말파 중
-  //   정글: 김진규#0516           ← 라인 이름이 없으면 나온 순서대로 탑·정글·미드·원딜·서폿
-  //   부계정 장국보#KR1           ← 「부계정·부캐·서브」 줄은 바로 위 라인의 부계정
+  //   팀: 새벽반 (상대)          ← 「팀」으로 시작하는 줄 = 새 팀. 「우리」가 있으면 우리팀
+  //   탑 바람개비#KR1 / 부계정#KR2 에메랄드 2 다리우스 상, 말파 중
+  //   정글: 숲지기#0001           ← 라인 이름이 없으면 나온 순서대로 탑·정글·미드·원딜·서폿
+  //   부계정 숲지기부캐#KR2          ← 「부계정·부캐·서브」 줄은 바로 위 라인의 부계정
   //   엑셀에서 복사한 표(탭으로 나뉜 칸)도 그대로
   // opts: { team: 팀 이름이 없을 때 쓸 이름, our: 그 팀이 우리팀인지, ocr: 사진에서 읽은 글(팀 이름을 글에서 짐작하지 않음), resolve: 챔프 이름 → ID }
   const LANE_RE = /^(탑|top|정글|jg|jug|jungle|미드|mid|원딜|바텀|봇|adc?|bot|서폿|서포터|서포트|sup|support)(?=$|[\s:：.)\]\-–|]|\d)/i;
@@ -298,5 +301,49 @@
     });
     return { rows: out, notes };
   }
-  root.TeamSheet = { LANES, HEAD, MAX, riotOf, toRows, parse, diff, apply, sheetLayout, fromText, idsOf, ocrClean };
+  // ---- 옆으로 나열된 설문 형식 ----
+  const INVIS = /[​-‏‪-‮⁦-⁩﻿]/g;
+  const WIDE_LANE = [["T", /^(탑|top)/i], ["J", /^(정글|jg|jungle)/i], ["M", /^(미드|mid)/i], ["A", /^(원딜|바텀|봇|ad|adc|bot)/i], ["S", /^(서폿|서포터|sup|support)/i]];
+  const TIER_WORD = /^(아이언|브론즈|실버|골드|플래티넘|플레티넘|플래|플레|에메랄드|애매랄드|에메|다이아몬드|다이아|그랜드마스터|그마|마스터|챌린저|챌|iron|bronze|silver|gold|platinum|emerald|diamond|master|grandmaster|challenger)/i;
+  // 머리 줄: 첫 칸에 「팀」, 다른 칸에 라인 이름 3개 이상
+  function wideCols(row) {
+    const c = (row || []).map((v) => txt(v).replace(/\(\*\)|\*/g, "").trim());
+    if (!/팀|team/i.test(c[0] || "")) return null;
+    const cols = {};
+    c.forEach((v, i) => { if (!i) return; const l = WIDE_LANE.find(([, re]) => re.test(v)); if (l && cols[l[0]] == null) cols[l[0]] = i; });
+    return Object.keys(cols).length >= 3 ? cols : null;
+  }
+  const isWide = (rows) => Array.isArray(rows) && rows.length > 1 && !!wideCols(rows[0]) && !rows.some((r) => /^(라인)$/.test(txt((r || [])[0])));
+  // 칸 하나에서 계정·티어 글
+  function wideCell(v) {
+    let t = String(v == null ? "" : v).replace(INVIS, "").replace(/\s+/g, " ").trim();
+    if (!t.includes("#")) return { riot: "", tier: "" };
+    let part;
+    const groups = t.match(/\(([^()]*)\)/g);
+    if (groups && groups.some((g) => g.includes("#"))) part = groups.find((g) => g.includes("#")).slice(1, -1);
+    else if (t.includes(",")) part = t.split(",").find((x) => x.includes("#"));
+    else part = t;
+    part = part.trim();
+    const [name0, rest0] = [part.slice(0, part.indexOf("#")), part.slice(part.indexOf("#") + 1)];
+    // 태그: 첫 낱말은 꼭, 그 뒤 낱말은 티어·숫자·점수가 나오기 전까지(「별빛#살 하 플레 35」 → 태그 「살 하」)
+    const toks = rest0.trim().split(" ");
+    const tag = [toks.shift()];
+    while (toks.length && !TIER_WORD.test(toks[0]) && !/^\d/.test(toks[0]) && tag.join(" ").length + toks[0].length < 8) tag.push(toks.shift());
+    const name = name0.trim(), tg = tag.join(" ").trim();
+    const riot = name && tg ? `${name}#${tg}` : "";
+    const tierM = t.replace(part, " ").match(/(아이언|브론즈|실버|골드|플래티넘|플레티넘|플래|플레|에메랄드|애매랄드|에메|다이아몬드|다이아|그랜드마스터|그마|마스터|챌린저|챌|iron|bronze|silver|gold|platinum|emerald|diamond|master|grandmaster|challenger)\s*([1-4])?/i);
+    return { riot: riotOf(riot) || "", tier: tierM ? tierM[0] : "" };
+  }
+  function fromWide(rows) {
+    const cols = wideCols(rows[0]); if (!cols) return null;
+    const out = [], ko = Object.fromEntries(LANES);
+    rows.slice(1).forEach((r) => {
+      const name = txt((r || [])[0]); if (!name) return;
+      out.push(["팀", name, "상대"]); out.push(HEAD.slice());
+      LANES.forEach(([R]) => { if (cols[R] == null) return; const c = wideCell((r || [])[cols[R]]); out.push([ko[R], c.riot, "", "", "", "", ""]); });
+      out.push([]);
+    });
+    return out;
+  }
+  root.TeamSheet = { LANES, HEAD, MAX, riotOf, toRows, parse, diff, apply, sheetLayout, fromText, idsOf, ocrClean, isWide, fromWide, wideCell };
 })(typeof window !== "undefined" ? window : globalThis);
