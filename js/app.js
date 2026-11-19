@@ -3633,7 +3633,11 @@
   let lastIdx = -1;
   // 그리는 도중(입력 칸이 사라지며 change·blur가 또 render를 부름) 다시 들어오면 끝난 뒤 한 번 더
   let RENDERING = false, RENDER_AGAIN = false;
+  // 공부자료 탭을 나갔다 오면 처음 화면(이론 학습 · 운영 · 전체)부터(사용자 지시 11-19). 새로고침해도 처음부터
+  let lastTab = null;
+  function resetStudyUi() { if (!S.ui) return; S.ui.stMode = "theory"; S.ui.stCat = ""; S.ui.stTopic = ""; S.ui.stQi = {}; S.ui.tut = {}; }
   function render() {
+    if (lastTab !== S.tab) { if (lastTab === "vision" || (lastTab === null && S.tab === "vision")) resetStudyUi(); lastTab = S.tab; }
     if (RENDERING) { RENDER_AGAIN = true; return; }
     RENDERING = true;
     try { renderInner(); } finally { RENDERING = false; }
