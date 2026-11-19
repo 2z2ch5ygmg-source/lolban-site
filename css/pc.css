@@ -811,3 +811,66 @@ html.pc :is(.live-pc, .enemy-pc) .rec.ban.first .hero .lab { background: var(--p
 /* 수집 범위 한 줄 */
 .cs-range { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; } .cs-range b { color: var(--text); font-weight: 700; }
 .cs-band + .cs-range { margin-top: -6px; padding: 0 4px; }
+
+/* 편집 화면: 기록에서 자동으로 잡힌 챔프 */
+.auto-h { font-size: 12px; color: var(--muted); font-weight: 600; align-self: center; margin-right: 2px; }
+.auto-sep { flex-basis: 100%; height: 0; }
+.chip.auto-chip { border: 1px dashed var(--line); background: transparent; color: var(--text); cursor: pointer; font: inherit; }
+.chip.auto-chip:hover { border-color: var(--hi); border-style: solid; }
+.chip.auto-chip .st { color: var(--muted); font-size: 11px; margin-left: 2px; }
+.auto-all { border: 0; background: none; color: var(--hi); font-size: 12px; font-weight: 700; padding: 4px 6px; cursor: pointer; }
+
+.cs-row { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; }
+.cs-row .cs-range { flex: 1 1 520px; }
+.cs-ref { display: inline-flex; align-items: center; gap: 10px; } .cs-ref .soft-b { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.cs-ref .soft-b.busy svg { animation: csSpin 1s linear infinite; } @keyframes csSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .cs-ref .soft-b.busy svg { animation: none; } }
+.cs-band + .cs-row { margin-top: -6px; padding: 0 4px; }
+.auto-h { flex-basis: 100%; }
+
+/* ---------- 명단 등록 단계(11-19) ---------- */
+.iw { max-width: 1080px; display: grid; gap: 22px; }
+.iw-steps { display: flex; gap: 8px; list-style: none; margin: 0; padding: 0; counter-reset: none; }
+.iw-steps li { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--muted); padding: 8px 14px 8px 8px; border-radius: 999px; background: var(--bg2); }
+.iw-steps li span { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); font-size: 12px; font-weight: 800; }
+.iw-steps li.now { color: var(--text); background: var(--hi-bg); } .iw-steps li.now span { background: var(--hi); color: #fff; }
+.iw-steps li.past span { background: var(--hi-bg); color: var(--hi); }
+.iw-body { display: grid; gap: 18px; background: var(--panel); border-radius: 18px; padding: 28px; }
+.iw-h { margin: 0; font-size: 22px; font-weight: 800; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; } .iw-h small { font-size: 14px; font-weight: 500; color: var(--muted); }
+.iw-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.iw-mode { display: grid; justify-items: start; gap: 8px; text-align: left; padding: 24px; border-radius: 16px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; cursor: pointer; }
+.iw-mode:hover, .iw-mode:focus-visible { border-color: var(--hi); box-shadow: 0 0 0 2px var(--hi-bg); }
+.iw-mode b { font-size: 18px; } .iw-mode small { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.iw-ic svg { width: 32px; height: 32px; fill: none; stroke: var(--hi); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.iw-nav { display: flex; gap: 10px; justify-content: flex-end; align-items: center; flex-wrap: wrap; } .iw-nav > :first-child { margin-right: auto; }
+.iw-msg { margin: 0; font-size: 14px; } .iw-msg.bad { color: var(--red); }
+.iw-sum { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; padding: 14px 18px; border-radius: 12px; background: var(--bg2); font-size: 14px; }
+.iw-sum span { color: var(--muted); } .iw-sum.bad { background: var(--red-bg); } .iw-sum.bad b { color: var(--red); } .iw-sum.good b { color: var(--hi); }
+.iw-teams { display: grid; gap: 16px; }
+.iw-team { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; } .iw-team h3 { margin: 0 0 10px; font-size: 16px; display: flex; gap: 8px; align-items: center; }
+.iw-tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.iw-tbl th, .iw-tbl td { padding: 8px 10px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+.iw-tbl thead th { border-top: 0; font-size: 12px; color: var(--muted); font-weight: 600; } .iw-tbl tbody th { width: 64px; font-weight: 700; padding-top: 16px; }
+.iw-tbl .iw-pool { width: 34%; } .iw-pool .cp { margin: 2px 4px 2px 0; }
+.iw-accs { display: grid; gap: 6px; }
+.iw-acc { display: grid; grid-template-columns: minmax(0, 1fr) 28px; align-items: center; gap: 8px; }
+.iw-acc .input { height: 38px; } .iw-acc.bad .input { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
+.iw-acc .iw-canon { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.iw-st { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 800; background: var(--bg2); color: var(--muted); }
+.iw-st.ok { background: var(--hi-bg); color: var(--hi); } .iw-st.no { background: var(--red-bg); color: var(--red); }
+.iw-done { justify-items: start; } .iw-ok { color: var(--hi); }
+@media (max-width: 1599px) { .iw-body { padding: 22px; } .iw-mode { padding: 18px; } }
+
+.iw-team > summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; cursor: pointer; list-style: none; font-size: 15px; }
+.iw-team > summary::-webkit-details-marker { display: none; }
+.iw-team > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); margin-right: 4px; transition: transform .15s; }
+.iw-team[open] > summary::before { transform: rotate(45deg); } .iw-team[open] > summary { margin-bottom: 10px; }
+.iw-tst { font-size: 13px; font-weight: 700; color: var(--muted); } .iw-tst.ok { color: var(--hi); } .iw-tst.bad { color: var(--red); }
+.iw-who { flex-basis: 100%; font-size: 13px; color: var(--muted); padding-left: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.iw-team[open] .iw-who { display: none; }
+@media (prefers-reduced-motion: reduce) { .iw-team > summary::before { transition: none; } }
+/* 티어 못 받은 계정 목록 */
+.tq-fails { border-radius: 12px; background: var(--red-bg); padding: 12px 16px; font-size: 14px; }
+.tq-fails summary { cursor: pointer; font-weight: 700; color: var(--red); }
+.tq-fails ul { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.tq-fails li .dim { margin-left: 6px; }

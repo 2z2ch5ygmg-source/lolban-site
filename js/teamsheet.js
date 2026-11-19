@@ -152,7 +152,7 @@
         if ((p.tier || "") !== (n.tier || "") || (p.riot || "") !== (n.riot || "")) delete p.rk;   // 계정별 솔랭·자랭은 엑셀 티어로 다시 시작
         p.riot = n.riot; p.alts = n.alts.slice(0, 2); p.tier = n.tier;
         if (n.pts != null) p.pts = n.pts; else if (p.pts == null) p.pts = 50;
-        p.pool = n.pool.map((e) => e.slice());
+        if (n.pool.length || !(p.pool || []).length) p.pool = n.pool.map((e) => e.slice());   // 파일 챔프폭 칸이 비면 지금 챔프폭은 그대로
         touched.push([t.id, r]);
       });
       if (pt.our) our = t.id;
