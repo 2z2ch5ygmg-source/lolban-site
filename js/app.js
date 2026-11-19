@@ -57,10 +57,10 @@
   // ---- 로그인 세션: #login=토큰 으로 돌아오면 저장하고 주소에서 지움. 로그인한 사람의 팀은 서버(/auth/me) 기준 ----
   const KEY_SESS = "lolban.sess.v1", KEY_AUTH = "lolban.auth.v1";
   let SESS = ""; try { SESS = localStorage.getItem(KEY_SESS) || ""; } catch (e) { SESS = ""; }
-  let LOGIN_ERR = "";
+  let LOGIN_ERR = "", JUST_LOGGED = false;
   {
     const m = location.hash.match(/^#login=([A-Za-z0-9_-]{30,80})$/), e = location.hash.match(/^#login_error=([a-z_]{2,20})$/);
-    if (m) { SESS = m[1]; try { localStorage.setItem(KEY_SESS, SESS); } catch (er) { /* 이번만 */ } history.replaceState(null, "", location.pathname + location.search); }
+    if (m) { SESS = m[1]; JUST_LOGGED = true; try { localStorage.setItem(KEY_SESS, SESS); } catch (er) { /* 이번만 */ } history.replaceState(null, "", location.pathname + location.search); }
     if (e) { LOGIN_ERR = e[1]; history.replaceState(null, "", location.pathname + location.search); }
   }
   const AUTH = { user: null, spaces: [], providers: null, msg: "", busy: false };
@@ -4116,6 +4116,7 @@
   if (!SPACE && S.ui.queue && QUEUE_TXT[S.ui.queue]) CFG.queue = S.ui.queue;
   ensureSpaceTeam(JUST_JOINED);
   if (guest() && S.tab === "our") S.tab = "live";   // 손님은 실시간 밴픽으로 시작(로그인 화면은 사이드바에서)
+  if (JUST_LOGGED && guest()) S.tab = "our";   // 막 로그인했는데 팀이 없으면 바로 「팀 만들기 · 들어가기」
   render();
   checkSpace();
   loadSelfEval();
