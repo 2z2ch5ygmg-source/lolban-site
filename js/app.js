@@ -70,7 +70,7 @@
     if (!SESS || !AUTH.spaces.length) return null;
     let want = null; try { want = localStorage.getItem("lolban.space.v1"); } catch (e) { want = null; }
     const sp = AUTH.spaces.find((x) => x.id === want) || AUTH.spaces[0];
-    return { id: sp.id, key: "", name: sp.name, viaLogin: true, isOwner: !!sp.owner, code: sp.code || "", codeExp: sp.codeExp || "", members: sp.members || 0 };
+    return { id: sp.id, key: "", name: sp.name, viaLogin: true, isOwner: !!sp.owner, code: sp.code || "", codeExp: sp.codeExp || "", members: sp.members || 0, myRole: sp.myRole || "" };
   }
   if (SESS && AUTH.spaces.length) SPACE = loginSpace();
   const WURL = () => (window.RECENT_LIVE_URL || "").replace(/\/$/, "");
@@ -1673,13 +1673,13 @@
     } else {
       body = `<div class="nu-act"><button class="n-new" data-act="import">엑셀로 상대 팀 등록</button><span class="dim">상대 명단·챔프폭을 한 번에 · 등록하면 사이드바에 상대 팀이 생김</span></div>`;
     }
-    return `<div class="home nu-pc">${collectBanner()}${bar}<section class="nu-body">${body}</section></div>`;
+    return `<div class="home nu-pc">${rolePickCard()}${collectBanner()}${bar}<section class="nu-body">${body}</section></div>`;
   }
   function renderOurPC() {
     if (needOnboard()) return newUserPC();
     const t = team(S.ourTeam);
     if (!t || t.solo) return flowCard() + noTeamHtml();
-    return `<div class="home">${collectBanner()}${flowCard()}${homeRosterPC(t)}${homeCompsPC(t)}${homeGamesPC(t)}${homeBoostPC(t)}</div>`;
+    return `<div class="home">${rolePickCard()}${collectBanner()}${flowCard()}${homeRosterPC(t)}${homeCompsPC(t)}${homeGamesPC(t)}${homeBoostPC(t)}</div>`;
   }
 
   // ---------- 상대 예상 조합 ----------
@@ -2167,7 +2167,8 @@
   const TE = { on: false, snap: null };
   function teamViewPC(t) {
     return `<div class="tv">${ROLES.map((r) => { const p = t.players[r] || {}, accs = accountsOf(t, r), e = accs.length ? effTier(t, r) : null;
-      return `<div class="tv-r"><b class="tv-l">${ROLE_KO[r]}</b>
+      const who = (TM2.list && TM2.sp === (SPACE && SPACE.id) ? TM2.list : []).filter((m) => m.role === r).map((m) => m.nick);
+      return `<div class="tv-r"><b class="tv-l">${ROLE_KO[r]}${who.length ? `<small class="tv-mem" title="이 라인 팀원">${who.map(esc).join(", ")}</small>` : ""}</b>
         <span class="tv-who">${p.riot ? `<a class="tv-n" href="${opgg(p.riot)}" target="_blank" rel="noopener">${esc(nick(p.riot))}<small>#${esc(String(p.riot).split("#")[1] || "")}</small></a>` : `<span class="dim">계정 없음</span>`}
           ${accs.length > 1 ? `<small class="tv-alt">부계정 ${accs.length - 1}</small>` : ""}
           ${e ? `<span class="tv-t">${e.none ? `${tierImg("")}언랭` : `${tierImg(parseTier(e.tier).t)}${esc(e.tier)}`}</span>` : ""}</span>
@@ -2192,7 +2193,7 @@
         <p class="help">링크를 연 브라우저가 우리 팀에 들어옵니다 · 상대가 명단을 알아도 링크 없이는 못 봄</p>
         <span class="sd-btns"><button class="soft-b" data-act="trotate">${lbi("refresh", 16)}링크 새로 만들기</button><button class="soft-b bad" data-act="tleave">이 브라우저 열쇠 지우기</button></span>`
       : `<div class="sd-tb">${teamBody()}</div>`;
-    const right = `<aside class="sd-side"><section class="sd-card"><h3>우리 팀·초대</h3>${inv}</section></aside>`;
+    const right = `<aside class="sd-side"><section class="sd-card"><h3>우리 팀·초대</h3>${inv}</section>${membersCard()}</aside>`;
     return `<div class="home settings-pc">${collectBanner() ? `<div class="cs-wrap">${collectBanner()}</div>` : ""}${left}${right}</div>`;
   }
   // 설정(PC): 분석 기준 · 이 브라우저 · 계정
@@ -2280,6 +2281,35 @@
     if (guest() || S.tab === "settings" || S.tab === "team" || S.tab === "our") render();
   }
   function startLogin(p) { location.href = `${WURL()}/auth/${p}/start?ret=${encodeURIComponent(location.origin + location.pathname)}`; }
+  // ---- 팀원 포지션(11-19 사용자 요청): 초대 코드로 들어오면 내 포지션 고르기, 우리 팀 화면에 팀원·포지션 ----
+  const MROLE = [["T", "탑"], ["J", "정글"], ["M", "미드"], ["A", "원딜"], ["S", "서폿"], ["sub", "후보"], ["coach", "코치"]];
+  const mroleKo = (r) => (MROLE.find(([k]) => k === r) || [, "미정"])[1];
+  const TM2 = { list: null, sp: "", busy: false };
+  async function loadMembers(force) {
+    if (!SESS || !SPACE || !SPACE.viaLogin || TM2.busy || (!force && TM2.list && TM2.sp === SPACE.id)) return;
+    TM2.busy = true;
+    try { const d = await authPost("team/members", { space: SPACE.id }); TM2.list = d.members || []; TM2.sp = SPACE.id; } catch (e) { /* 다음에 */ }
+    TM2.busy = false; render();
+  }
+  async function setMemberRole(role, mid) {
+    try { await authPost("team/role", { space: SPACE.id, role, ...(mid ? { mid } : {}) }); TM2.list = null; toast(role ? `${mid ? "팀원" : "내"} 포지션: ${mroleKo(role)}` : "포지션을 비웠습니다"); await loadMe(); loadMembers(true); }
+    catch (e) { toast(e.message || String(e)); }
+  }
+  // 홈 맨 위: 아직 포지션을 안 고른 팀원에게
+  function rolePickCard() {
+    if (!SESS || !SPACE || !SPACE.viaLogin || SPACE.myRole) return "";
+    const ours = team(S.ourTeam);
+    const lane = (r) => { const p = ours && !ours.solo && ours.players[r]; return p && p.riot ? `<small>${esc(nick(p.riot))}</small>` : ""; };
+    return `<section class="rp-card" role="region" aria-label="내 포지션 고르기"><div><b>「${esc(SPACE.name)}」에서 내 포지션은?</b><span class="help">고르면 팀원 목록에 표시되고, 팀장이 바꿀 수도 있습니다</span></div>
+      <div class="rp-btns">${MROLE.map(([k, n]) => `<button class="rp-b" data-act="myrole" data-v="${k}"><b>${n}</b>${ROLES.includes(k) ? lane(k) : ""}</button>`).join("")}</div></section>`;
+  }
+  function membersCard() {
+    if (!SESS || !SPACE || !SPACE.viaLogin) return "";
+    if (!TM2.list || TM2.sp !== SPACE.id) { loadMembers(); return `<section class="sd-card"><h3>팀원</h3><p class="help">불러오는 중…</p></section>`; }
+    const sel = (m) => `<select class="input mr-sel" data-act="mrole" data-mid="${m.me ? "" : esc(m.mid)}" aria-label="${esc(m.nick)} 포지션"><option value="" ${m.role ? "" : "selected"}>미정</option>${MROLE.map(([k, n]) => `<option value="${k}" ${m.role === k ? "selected" : ""}>${n}</option>`).join("")}</select>`;
+    const order = (r) => { const i = MROLE.findIndex(([k]) => k === r); return i < 0 ? 99 : i; };
+    return `<section class="sd-card"><h3>팀원 <small class="dim">${TM2.list.length}명</small></h3><ul class="mr-list">${TM2.list.slice().sort((a, b) => order(a.role) - order(b.role)).map((m) => `<li><span class="mr-n"><b>${esc(m.nick)}</b>${m.me ? `<small>나</small>` : ""}${m.owner ? `<small class="mr-own">팀장</small>` : ""}</span>${m.me || SPACE.isOwner ? sel(m) : `<span class="mr-r">${mroleKo(m.role)}</span>`}</li>`).join("")}</ul></section>`;
+  }
   async function loadMe() {
     if (!SESS || !WURL()) return;
     try {
@@ -2314,12 +2344,13 @@
     AUTH.busy = true; AUTH.msg = ""; render();
     try {
       if (a === "lgnew") { const d = await authPost("team/create", { name: v("lgTeam") }); try { localStorage.setItem("lolban.space.v1", d.space.id); } catch (e) { /* 이번만 */ } AUTH.msg = `「${d.space.name}」 팀을 만들었습니다 — 초대 코드를 만들어 팀원에게 보내세요`; }
-      else if (a === "lgjoin") { const d = await authPost("team/join", { code: v("lgCode") }); try { localStorage.setItem("lolban.space.v1", d.space.id); } catch (e) { /* 이번만 */ } AUTH.msg = `「${d.space.name}」 팀에 들어왔습니다`; }
+      else if (a === "lgjoin") { const all = String(v("lgCode") || "").toUpperCase().match(/(?<![A-Z0-9])[A-Z0-9]{6}(?![A-Z0-9])/g) || [];   // 안내 글째 붙여 넣어도 코드만(11-19)
+        const d = await authPost("team/join", { code: all.length ? all[all.length - 1] : v("lgCode") }); TM2.list = null; try { localStorage.setItem("lolban.space.v1", d.space.id); } catch (e) { /* 이번만 */ } AUTH.msg = `「${d.space.name}」 팀에 들어왔습니다`; }
       else if (a === "lgcode") { const d = await authPost("team/code", { space: SPACE.id }); AUTH.msg = `새 초대 코드 ${d.code} — ${d.exp}까지`; }
       else if (a === "lgleave") { if (!confirm(`「${SPACE.name}」 팀에서 나갈까요?`)) { AUTH.busy = false; render(); return; } await authPost("team/leave", { space: SPACE.id }); try { localStorage.removeItem("lolban.space.v1"); } catch (e) { /* 무시 */ } SPACE = null; AUTH.msg = "팀에서 나왔습니다"; }
       else if (a === "lgdel") { if (!confirm("탈퇴할까요? 로그인 정보와 소속이 지워지고, 혼자 있는 팀은 팀 자료까지 지워집니다. 되돌릴 수 없습니다.")) { AUTH.busy = false; render(); return; } await authPost("delete", {}); AUTH.busy = false; logoutLocal("탈퇴했습니다 — 로그인 정보를 지웠습니다"); return; }
       else if (a === "lgout") { try { await authPost("logout", {}); } catch (e) { /* 서버에서 이미 끝남 */ } AUTH.busy = false; logoutLocal("로그아웃했습니다"); return; }
-      else if (a === "lgcopy") { const c = SPACE && SPACE.code; if (c) { try { await navigator.clipboard.writeText(`lolban.com 팀 초대 코드: ${c}`); AUTH.msg = "초대 코드를 복사했습니다 — 팀 단톡방에 붙여 넣으세요"; S.ui.invited = true; save(); } catch (e) { AUTH.msg = `초대 코드: ${c}`; } } }
+      else if (a === "lgcopy") { const c = SPACE && SPACE.code; if (c) { try { await navigator.clipboard.writeText(c); AUTH.msg = `초대 코드 ${c} 복사 — 팀원은 로그인 뒤 「초대 코드로 들어가기」에 붙여 넣으면 됩니다`; S.ui.invited = true; save(); } catch (e) { AUTH.msg = `초대 코드: ${c}`; } } }
       AUTH.busy = false; await loadMe();
     } catch (e) { AUTH.busy = false; AUTH.msg = e.message || String(e); render(); }
   }
@@ -2336,7 +2367,7 @@
     if (!SPACE || !SPACE.viaLogin) {
       return `<div class="lg"><p class="lg-who">${who}<button class="nc-a del" data-act="lgout">로그아웃</button></p>
         <div class="lg-two"><section><b>팀 만들기</b><span class="help">내가 팀장 · 초대 코드로 팀원을 부름</span><input class="input" id="lgTeam" maxlength="30" placeholder="팀 이름"><button class="n-new" data-act="lgnew" ${AUTH.busy ? "disabled" : ""}>팀 만들기</button></section>
-        <section><b>초대 코드로 들어가기</b><span class="help">팀장에게 받은 6자리</span><input class="input lg-code" id="lgCode" maxlength="8" placeholder="예: K7P2QX" autocomplete="off"><button class="soft-b" data-act="lgjoin" ${AUTH.busy ? "disabled" : ""}>들어가기</button></section></div>${note}</div>`;
+        <section><b>초대 코드로 들어가기</b><span class="help">팀장에게 받은 6자리</span><input class="input lg-code" id="lgCode" maxlength="60" placeholder="예: K7P2QX" autocomplete="off"><button class="soft-b" data-act="lgjoin" ${AUTH.busy ? "disabled" : ""}>들어가기</button></section></div>${note}</div>`;
     }
     const others = AUTH.spaces.filter((x) => x.id !== SPACE.id);
     return `<div class="lg"><p class="lg-who">${who}<button class="nc-a del" data-act="lgout">로그아웃</button></p>
@@ -3821,6 +3852,7 @@
         if (S.tab === "enemy" && S.enemyTeam === SOLO.enemy) S.tab = "our";
         save(); render(); toast(`「${t.name}」 팀을 지웠습니다`); break; }
       case "lglogin": startLogin(el.dataset.k); break;
+      case "myrole": setMemberRole(el.dataset.v); break;
       case "lgnew": case "lgjoin": case "lgcode": case "lgleave": case "lgout": case "lgcopy": case "lgdel": authAction(a, el); break;
       case "lgswitch": try { localStorage.setItem("lolban.space.v1", el.dataset.id); } catch (e) { /* 이번만 */ } SPACE = loginSpace(); spaceJoined(); break;
       case "vsopen": S.ui.vsOpen = S.ui.vsOpen === el.dataset.k ? "" : el.dataset.k; renderHead(); { const f = document.querySelector(".vs-pop [aria-selected=true]") || document.querySelector(".vs-pop button"); if (f && S.ui.vsOpen) f.focus(); } break;
@@ -4003,6 +4035,7 @@
     else if (t.dataset && t.dataset.rkf && editing) { setRkFrom(t); return; }
     else if (t.dataset && t.dataset.ptsu != null && editing) { const p = team(editing).players[t.dataset.role]; p.ptsU = t.value === "" ? null : Math.max(0, Math.min(100, Number(t.value) || 0)); applyTiers(); save(); renderEditor(); render(); }
     else if (t.dataset && t.dataset.act === "impour" && IMP.parsed) { markOurImport(t.value); IMP.diff = window.TeamSheet.diff(S.teams, IMP.parsed, S.ourTeam); render(); }
+    else if (t.dataset && t.dataset.act === "mrole") { setMemberRole(t.value, t.dataset.mid || ""); }
     else if (t.dataset && t.dataset.act === "setenemy") { S.ui.setEnemy = t.value; save(); render(); }
     else if (t.dataset && t.dataset.act === "nfc") { S.ui.nf = { ...(S.ui.nf || {}), champ: t.value }; render(); }
     else if (t.id === "enemySel" || t.id === "enemySelM" || t.id === "enemyPick") { S.enemyTeam = t.value; syncQueue(true); save(); render(); }
