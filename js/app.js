@@ -4116,7 +4116,7 @@
   if (!SPACE && S.ui.queue && QUEUE_TXT[S.ui.queue]) CFG.queue = S.ui.queue;
   ensureSpaceTeam(JUST_JOINED);
   if (guest() && S.tab === "our") S.tab = "live";   // 손님은 실시간 밴픽으로 시작(로그인 화면은 사이드바에서)
-  if (JUST_LOGGED && guest()) S.tab = "our";   // 막 로그인했는데 팀이 없으면 바로 「팀 만들기 · 들어가기」
+  if ((JUST_LOGGED || LOGIN_ERR) && guest()) S.tab = "our";   // 막 로그인했는데 팀이 없거나 로그인이 실패했으면 그 화면(안내가 보이게)
   render();
   checkSpace();
   loadSelfEval();
