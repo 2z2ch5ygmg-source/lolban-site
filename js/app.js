@@ -1150,7 +1150,7 @@
       const base = [sc.tag || "", ...why, alts.length ? "대체 픽 " + alts.join(" / ") : ""].filter(Boolean).join(" · ");
       return `<button class="cc ${sc.id === selId ? "on" : ""}" data-act="scen" data-k="${sc.id}" aria-pressed="${sc.id === selId}">
         <span class="cc-h"><b class="cc-n">${i + 1}</b><b class="cc-t">${esc(sc.name.replace(/ 조합$/, ""))}</b>${sc.vs ? `<span class="cc-vs ${VS[sc.vs]}">상대 대비 ${sc.vs}</span>` : ""}${sc.id === selId ? `<span class="cc-on">설계에 씀</span>` : ""}</span>
-        <span class="cc-d ${VS[sc.vs] || ""}">${sc.vs === "불리" ? lbi("warn", 16) : lbi("comp", 16)}${dir}</span>
+        ${String(dir).replace(/<[^>]+>/g, "").replace(/\s*조합\s*$/, "").trim() === sc.name.replace(/\s*조합$/, "").trim() ? "" : `<span class="cc-d ${VS[sc.vs] || ""}">${sc.vs === "불리" ? lbi("warn", 16) : lbi("comp", 16)}${dir}</span>`}
         <span class="cc-5">${ROLES.map((r) => { const x = sc.slots[r]; return `<span class="cc-s"><span class="cc-r">${ROLE_KO[r]}</span>${x && x.id ? icon(x.id, "md") : `<span class="ic md"></span>`}<span class="cc-cn">${x && x.id ? esc(CH[x.id].ko) : "—"}</span><span class="cc-st ${x && x.done ? "done" : x && x.goal ? "goal" : ""}">${x && x.done ? "확정" : x && x.goal ? "목표" : x && x.id ? "예정" : "챔프폭 없음"}</span></span>`; }).join("")}</span>
         ${base ? `<span class="cc-b">${base}</span>` : ""}</button>`;
     }).join("");
@@ -2438,7 +2438,11 @@
       <span class="sd-btns"><button class="soft-b bad" data-act="lgleave">팀 나가기</button><button class="nc-a del" data-act="lgdel">탈퇴</button></span>${note}</div>`;
   }
   async function copyInvite() {
-    if (SPACE && SPACE.viaLogin) { if (SPACE.code) return authAction("lgcopy"); openSettings("space"); return; }
+    if (SPACE && SPACE.viaLogin) {
+      if (SPACE.code) { await authAction("lgcopy"); toast(`초대 코드 ${SPACE.code} 복사 — 팀원은 로그인 뒤 「초대 코드로 들어가기」에 붙여 넣으면 됩니다`); return; }
+      if (SPACE.isOwner) { S.tab = "team"; save(); render(); window.scrollTo(0, 0); toast("「초대 코드 만들기」를 누르면 6자리 코드가 생깁니다"); return; }
+      toast("초대 코드는 팀장이 만듭니다 — 팀장에게 코드를 받아 전달해 주세요"); return;
+    }
     if (!SPACE || SPACE.bad) { openSettings("space"); return; }
     try { await navigator.clipboard.writeText(inviteLink()); S.ui.invited = true; save(); render(); toast("초대 링크를 복사했습니다 — 팀 단톡방에 붙여 넣으세요"); }
     catch (e) { openSettings("space"); toast("링크를 길게 눌러 복사하세요"); }

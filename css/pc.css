@@ -1013,3 +1013,21 @@ html.pc #side { overflow-y: auto; }   /* 상대 팀 목록이 5개 높이로 줄
 .hd-prof i { position: absolute; right: -2px; bottom: -2px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--bg); background: var(--muted); }
 .hd-prof i.pv-naver { background: #03C75A; } .hd-prof i.pv-google { background: #fff; box-shadow: inset 0 0 0 3px #4285F4; } .hd-prof i.pv-kakao { background: #FEE500; }
 .hd-login { border: 0; background: var(--hi); color: var(--on-gold, #fff); font: inherit; font-weight: 700; font-size: 14px; padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+/* 실시간 밴픽은 한 화면 안에(11-20 사용자 지적: 5번째 줄이 잘리고 페이지가 스크롤됨) — 높이를 화면에 맞추고 슬롯 크기를 화면 높이에 따라 줄임, 챔프 목록만 안에서 스크롤 */
+html.pc .live-pc { min-height: 0; height: calc(100vh - 96px - 32px); }
+html.pc body:has(.live-pc) > footer { display: none; }
+html.pc .live-pc .side { grid-template-rows: auto auto repeat(5, minmax(0, 1fr)); overflow: hidden; }
+html.pc .live-pc .slot-pick { min-height: 0; }
+html.pc .live-pc .slot-pick .ic { width: clamp(40px, 6.4vh, 64px); height: clamp(40px, 6.4vh, 64px); }
+html.pc .live-pc .slot-pick .cn { font-size: clamp(13px, 1.7vh, 16px); }
+html.pc .live-pc .lv-c { min-height: 0; overflow: hidden; }
+html.pc .live-pc .lv-c > .dock-pc { min-height: 0; overflow: hidden; }
+@media (max-height: 860px) {
+  html.pc :is(.live-pc) .rec .hero { height: 84px; } html.pc .live-pc .rec .hero .ic { width: 68px; height: 68px; } html.pc .live-pc .rec.first .hero .ic { width: 80px; height: 80px; }
+  html.pc .live-pc .lv-c { gap: 10px; }
+}
+
+/* 사이드바 아이콘 안내: 사이드바 안쪽(버튼 위)에 띄워 잘리지 않게(11-20) */
+html.pc #side :is(.sd-tm-inv, .sd-tm-x, .sd-sec button)[data-tip]:hover::after, html.pc #side :is(.sd-tm-inv, .sd-tm-x, .sd-sec button)[data-tip]:focus-visible::after { left: auto; right: 0; top: auto; bottom: calc(100% + 6px); transform: none; white-space: nowrap; }
+/* 실시간 밴픽: 남은 페이지 스크롤 없애기 */
+html.pc .live-pc { height: calc(100vh - 96px - 64px); }
