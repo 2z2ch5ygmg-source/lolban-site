@@ -1657,6 +1657,8 @@
     }).join("")}</div></section>`;
   }
   // 시작 단계: 팀 공간 subin(처음 쓴 팀)은 모두 끝난 것으로 본다(사용자 지시 11-19)
+  // 팀원 초대 끝 = 이 브라우저에서 코드를 복사했거나, 팀원이 실제로 들어왔거나(2명 이상), 내가 팀원(팀장이 아님) — 11-20: 다른 컴퓨터에서 팀장 홈이 시작 단계에 멈춤
+  const invitedDone = () => !!S.ui.invited || !!(SPACE && ((SPACE.members || 0) > 1 || (SPACE.viaLogin && !SPACE.isOwner)));
   function nuSteps() {
     const sp = spaceTeamId(), legacy = sp === "subin", t = sp ? team(sp) : null;
     const five = !!t && ROLES.every((r) => t.players[r] && /#/.test(t.players[r].riot || ""));
@@ -1665,7 +1667,7 @@
     return [
       { k: "team", n: "로그인 · 팀", d: "로그인하고 팀 만들기·들어가기", done: !!sp },
       { k: "five", n: "우리 선수 5명", d: "라인별 라이엇 ID", done: legacy || five },
-      { k: "invite", n: "팀원 초대", d: "링크 공유", done: legacy || (!!sp && !!S.ui.invited) },
+      { k: "invite", n: "팀원 초대", d: "링크 공유", done: legacy || (!!sp && invitedDone()) },
       { k: "opp", n: "상대 팀 등록", d: "엑셀 또는 직접", done: legacy || (!!sp && opp) },
     ];
   }
@@ -2289,7 +2291,7 @@
     const legacy = ourId === "subin";
     return [
       { k: "team", n: "팀 만들기", d: "팀 이름 + 본인 라이엇 계정 확인", done: !!ourId, act: `data-act="team"`, cta: "팀 만들기" },
-      { k: "invite", n: "팀원 초대", d: "초대 링크를 팀 단톡방에 공유", done: legacy || (!!ourId && !!S.ui.invited), act: `data-act="invite"`, cta: "초대 링크 복사" },
+      { k: "invite", n: "팀원 초대", d: "초대 링크를 팀 단톡방에 공유", done: legacy || (!!ourId && invitedDone()), act: `data-act="invite"`, cta: "초대 링크 복사" },
       { k: "opp", n: "상대 팀 등록", d: "엑셀로 상대 팀 명단·챔프폭 넣기", done: legacy || hasOpp, act: `data-act="import"`, cta: "상대 팀 등록" },
     ];
   }
