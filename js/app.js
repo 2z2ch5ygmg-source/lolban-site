@@ -403,6 +403,9 @@
     plus: '<path d="M12 5v14M5 12h14"/><circle class="dot" cx="19" cy="5" r="1.8"/>',
     chev: '<path d="m8 10 4 4 4-4"/>',
   };
+  // 로고(11-19 사용자 결정 「04 두 진영 · A 균형」, tmp/lol-draft-design/DECISIONS.md): 원을 위·아래로 잘라 왼쪽 괄호 = 우리 팀 파랑, 오른쪽 = 상대 빨강, 가운데 점 = 강조색
+  // 색은 CSS 변수(--blue·--red·--hi)라 라이트·다크를 그대로 따라감
+  const LOGO_MARK = `<svg class="lb-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M19.81 12.50A23 23 0 0 0 19.81 51.50" fill="none" stroke="var(--blue)" stroke-width="9" stroke-linecap="round"/><path d="M44.19 12.50A23 23 0 0 1 44.19 51.50" fill="none" stroke="var(--red)" stroke-width="9" stroke-linecap="round"/><circle cx="32" cy="32" r="7" fill="var(--hi)"/></svg>`;
   function lbi(k, size) {
     const z = size || 22;
     if (k === "draft" || k === "warn") { const [t, bg] = k === "draft" ? ["BP", "var(--hi)"] : ["!", "var(--red)"];
@@ -422,7 +425,7 @@
     const opp = S.teams.filter((t) => !t.solo && (!our || t.id !== our.id));
     const curOpp = S.tab === "enemy" || S.tab === "live" ? S.enemyTeam : "";
     if (guest()) {
-      el.innerHTML = `<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">lolban<i>.</i></a>
+      el.innerHTML = `<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">${LOGO_MARK}<span>lolban<i>.</i></span></a>
         <button class="tab sd-mi" data-tab="live" aria-selected="${S.tab === "live"}">${lbi("draft", 22)}실시간 밴픽</button>
         <div class="sd-sec">팀으로 쓰기</div>
         <button class="tab sd-tm sd-new" data-tab="our" aria-current="${S.tab === "our"}">${lbi("plus", 20)}<span class="nm">${SESS ? "팀 만들기 · 들어가기" : "로그인 · 팀 만들기"}</span></button>
@@ -431,7 +434,7 @@
         <div class="sd-foot">${meRow()}${themeBtn()}</div>`;
       return;
     }
-    el.innerHTML = `<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">lolban<i>.</i></a>
+    el.innerHTML = `<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">${LOGO_MARK}<span>lolban<i>.</i></span></a>
       ${SIDE_MENU.map(([k, ic, n]) => `<button class="tab sd-mi" data-tab="${k}" aria-selected="${S.tab === k}">${lbi(ic, 22)}${n}</button>`).join("")}
       <div class="sd-sec">우리 팀</div>
       ${our ? `<div class="sd-tmw our-w"><button class="tab sd-tm our" data-tab="team" aria-current="${S.tab === "team"}">${crestOf(our, "b")}<span class="nm" title="${esc(our.name)}">${esc(our.name)}</span></button>${sp ? `<button class="sd-tm-inv" data-act="invite" aria-label="${SPACE && SPACE.viaLogin ? "초대 코드 복사" : "팀원 초대 링크 복사"}">${lbi("invite", 20)}</button>` : ""}</div>`
@@ -1150,6 +1153,7 @@
     const role = st && st[1] === "pick" && who === "our" ? (goalPlanNow() && (goalPlanNow().steps.find((x) => x.i === S.draft.idx) || {}).r) : null;
     const txt = !st ? BASE_TITLE : who === "our" ? `● 우리 ${role ? ROLE_KO[role] + " " : ""}${st[1] === "ban" ? "밴" : "픽"} · lolban` : `상대 ${st[1] === "ban" ? "밴" : "픽"} · lolban`;
     document.title = txt;
+    { const fav = document.getElementById("fav"); if (fav) { const want = who === "our" ? "img/lolban-favicon-turn.svg" : "img/lolban-favicon.svg"; if (fav.getAttribute("href") !== want) fav.setAttribute("href", want); } }
     clearInterval(titleBlink); titleBlink = null;
     if (who === "our" && document.hidden) { let on = true; titleBlink = setInterval(() => { on = !on; document.title = on ? txt : "lolban"; if (!document.hidden) { clearInterval(titleBlink); document.title = txt; } }, 900); }
   }
