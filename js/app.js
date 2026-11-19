@@ -49,19 +49,39 @@
   let SPACE = null;
   try { SPACE = JSON.parse(localStorage.getItem(KEY_SPACE) || "null"); } catch (e) { SPACE = null; }
   if (SPACE && !(SPACE.id && SPACE.key)) SPACE = null;
-  const saveSpace = () => { try { if (SPACE) localStorage.setItem(KEY_SPACE, JSON.stringify(SPACE)); else localStorage.removeItem(KEY_SPACE); } catch (e) { /* 무시 */ } };
+  const saveSpace = () => { try { if (SPACE && SPACE.viaLogin) return; if (SPACE) localStorage.setItem(KEY_SPACE, JSON.stringify(SPACE)); else localStorage.removeItem(KEY_SPACE); } catch (e) { /* 무시 */ } };
   {
     const m = location.hash.match(/^#join=([a-z0-9][a-z0-9-]{1,31})\.([A-Za-z0-9_-]{20,100})$/);
     if (m) { SPACE = { id: m[1], key: m[2], name: "", joined: true }; saveSpace(); history.replaceState(null, "", location.pathname + location.search); }
   }
+  // ---- 로그인 세션: #login=토큰 으로 돌아오면 저장하고 주소에서 지움. 로그인한 사람의 팀은 서버(/auth/me) 기준 ----
+  const KEY_SESS = "lolban.sess.v1", KEY_AUTH = "lolban.auth.v1";
+  let SESS = ""; try { SESS = localStorage.getItem(KEY_SESS) || ""; } catch (e) { SESS = ""; }
+  let LOGIN_ERR = "";
+  {
+    const m = location.hash.match(/^#login=([A-Za-z0-9_-]{30,80})$/), e = location.hash.match(/^#login_error=([a-z_]{2,20})$/);
+    if (m) { SESS = m[1]; try { localStorage.setItem(KEY_SESS, SESS); } catch (er) { /* 이번만 */ } history.replaceState(null, "", location.pathname + location.search); }
+    if (e) { LOGIN_ERR = e[1]; history.replaceState(null, "", location.pathname + location.search); }
+  }
+  const AUTH = { user: null, spaces: [], providers: null, msg: "", busy: false };
+  try { const c = JSON.parse(localStorage.getItem(KEY_AUTH) || "null"); if (c && SESS) { AUTH.user = c.user; AUTH.spaces = c.spaces || []; } } catch (e) { /* 없음 */ }
+  // 로그인한 팀이 있으면 그 팀 공간을 SPACE로(열쇠 없이 세션으로)
+  function loginSpace() {
+    if (!SESS || !AUTH.spaces.length) return null;
+    let want = null; try { want = localStorage.getItem("lolban.space.v1"); } catch (e) { want = null; }
+    const sp = AUTH.spaces.find((x) => x.id === want) || AUTH.spaces[0];
+    return { id: sp.id, key: "", name: sp.name, viaLogin: true, isOwner: !!sp.owner, code: sp.code || "", codeExp: sp.codeExp || "", members: sp.members || 0 };
+  }
+  if (SESS && AUTH.spaces.length) SPACE = loginSpace();
   const WURL = () => (window.RECENT_LIVE_URL || "").replace(/\/$/, "");
   const spaceQ = () => (SPACE ? `space=${encodeURIComponent(SPACE.id)}` : "");
   // 팀 자료 요청: 공간·열쇠를 붙이고, 401이면 열쇠가 바뀐 것으로 표시
   async function wfetch(path, opts) {
     const o = opts || {};
     const url = `${WURL()}${path}${SPACE ? (path.includes("?") ? "&" : "?") + spaceQ() : ""}`;
-    const res = await fetch(url, { cache: "no-store", credentials: "omit", ...o, headers: { ...(o.headers || {}), ...(SPACE ? { "X-Team-Key": SPACE.key } : {}) } });
-    if (res.status === 401 && SPACE && !SPACE.bad) { SPACE.bad = true; saveSpace(); setTimeout(() => render(), 0); }
+    const res = await fetch(url, { cache: "no-store", credentials: "omit", ...o, headers: { ...(o.headers || {}), ...(SPACE && SPACE.key ? { "X-Team-Key": SPACE.key } : {}), ...(SESS ? { "X-Session": SESS } : {}) } });
+    if (res.status === 401 && SPACE && !SPACE.bad && !SPACE.viaLogin) { SPACE.bad = true; saveSpace(); setTimeout(() => render(), 0); }
+    if (res.status === 401 && SPACE && SPACE.viaLogin) setTimeout(() => loadMe(), 0);   // 세션이 끝났거나 팀에서 빠짐
     return res;
   }
   const KEY = "sentrix-draft.v1";
@@ -337,6 +357,8 @@
   }
   const crestOf = (t, cls) => `<span class="crest ${cls || ""}" aria-hidden="true">${esc([...String((t && t.name) || "?")][0] || "?")}</span>`;
   // ---------- 새 디자인(PC) 사이드바·머리줄 ----------
+  const guest = () => !(SPACE && !SPACE.bad);
+  const GUEST_TABS = ["live", "our"];   // our = 로그인·팀 만들기 화면
   const SIDE_MENU = [["our", "home", "홈"], ["live", "draft", "실시간 밴픽"], ["vision", "vision", "시야 공부"], ["notes", "note", "피드백 노트"]];
   function renderSideNav() {
     const el = document.getElementById("side");
@@ -345,6 +367,16 @@
     const our = ourT && !ourT.solo ? ourT : sp ? team(sp) : null;
     const opp = S.teams.filter((t) => !t.solo && (!our || t.id !== our.id));
     const curOpp = S.tab === "enemy" || S.tab === "live" ? S.enemyTeam : "";
+    if (guest()) {
+      el.innerHTML = `<a class="sd-logo" href="/" aria-label="lolban 처음 화면">lolban<i>.</i></a>
+        <button class="tab sd-mi" data-tab="live" aria-selected="${S.tab === "live"}">${lbi("draft", 22)}실시간 밴픽</button>
+        <div class="sd-sec">팀으로 쓰기</div>
+        <button class="tab sd-tm sd-new" data-tab="our" aria-current="${S.tab === "our"}">${lbi("plus", 20)}<span class="nm">${SESS ? "팀 만들기 · 들어가기" : "로그인 · 팀 만들기"}</span></button>
+        ${SESS && AUTH.user ? `<p class="help sd-guest">${esc(AUTH.user.nick || "로그인됨")}님 로그인됨</p>` : ""}
+        <p class="help sd-guest">팀을 등록하면 우리 팀 홈 · 상대 분석 · 피드백 노트 · 시야 공부를 씁니다. 지금은 솔랭·자랭 기준 밴픽만</p>
+        <div class="sd-foot">${themeBtn()}</div>`;
+      return;
+    }
     el.innerHTML = `<a class="sd-logo" href="/" aria-label="lolban 처음 화면">lolban<i>.</i></a>
       ${SIDE_MENU.map(([k, ic, n]) => `<button class="tab sd-mi" data-tab="${k}" aria-selected="${S.tab === k}">${lbi(ic, 22)}${n}</button>`).join("")}
       <div class="sd-sec">우리 팀</div>
@@ -354,28 +386,52 @@
       ${opp.map((t) => `<button class="sd-tm" data-act="pickenemy" data-id="${t.id}" aria-current="${t.id === curOpp}">${crestOf(t, t.id === curOpp ? "r" : "")}<span class="nm" title="${esc(t.name)}">${esc(t.name)}</span></button>`).join("")
         || `<span class="help" style="padding:4px 12px">아직 없음 · 위 + 로 등록</span>`}
       <button class="sd-tm" data-act="pickenemy" data-id="${SOLO.enemy}" aria-current="${curOpp === SOLO.enemy}"><span class="crest" aria-hidden="true">솔</span><span class="nm" style="color:var(--muted)">솔랭·자랭</span></button>
-      <div class="sd-foot"><button class="sd-mi" data-act="settings" aria-selected="${S.tab === "settings"}">${lbi("settings", 22)}설정</button></div>`;
+      <div class="sd-foot"><button class="sd-mi" data-act="settings" aria-selected="${S.tab === "settings"}">${lbi("settings", 22)}설정</button>${themeBtn()}</div>`;
   }
+  // 글자 없는 아이콘 버튼에 이름표: aria-label(없으면 title)을 data-tip으로, 브라우저 기본 툴팁(늦게 뜸)은 지움
+  function tipIcons() {
+    document.querySelectorAll("#side button, #mhead button, #view button, #view a.ib").forEach((b) => {
+      if (b.textContent.replace(/\s/g, "")) return;
+      const t = b.getAttribute("aria-label") || b.getAttribute("title"); if (!t) return;
+      b.dataset.tip = t; if (!b.getAttribute("aria-label")) b.setAttribute("aria-label", t); b.removeAttribute("title");
+    });
+  }
+  // 다크·라이트: 처음엔 기기 설정을 따르고, 누르면 반대로 고정(이 브라우저에 저장)
+  const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
+  const SUN = `<svg class="lbi" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>`;
+  const MOON = `<svg class="lbi" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>`;
+  // 토글 스위치(사용자 지시 11-19): 켜짐 = 다크 모드
+  function themeBtn() { const d = isDark(); return `<button class="sd-mi sd-theme" role="switch" aria-checked="${d}" data-act="theme">${d ? MOON : SUN}<span>다크 모드</span><span class="sw" aria-hidden="true"><i></i></span></button>`; }
   function renderHead() {
     const el = document.getElementById("mhead");
     if (!el) return;
     const ourT = team(S.ourTeam), en = team(S.enemyTeam);
     const ourName = ourT && !ourT.solo ? ourT.name : "솔랭·자랭";
-    const vs = `<span class="mh-t">${crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b")}<span class="tb">${esc(ourName)}</span><span class="vs">VS</span><span class="tr">${esc(en && !en.solo ? en.name : "솔랭·자랭")}</span>${crestOf(en && !en.solo ? en : { name: "솔" }, "r")}</span>`;
+    const vsOpen = S.ui.vsOpen || "";
+    const pickList = (k) => {
+      const sp = spaceTeamId();
+      const teams = k === "our" ? S.teams.filter((t) => !t.solo && (sp ? t.id === sp : t.id === S.ourTeam)) : S.teams.filter((t) => !t.solo && t.id !== S.ourTeam);
+      const cur = k === "our" ? S.ourTeam : S.enemyTeam, solo = k === "our" ? SOLO.our : SOLO.enemy;
+      const item = (id, name, crest) => `<button role="option" data-act="vspick" data-k="${k}" data-id="${id}" aria-selected="${cur === id}">${crest}<span>${esc(name)}</span>${cur === id ? lbi("check", 16) : ""}</button>`;
+      return `<div class="vs-pop ${k}" role="listbox" aria-label="${k === "our" ? "우리 팀 고르기" : "상대 고르기"}">${teams.length ? `<small>${k === "our" ? "우리 팀" : "상대 팀"}</small>${teams.map((t) => item(t.id, t.name, crestOf(t, k === "our" ? "b" : "r"))).join("")}` : ""}
+        <small>팀 없이</small>${item(solo, "솔랭·자랭", `<span class="crest" aria-hidden="true">솔</span>`)}${k === "enemy" && !guest() ? `<button class="vs-add" data-act="import">${lbi("plus", 16)}상대 팀 등록</button>` : ""}</div>`;
+    };
+    const side = (k, name, crest, cls) => `<span class="vs-side"><button class="vs-btn ${cls}" data-act="vsopen" data-k="${k}" aria-haspopup="listbox" aria-expanded="${vsOpen === k}">${k === "our" ? crest : ""}<span>${esc(name)}</span>${k === "enemy" ? crest : ""}<svg class="vs-car" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>${vsOpen === k ? pickList(k) : ""}</span>`;
+    const vs = `<span class="mh-t">${side("our", ourName, crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b"), "tb")}<span class="vs">VS</span>${side("enemy", en && !en.solo ? en.name : "솔랭·자랭", crestOf(en && !en.solo ? en : { name: "솔" }, "r"), "tr")}</span>`;
     const since = md(PREP.since || (window.RECENT && window.RECENT.since) || "2026-11-10");
     let c;
     if (S.tab === "live") c = `${vs}<span class="mh-s">${S.series.game}세트${S.series.mode !== "off" ? ` · 피어리스 잠금 ${(S.series.locked || []).length}` : " · 피어리스 끔"}</span>`;
     else if (S.tab === "enemy") c = `${vs}<span class="mh-s">${S.ui.enView === "comps" ? "예상 조합 · 상황별" : "상대 분석"} · ${since}~ 랭크 기준</span>`;
-    else if (S.tab === "our" && needOnboard()) c = `<b class="mh-t">팀 만들기</b><span class="mh-s">3분이면 끝 · 팀원은 초대 링크만 열면 됨</span>`;
+    else if (S.tab === "our" && needOnboard()) c = `<b class="mh-t">${SESS ? "팀 만들기 · 들어가기" : "로그인"}</b><span class="mh-s">${SESS ? "팀장은 팀을 만들고 6자리 초대 코드를 팀원에게" : "구글·네이버로 로그인 · 팀원은 초대 코드로 들어옴"}</span>`;
     else if (S.tab === "our") {
       const g = ourT && !ourT.solo && window.RECENT && window.RECENT.status === "ok" ? E.groupsOf(ourT) : null;
       c = `<span class="mh-t">${crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b")}<span class="tb">${esc(ourName)}</span></span><span class="mh-s">연습 기간 ${since}~${g ? ` · 함께 한 경기 ${g.length}판 ${g.filter((x) => x.win).length}승` : ""}</span>`;
     } else {
       const VS = window.VISION, nD = typeof allDrills === "function" && VS ? allDrills().length : 0, nOk = Object.values(S.ui.dScore || {}).filter(Boolean).length;
-      const T = { vision: ["시야 공부", VS ? `맞힘 ${nOk} / ${nD} · 출처 ${esc(VS.source.author)}` : "배우기 · 문제 · 한눈에 보기"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["엑셀 불러오기", "팀·챔프폭 한 번에 넣기"] }[S.tab] || ["", ""];
+      const T = { vision: ["시야 공부", VS ? `맞힘 ${nOk} / ${nD} · 출처 ${esc(VS.source.author)}` : "배우기 · 문제 · 한눈에 보기"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"] }[S.tab] || ["", ""];
       c = `<b class="mh-t">${T[0]}</b><span class="mh-s">${T[1]}</span>`;
     }
-    el.innerHTML = `<div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}</div>`;
+    el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}</div>`;
   }
 
   // ---------- header ----------
@@ -961,12 +1017,16 @@
 
   // ---------- 실시간 밴픽(PC 새 디자인 C) ----------
   // 계산·추천은 운영 함수(renderSide·renderStatus·renderNow·renderGrid·renderDock 몸통) 그대로, 배치와 모양만 바꾼다
+  // 머리줄 왼쪽: 진영 · 피어리스(하드 피어리스 / 끔 — 소프트는 쓰지 않음, 11-19 사용자 결정)
+  function liveLeftPC() {
+    if (S.series.mode === "soft") S.series.mode = "hard";
+    const seg = (act, cur, items, label) => `<div class="seg" role="group" aria-label="${label}">${items.map(([v, n]) => `<button data-act="${act}" data-v="${v}" aria-pressed="${cur === v}">${n}</button>`).join("")}</div>`;
+    const ranked = isSolo(S.enemyTeam);
+    return `${seg("side", S.draft.ourSide, [["B", "블루"], ["R", "레드"]], "우리 진영")}${ranked ? "" : seg("mode", S.series.mode, [["hard", "하드 피어리스"], ["off", "끔"]], "피어리스")}`;
+  }
   function liveSetBarPC() {
-    const seg = (act, cur, items) => `<div class="seg">${items.map(([v, n]) => `<button data-act="${act}" data-v="${v}" aria-pressed="${cur === v}">${n}</button>`).join("")}</div>`;
-    return `${seg("side", S.draft.ourSide, [["B", "블루"], ["R", "레드"]])}${seg("mode", S.series.mode, [["hard", "하드"], ["soft", "소프트"], ["off", "끔"]])}
-      <button class="ib mh-ib" data-act="resetGame" aria-label="이번 세트 다시" title="이번 세트 다시">${lbi("undo", 22)}</button>
-      <button class="ib mh-ib" data-act="saveSeries" aria-label="밴픽 저장" title="밴픽 저장">${lbi("note", 22)}</button>
-      <button class="ib mh-ib" data-act="resetSeries" aria-label="시리즈 초기화" title="시리즈 초기화">${lbi("refresh", 22)}</button>
+    return `<button class="ib mh-ib" data-act="resetGame" aria-label="이번 세트 다시">${lbi("undo", 22)}</button>
+      <button class="ib mh-ib" data-act="resetSeries" aria-label="시리즈 처음부터">${lbi("refresh", 22)}</button>
       ${S.ui.endAsk ? `<span class="end-ask" role="group" aria-label="${S.series.game}세트 결과"><button class="soft-b res-w" data-act="endGame" data-v="W">승</button><button class="soft-b res-l" data-act="endGame" data-v="L">패</button><button class="soft-b" data-act="endCancel">취소</button></span>`
         : `<button class="soft-b" data-act="nextGame">세트 종료 → 다음 세트</button>`}`;
   }
@@ -1467,13 +1527,13 @@
     // 상대 팀 등록 = 이 팀이 직접 넣은 팀(기본으로 들어 있는 처음 팀 명단은 세지 않음)
     const opp = S.teams.some((x) => !x.solo && x.id !== (sp || S.ourTeam) && !(window.SEED_TEAMS || []).some((y) => y.id === x.id));
     return [
-      { k: "team", n: "팀 만들기", d: "팀 이름 + 본인 확인", done: !!sp },
+      { k: "team", n: "로그인 · 팀", d: "로그인하고 팀 만들기·들어가기", done: !!sp },
       { k: "five", n: "우리 선수 5명", d: "라인별 라이엇 ID", done: legacy || five },
       { k: "invite", n: "팀원 초대", d: "링크 공유", done: legacy || (!!sp && !!S.ui.invited) },
       { k: "opp", n: "상대 팀 등록", d: "엑셀 또는 직접", done: legacy || (!!sp && opp) },
     ];
   }
-  const needOnboard = () => !S.ui.flowHide && !nuSteps().every((x) => x.done);
+  const needOnboard = () => guest() || (!S.ui.flowHide && !nuSteps().every((x) => x.done));
   function newUserPC() {
     const st = nuSteps(), curI = st.findIndex((x) => !x.done);
     const view = st.some((x, i) => x.k === S.ui.nuStep && (x.done || i === curI)) ? st.findIndex((x) => x.k === S.ui.nuStep) : curI;
@@ -1481,7 +1541,9 @@
     const msg = TM.msg ? `<p class="help nu-msg" role="status">${esc(TM.msg)}</p>` : `<p class="help nu-msg" role="status"></p>`;
     const k = st[view].k;
     let body = "";
-    if (k === "team") {
+    if (k === "team" && !(SPACE && !SPACE.bad && !SPACE.viaLogin && TM.step !== "verify")) {
+      body = loginBody() + `<p class="help nu-foot">${SESS ? "" : "로그인하면 팀을 만들거나 팀장에게 받은 초대 코드로 들어갑니다 · "}<button class="nc-a del" data-act="gotab" data-k="live">팀 없이 실시간 밴픽만 쓰기</button></p>`;
+    } else if (k === "team") {
       if (SPACE && !SPACE.bad) body = `<div class="nu-done">${lbi("check", 22)}<b>${esc(SPACE.name || "팀 공간")}</b> 팀을 만들었습니다</div>`;
       else if (TM.step === "verify") {
         const left = Math.max(0, Math.round(((TM.at || Date.now()) + 15 * 60e3 - Date.now()) / 1000));
@@ -1492,7 +1554,7 @@
       } else {
         body = `${SPACE && SPACE.bad ? `<p class="warn">이 브라우저의 팀 공간 열쇠가 바뀌었습니다. 팀원에게 새 초대 링크를 받아 여세요.</p>` : ""}
           <div class="nu-in"><input class="input nu-f" id="tmName" maxlength="30" value="${esc(TM.name)}" placeholder="팀 이름" aria-label="팀 이름"><input class="input nu-f" id="tmRiot" maxlength="42" value="${esc(TM.riot)}" placeholder="본인 라이엇 ID (이름#태그)" aria-label="본인 라이엇 ID"></div>
-          ${msg}<div class="nu-act"><button class="n-new" data-act="tstart" ${TM.busy ? "disabled" : ""}>${TM.busy ? "계정 확인 중…" : "팀 만들기"}</button><span class="n-sp"></span><button class="nc-a del" data-act="flowhide">팀 없이 둘러보기</button></div>`;
+          ${msg}<div class="nu-act"><button class="n-new" data-act="tstart" ${TM.busy ? "disabled" : ""}>${TM.busy ? "계정 확인 중…" : "팀 만들기"}</button><span class="n-sp"></span><button class="nc-a del" data-act="gotab" data-k="live">팀 없이 실시간 밴픽만 쓰기</button></div>`;
       }
       body += `<p class="help nu-foot">초대 링크를 받았다면 만들 필요 없이 그 링크를 여세요 · 본인 확인은 남이 우리 명단으로 팀을 만들지 못하게 하려는 것</p>`;
     } else if (k === "five") {
@@ -1500,6 +1562,8 @@
       body = `<div class="nu-five">${ROLES.map((r) => { const pl = t && t.players[r]; return `<span class="nu-p ${pl && /#/.test(pl.riot || "") ? "ok" : ""}"><small>${ROLE_KO[r]}</small><b>${esc((pl && nick(pl.riot)) || "비어 있음")}</b></span>`; }).join("")}</div>
         <div class="nu-act"><button class="n-new" data-act="settings" data-k="teams">선수 넣기</button><button class="soft-b" data-act="import">엑셀로 한 번에</button></div>
         <p class="help nu-foot">라인마다 본계정 라이엇 ID · 티어와 챔프폭은 기록에서 자동</p>`;
+    } else if (k === "invite" && SPACE && SPACE.viaLogin) {
+      body = loginBody();
     } else if (k === "invite") {
       body = `<span class="sd-link nu-link">${esc(location.origin + location.pathname)}#join=${esc(SPACE ? SPACE.id : "")}.●●●●●●●●</span>
         <div class="nu-act"><button class="n-new" data-act="invite">${lbi("invite", 18)}초대 링크 복사</button><span class="dim">팀 단톡방에 붙여 넣기 · 팀원은 링크만 열면 끝</span></div>`;
@@ -1548,7 +1612,7 @@
     const o = ecOpt(true), r = ecomps(ours, en, o);
     const seg = (k, cur, items, label, dis) => `<div class="seg" role="group" aria-label="${label}">${items.map(([v, n]) => `<button data-act="ecf" data-k="${k}" data-v="${v}" aria-pressed="${String(cur) === String(v)}" ${dis ? "disabled" : ""}>${n}</button>`).join("")}</div>`;
     const bar = `<div class="n-bar ec-bar"><button class="ec-back" data-act="ecback">${ico("left")}상대 분석</button>
-      <span class="ec-fl"><small>피어리스</small>${seg("mode", o.mode, [["hard", "하드"], ["soft", "소프트"], ["off", "끔"]], "피어리스")}</span>
+      <span class="ec-fl"><small>피어리스</small>${seg("mode", o.mode === "soft" ? "hard" : o.mode, [["hard", "하드 피어리스"], ["off", "끔"]], "피어리스")}</span>
       <span class="ec-fl"><small>세트</small>${seg("game", o.game, [[1, "1세트"], [2, "2세트"], [3, "3세트"]], "세트", o.mode === "off")}</span>
       <span class="ec-fl"><small>우리 밴</small>${seg("ban", o.ban ? 1 : 0, [[0, "반영 안 함"], [1, "먼저 밴 3개 반영"]], "우리 밴")}${r.bans.length ? `<span class="ec-bans">${r.bans.map((id) => `<span title="${esc(CH[id].ko)} 밴">${icon(id, "xs")}</span>`).join("")}</span>` : ""}</span></div>`;
     const flow = o.mode !== "off" && r.flow.length ? `<section class="ec-flow" aria-label="세트 흐름"><small>세트 흐름 · 상대가 세트마다 가장 유력한 조합을 쓴다고 볼 때</small><span class="ec-fs">${r.flow.map((f) => `<span class="ec-f ${f.game === o.game ? "now" : f.game < o.game ? "past" : ""}"><b>${f.game}세트</b><span>${esc(COMPS[f.comp.identity].name)}</span><span class="ec-fi">${ROLES.map((x) => f.comp.slots[x] ? icon(f.comp.slots[x].id, "xs") : "").join("")}</span></span>`).join(`<span class="dim">→</span>`)}</span></section>` : "";
@@ -1910,7 +1974,9 @@
     return `<div class="sd-rk">${rkPicker(r, acc, "s", v.s, dis)}${rkPicker(r, acc, "f", v.f, dis)}</div>`;
   }
   function effLine(t, r) {
-    const p = t.players[r], e = effTier(t, r);
+    const p = t.players[r];
+    if (!accountsOf(t, r).length) return `<p class="help sd-eff-none">계정(이름#태그)을 넣으면 Riot에서 티어를 받습니다</p>`;
+    const e = effTier(t, r);
     const basis = QUEUE_TXT[CFG.queue][0];
     if (e.none) return `<div class="sd-eff none"><span class="sd-eff-h"><small>반영 티어 · ${esc(basis)}</small><b>${tierImg("")}언랭</b></span>
       <label class="sd-fl sd-fp"><small>점수</small><input class="input" type="number" min="0" max="100" data-ptsu data-role="${r}" value="${esc(p.ptsU != null ? p.ptsU : "")}" placeholder="0" aria-label="${ROLE_KO[r]} 언랭 점수"></label>
@@ -1943,7 +2009,7 @@
         ${t && !t.solo ? `<button class="soft-b" data-act="tqall" ${TQ.busy ? "disabled" : ""} title="본계정·부계정 모두 솔랭·자랭 티어를 Riot에서 받기">${TQ.busy ? `받는 중 ${TQ.done}/${TQ.all}` : "Riot에서 티어 받기"}</button>` : ""}<button class="soft-b" data-act="export">엑셀 내보내기</button><button class="soft-b" data-act="import">엑셀 불러오기</button>${canShare ? `<button class="n-new sm" data-act="sharenow" title="지금 팀원에게 다시 올리기">팀에 공유</button>` : ""}</div>
       <p class="help" id="shareNote" aria-live="polite">${t && t.solo ? "" : shareNote()}</p>${TQ.msg ? `<p class="help" role="status">${esc(TQ.msg)}</p>` : ""}
       ${t ? `<div id="setEd" class="sd-ed" data-team=""></div>` : `<p class="help">${S.ui.setTeam === "enemy" ? "상대 팀이 없습니다 — 「엑셀 불러오기」로 상대 팀을 넣으세요." : "우리 팀이 없습니다 — 오른쪽에서 팀을 만들거나 초대 링크로 들어오세요."}</p>`}</section>`;
-    const inv = SPACE && !SPACE.bad ? `<span class="sd-team">${crestOf(ours && !ours.solo ? ours : { name: SPACE.name || "팀" }, "b")}<b>${esc(SPACE.name || "팀 공간")}</b>${SPACE.owner ? `<small>팀장 인증 ${esc(SPACE.owner)}</small>` : ""}</span>
+    const inv = (SESS || !SPACE) ? loginBody() : SPACE && !SPACE.bad ? `<span class="sd-team">${crestOf(ours && !ours.solo ? ours : { name: SPACE.name || "팀" }, "b")}<b>${esc(SPACE.name || "팀 공간")}</b>${SPACE.owner ? `<small>팀장 인증 ${esc(SPACE.owner)}</small>` : ""}</span>
         <span class="sd-link" title="초대 링크(열쇠는 가림)">${esc(location.origin + location.pathname)}#join=${esc(SPACE.id)}.●●●●●●●●</span>
         <button class="n-new" data-act="tcopy">${lbi("invite", 18)}초대 링크 복사</button>
         ${TM.msg ? `<p class="help" role="status">${esc(TM.msg)}</p>` : ""}
@@ -2021,7 +2087,82 @@
     if (!el) { el = document.body.appendChild(Object.assign(document.createElement("div"), { id: "toast", className: "toast" })); el.setAttribute("role", "status"); el.setAttribute("aria-live", "polite"); }
     el.textContent = msg; el.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 2600);
   }
+  // ---- 로그인 ----
+  const PROVIDER_KO = { google: "구글", naver: "네이버", kakao: "카카오" };
+  async function loadProviders() {
+    if (!WURL() || AUTH.providers) return;
+    try { const d = await (await fetch(`${WURL()}/auth/providers`, { cache: "no-store", credentials: "omit" })).json(); AUTH.providers = d.status === "ok" ? d.providers : []; } catch (e) { AUTH.providers = []; }
+    if (guest() || S.tab === "settings" || S.tab === "our") render();
+  }
+  function startLogin(p) { location.href = `${WURL()}/auth/${p}/start?ret=${encodeURIComponent(location.origin + location.pathname)}`; }
+  async function loadMe() {
+    if (!SESS || !WURL()) return;
+    try {
+      const res = await fetch(`${WURL()}/auth/me`, { cache: "no-store", credentials: "omit", headers: { "X-Session": SESS } });
+      const d = await res.json().catch(() => ({}));
+      if (res.status === 401) { logoutLocal("로그인이 끝났습니다 — 다시 로그인해 주세요"); return; }
+      if (!res.ok || d.status !== "ok") return;
+      AUTH.user = d.user; AUTH.spaces = d.spaces || [];
+      try { localStorage.setItem(KEY_AUTH, JSON.stringify({ user: AUTH.user, spaces: AUTH.spaces })); } catch (e) { /* 이번만 */ }
+      const before = SPACE && SPACE.id, ls = loginSpace();
+      if (ls) { SPACE = ls; if (before !== ls.id) { spaceJoined(); return; } }
+      else if (SPACE && SPACE.viaLogin) SPACE = null;
+      render();
+    } catch (e) { /* 다음에 */ }
+  }
+  function logoutLocal(msg) {
+    SESS = ""; AUTH.user = null; AUTH.spaces = []; AUTH.msg = msg || "";
+    try { localStorage.removeItem(KEY_SESS); localStorage.removeItem(KEY_AUTH); } catch (e) { /* 무시 */ }
+    if (SPACE && SPACE.viaLogin) { SPACE = null; SH.url = ""; NT.list = null; }
+    render();
+  }
+  async function authPost(op, body) {
+    const res = await fetch(`${WURL()}/auth/${op}`, { method: "POST", cache: "no-store", credentials: "omit", headers: { "Content-Type": "application/json", "X-Session": SESS }, body: JSON.stringify(body || {}) });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || d.status !== "ok") throw new Error(d.reason || "HTTP " + res.status);
+    return d;
+  }
+  async function authAction(a, el) {
+    // 다시 그리기 전에 입력값부터 읽음(그리면 칸이 새로 만들어져 비어 버림)
+    const vals = { lgTeam: ((document.getElementById("lgTeam") || {}).value || "").trim(), lgCode: ((document.getElementById("lgCode") || {}).value || "").trim() };
+    const v = (id) => vals[id] || "";
+    AUTH.busy = true; AUTH.msg = ""; render();
+    try {
+      if (a === "lgnew") { const d = await authPost("team/create", { name: v("lgTeam") }); try { localStorage.setItem("lolban.space.v1", d.space.id); } catch (e) { /* 이번만 */ } AUTH.msg = `「${d.space.name}」 팀을 만들었습니다 — 초대 코드를 만들어 팀원에게 보내세요`; }
+      else if (a === "lgjoin") { const d = await authPost("team/join", { code: v("lgCode") }); try { localStorage.setItem("lolban.space.v1", d.space.id); } catch (e) { /* 이번만 */ } AUTH.msg = `「${d.space.name}」 팀에 들어왔습니다`; }
+      else if (a === "lgcode") { const d = await authPost("team/code", { space: SPACE.id }); AUTH.msg = `새 초대 코드 ${d.code} — ${d.exp}까지`; }
+      else if (a === "lgleave") { if (!confirm(`「${SPACE.name}」 팀에서 나갈까요?`)) { AUTH.busy = false; render(); return; } await authPost("team/leave", { space: SPACE.id }); try { localStorage.removeItem("lolban.space.v1"); } catch (e) { /* 무시 */ } SPACE = null; AUTH.msg = "팀에서 나왔습니다"; }
+      else if (a === "lgdel") { if (!confirm("탈퇴할까요? 로그인 정보와 소속이 지워지고, 혼자 있는 팀은 팀 자료까지 지워집니다. 되돌릴 수 없습니다.")) { AUTH.busy = false; render(); return; } await authPost("delete", {}); AUTH.busy = false; logoutLocal("탈퇴했습니다 — 로그인 정보를 지웠습니다"); return; }
+      else if (a === "lgout") { try { await authPost("logout", {}); } catch (e) { /* 서버에서 이미 끝남 */ } AUTH.busy = false; logoutLocal("로그아웃했습니다"); return; }
+      else if (a === "lgcopy") { const c = SPACE && SPACE.code; if (c) { try { await navigator.clipboard.writeText(`lolban.com 팀 초대 코드: ${c}`); AUTH.msg = "초대 코드를 복사했습니다 — 팀 단톡방에 붙여 넣으세요"; S.ui.invited = true; save(); } catch (e) { AUTH.msg = `초대 코드: ${c}`; } } }
+      AUTH.busy = false; await loadMe();
+    } catch (e) { AUTH.busy = false; AUTH.msg = e.message || String(e); render(); }
+  }
+  // 로그인 · 팀 만들기/들어가기 · 초대 코드 칸(새 사용자 홈·설정이 같이 씀)
+  function loginBody() {
+    const msg = AUTH.msg || (LOGIN_ERR ? { cancel: "로그인을 취소했습니다", state: "로그인 시간이 지났습니다 — 다시 눌러 주세요", provider: "로그인 공급자 응답에 문제가 있었습니다 — 잠시 뒤 다시", not_ready: "그 로그인은 아직 준비 중입니다" }[LOGIN_ERR] || "로그인하지 못했습니다" : "");
+    const note = msg ? `<p class="help lg-msg" role="status">${esc(msg)}</p>` : "";
+    if (!SESS) {
+      const pv = AUTH.providers;
+      const btns = pv == null ? `<p class="help">불러오는 중…</p>` : pv.length ? pv.map((x) => `<button class="lg-b ${x}" data-act="lglogin" data-k="${x}">${PROVIDER_KO[x] || x}로 로그인</button>`).join("") : `<p class="help">로그인 준비 중입니다 — 곧 열립니다</p>`;
+      return `<div class="lg">${btns}${note}<p class="help lg-foot">받는 정보: 로그인한 서비스의 회원 번호(바꿔서 저장)와 닉네임 · 이메일·전화번호는 받지 않음</p></div>`;
+    }
+    const who = AUTH.user ? `${esc(AUTH.user.nick || "로그인됨")} · ${PROVIDER_KO[AUTH.user.provider] || ""}` : "로그인됨";
+    if (!SPACE || !SPACE.viaLogin) {
+      return `<div class="lg"><p class="lg-who">${who}<button class="nc-a del" data-act="lgout">로그아웃</button></p>
+        <div class="lg-two"><section><b>팀 만들기</b><span class="help">내가 팀장 · 초대 코드로 팀원을 부름</span><input class="input" id="lgTeam" maxlength="30" placeholder="팀 이름"><button class="n-new" data-act="lgnew" ${AUTH.busy ? "disabled" : ""}>팀 만들기</button></section>
+        <section><b>초대 코드로 들어가기</b><span class="help">팀장에게 받은 6자리</span><input class="input lg-code" id="lgCode" maxlength="8" placeholder="예: K7P2QX" autocomplete="off"><button class="soft-b" data-act="lgjoin" ${AUTH.busy ? "disabled" : ""}>들어가기</button></section></div>${note}</div>`;
+    }
+    const others = AUTH.spaces.filter((x) => x.id !== SPACE.id);
+    return `<div class="lg"><p class="lg-who">${who}<button class="nc-a del" data-act="lgout">로그아웃</button></p>
+      <p class="lg-team"><b>${esc(SPACE.name)}</b><span class="help">${SPACE.isOwner ? "팀장" : "팀원"} · ${SPACE.members || 1}명</span></p>
+      ${SPACE.isOwner ? (SPACE.code ? `<div class="lg-code-box"><span class="help">팀원 초대 코드 · ${esc(SPACE.codeExp)}까지</span><b>${esc(SPACE.code)}</b><span class="sd-btns"><button class="n-new" data-act="lgcopy">코드 복사</button><button class="soft-b" data-act="lgcode">새로 만들기</button></span><span class="help">새로 만들면 옛 코드는 바로 막힙니다</span></div>`
+        : `<button class="n-new" data-act="lgcode">초대 코드 만들기</button>`) : `<p class="help">팀원 초대 코드는 팀장이 만듭니다</p>`}
+      ${others.length ? `<p class="help">다른 팀: ${others.map((x) => `<button class="nc-a" data-act="lgswitch" data-id="${x.id}">${esc(x.name)}</button>`).join(" · ")}</p>` : ""}
+      <span class="sd-btns"><button class="soft-b bad" data-act="lgleave">팀 나가기</button><button class="nc-a del" data-act="lgdel">탈퇴</button></span>${note}</div>`;
+  }
   async function copyInvite() {
+    if (SPACE && SPACE.viaLogin) { if (SPACE.code) return authAction("lgcopy"); openSettings("space"); return; }
     if (!SPACE || SPACE.bad) { openSettings("space"); return; }
     try { await navigator.clipboard.writeText(inviteLink()); S.ui.invited = true; save(); render(); toast("초대 링크를 복사했습니다 — 팀 단톡방에 붙여 넣으세요"); }
     catch (e) { openSettings("space"); toast("링크를 길게 눌러 복사하세요"); }
@@ -2075,7 +2216,7 @@
     const ourT = team(S.ourTeam);
     const enemies = S.teams.filter((t) => !t.solo && t.id !== S.ourTeam);
     const sec = {
-      space: () => `<h3>${SPACE && !SPACE.bad ? "우리 팀·팀원 초대" : "팀 만들기"}</h3>${teamBody()}`,
+      space: () => `<h3>${SPACE && !SPACE.bad ? "우리 팀·팀원 초대" : "로그인 · 팀"}</h3>${SESS || !SPACE ? loginBody() : teamBody()}`,
       basis: () => `<h3>분석 기준</h3>
         <div class="set-row"><div class="set-l"><b>티어 기준</b><span class="help">선수 티어·점수 채우기와 랭크 전적(시즌·연습 기간 판수·승률)에 쓰는 큐</span></div>
           <div class="seg set-seg" role="group" aria-label="티어 기준">${Object.entries(QUEUE_TXT).map(([k, [n]]) => `<button data-act="setq" data-v="${k}" aria-pressed="${CFG.queue === k}">${n}</button>`).join("")}</div></div>
@@ -2150,9 +2291,146 @@
     } catch (e) { alert("내보내기 실패: " + (e.message || e)); }
   }
   // 불러오기 페이지 상태: 고른 파일을 읽은 결과와 바뀌는 것
-  const IMP = { file: "", parsed: null, diff: null, msg: "", busy: false, from: "our", json: null };
+  const IMP = { file: "", parsed: null, diff: null, msg: "", busy: false, from: "our", json: null, text: "", team: "", our: false, src: "", ocr: null, chk: {}, seq: 0 };
   const newTeamId = () => { let id; do { id = "u" + Math.random().toString(36).slice(2, 10); } while (S.teams.some((t) => t.id === id)); return id; };
+  // ---- 사진 글자 인식: 브라우저 안 Tesseract.js(한글+영어). 사진은 서버로 보내지 않는다 ----
+  let TESS = null;
+  function loadTess() {
+    if (TESS) return TESS;
+    TESS = new Promise((ok, no) => {
+      const sc = document.createElement("script");
+      sc.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+      sc.integrity = "sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F"; sc.crossOrigin = "anonymous";
+      sc.onload = () => (window.Tesseract ? ok(window.Tesseract) : (TESS = null, no(new Error("글자 인식 도구를 읽지 못했습니다"))));
+      sc.onerror = () => { TESS = null; no(new Error("글자 인식 도구를 읽지 못했습니다 — 인터넷 연결을 확인해 주세요")); };
+      document.head.appendChild(sc);
+    });
+    return TESS;
+  }
+  // 캡처 다듬기: 작은 글은 2배로 키우고 흑백, 어두운 화면(게임·디스코드)은 뒤집어 흰 바탕 검은 글로
+  async function prepImage(file, pl) {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(pl.k, Math.max(1, 3600 / Math.max(bmp.width, 1)));
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    const g = c.getContext("2d"); g.imageSmoothingQuality = "high"; g.drawImage(bmp, 0, 0, c.width, c.height);
+    const im = g.getImageData(0, 0, c.width, c.height), d = im.data;
+    let sum = 0; for (let q = 0; q < d.length; q += 4) { const y = 0.299 * d[q] + 0.587 * d[q + 1] + 0.114 * d[q + 2]; d[q] = d[q + 1] = d[q + 2] = y; sum += y; }
+    if (sum / (d.length / 4) < 128) for (let q = 0; q < d.length; q += 4) d[q] = d[q + 1] = d[q + 2] = 255 - d[q];
+    if (pl.bin) {   // 오츠 문턱으로 흑백 두 색
+      const h = new Array(256).fill(0); for (let q = 0; q < d.length; q += 4) h[d[q] | 0]++;
+      const n = d.length / 4; let all = 0; for (let t = 0; t < 256; t++) all += t * h[t];
+      let sB = 0, wB = 0, best = 0, th = 128;
+      for (let t = 0; t < 256; t++) { wB += h[t]; if (!wB) continue; const wF = n - wB; if (!wF) break; sB += t * h[t]; const v = wB * wF * (sB / wB - (all - sB) / wF) ** 2; if (v > best) { best = v; th = t; } }
+      for (let q = 0; q < d.length; q += 4) d[q] = d[q + 1] = d[q + 2] = d[q] > th ? 255 : 0;
+    }
+    g.putImageData(im, 0, 0);
+    return c;
+  }
+  function ocrProgress(v) { IMP.ocr = v; const b = document.getElementById("ipBar"); if (b) { b.style.setProperty("--w", Math.round(v * 100) + "%"); const t = document.getElementById("ipBarT"); if (t) t.textContent = `사진 글자 읽는 중 ${Math.round(v * 100)}%`; } }
+  async function readImage(file) {
+    IMP.fix = {}; IMP.file = file.name || "붙여 넣은 사진"; IMP.src = "image"; IMP.parsed = null; IMP.diff = null; IMP.json = null; IMP.msg = ""; IMP.busy = true; IMP.ocr = 0; render();
+    try {
+      if (file.size > 12 * 1024 * 1024) throw new Error("사진이 너무 큽니다(12MB까지)");
+      const T = await loadTess();
+      // 세 가지로 읽기(11-19 시험: 줄마다 맞게 읽는 방식이 달랐음) — 계정이 가장 많이 잡힌 글을 쓰고, 나머지는 고칠 후보로
+      const plans = [{ k: 3, bin: false, psm: "6", lang: ["kor", "eng"] }, { k: 3, bin: true, psm: "6", lang: ["kor"] }, { k: 2.4, bin: false, psm: "3", lang: ["kor", "eng"] }];
+      const texts = [];
+      for (let i = 0; i < plans.length; i++) {
+        const pl = plans[i], canvas = await prepImage(file, pl);
+        const w = await T.createWorker(pl.lang, 1, { logger: (m) => { if (m.status === "recognizing text") ocrProgress((i + m.progress) / plans.length); } });
+        await w.setParameters({ tessedit_pageseg_mode: pl.psm, preserve_interword_spaces: "1" });
+        const { data } = await w.recognize(canvas); await w.terminate();
+        texts.push((data.text || "").split("\n").map((x) => x.replace(/\s+$/, "")).filter((x) => x.trim()).join("\n"));
+      }
+      const cnt = (t) => window.TeamSheet.fromText(t, { ocr: true, team: "x" }).rows.filter((r) => r.length === 7 && r[1] && r[0] !== "라인").length;
+      texts.sort((a, b) => cnt(b) - cnt(a));
+      const found = cnt(texts[0]);
+      // 다른 읽기의 계정 후보(줄 순서 그대로) — Riot에 없는 계정을 고칠 때 씀
+      IMP.alts = texts.slice(1).map((t) => Object.fromEntries(window.TeamSheet.fromText(t, { ocr: true, team: "x" }).rows.filter((r) => r.length === 7 && r[1] && r[0] !== "라인").map((r) => [r[0], r[1]])));   // 라인 → 계정
+      IMP.add = {};
+      IMP.text = texts[0];
+      IMP.busy = false; IMP.ocr = null;
+      if (!found) { IMP.msg = "사진에서 「이름#태그」 계정을 찾지 못했습니다 — 읽은 글을 텍스트 칸에 넣어 두었으니 고쳐서 「명단으로 바꾸기」를 누르세요"; render(); return; }
+      IMP.msg = `사진에서 계정 ${found}개를 읽었습니다 — 틀린 글자는 텍스트 칸에서 고친 뒤 다시 「명단으로 바꾸기」`;
+      parseText();
+    } catch (e) { IMP.busy = false; IMP.ocr = null; IMP.msg = "사진을 읽지 못했습니다: " + (e.message || e); render(); }
+  }
+  // 텍스트 → 명단 미리보기
+  function parseText() {
+    const resolve = (n) => { const c = findChamp(n); return c ? c.id : null; };
+    const r = window.TeamSheet.fromText(IMP.text, { resolve, ocr: IMP.src === "image", team: (IMP.team || "").trim(), our: IMP.our });
+    if (IMP.src === "image" && IMP.fix) r.rows = r.rows.map((row) => row.length === 7 && row[0] !== "라인" ? row.map((c, k) => (k >= 1 && k <= 3 && IMP.fix[c] ? IMP.fix[c] : c)) : row);
+    // 첫 읽기에서 빠진 라인을 다른 읽기에서 찾아 Riot으로 확인한 계정(첫 팀에 넣음)
+    if (IMP.src === "image" && IMP.add && Object.keys(IMP.add).length && r.rows.length) {
+      const end = r.rows.findIndex((row, k) => k > 1 && row.length === 0), at = end < 0 ? r.rows.length : end;
+      const have = new Set(r.rows.slice(0, at).map((row) => row[0]));
+      const ORD = ["탑", "정글", "미드", "원딜", "서폿"], add = Object.entries(IMP.add).filter(([ko]) => !have.has(ko)).map(([ko, id]) => [ko, id, "", "", "", "", ""]);
+      const body = r.rows.slice(2, at).concat(add).sort((a, b) => ORD.indexOf(a[0]) - ORD.indexOf(b[0]));
+      r.rows = r.rows.slice(0, 2).concat(body, r.rows.slice(at));
+    }
+    if (!r.rows.length) { IMP.parsed = null; IMP.diff = null; IMP.msg = "「이름#태그」 계정을 찾지 못했습니다 — 예시처럼 한 줄에 라인과 계정을 적어 주세요"; render(); return; }
+    IMP.parsed = window.TeamSheet.parse(r.rows, resolve);
+    r.notes.forEach((n) => IMP.parsed.warnings.push({ row: 0, msg: n }));
+    if (!IMP.file || IMP.src === "text") IMP.file = "텍스트";
+    IMP.diff = window.TeamSheet.diff(S.teams, IMP.parsed, S.ourTeam);
+    render(); checkIds();
+  }
+  // 미리보기 계정이 Riot에 있는지(팀 공간 열쇠 필요, 6시간 캐시, 한도면 1분 쉼)
+  async function checkIds() {
+    const P = IMP.parsed; if (!P || !SPACE || SPACE.bad) return;
+    const seq = ++IMP.seq;
+    const ids = [...new Set(P.teams.flatMap((t) => Object.values(t.players).flatMap((x) => [x.riot, ...(x.alts || [])])).filter(Boolean))];
+    for (const id of ids) {
+      if (IMP.chk[id] === "ok" || IMP.chk[id] === "no") continue;
+      IMP.chk[id] = "wait";
+      for (let tries = 0; tries < 6; tries++) {
+        if (seq !== IMP.seq) return;
+        try {
+          const res = await wfetch(`/riot/check?id=${encodeURIComponent(id)}`); const d = await res.json().catch(() => ({}));
+          if (res.status === 429) { await new Promise((ok) => setTimeout(ok, 61000)); continue; }
+          IMP.chk[id] = res.ok && d.status === "ok" ? (d.exists ? "ok" : "no") : "err";
+        } catch (e) { IMP.chk[id] = "err"; }
+        break;
+      }
+      if (seq !== IMP.seq) return;
+      const el = document.getElementById("ipChk"); if (el && S.tab === "import") el.outerHTML = impCheckHtml(IMP.parsed);
+    }
+    if (IMP.src === "image" && IMP.alts && seq === IMP.seq) fixFromAlts(seq);
+  }
+  // 사진 계정 고치기: 본계정 n번째가 Riot에 없으면 다른 읽기의 n번째(앞뒤 한 줄) 후보 중 Riot에 있는 것으로 글을 바꾸고 다시 읽음
+  async function fixFromAlts(seq) {
+    const P = IMP.parsed; if (!P || !P.teams[0]) return;
+    const LK = { T: "탑", J: "정글", M: "미드", A: "원딜", S: "서폿" };
+    const nk = (x) => String(x || "").replace(/\s+/g, "").toLowerCase();   // 같은 계정(빈칸·대소문자만 다름)은 한 번만
+    const used = new Set(Object.values(P.teams[0].players).map((x) => nk(x.riot)).filter(Boolean));
+    let fixed = 0;
+    // 읽은 라인을 먼저 고치고, 빠진 라인은 그다음에 채움
+    const order = Object.keys(LK).sort((a, b) => !!(P.teams[0].players[b] && P.teams[0].players[b].riot) - !!(P.teams[0].players[a] && P.teams[0].players[a].riot));
+    for (const r of order) {
+      const pl = P.teams[0].players[r], bad = pl && pl.riot;
+      if (bad && IMP.chk[bad] !== "no") continue;   // 맞는 계정은 그대로, 없는 라인·Riot에 없는 계정만
+      const cands = [...new Set(IMP.alts.map((a) => a[LK[r]]).filter((x) => x && nk(x) !== nk(bad) && !used.has(nk(x))))];
+      for (const c of cands) {
+        if (seq !== IMP.seq) return;
+        if (IMP.chk[c] == null) { try { const res = await wfetch(`/riot/check?id=${encodeURIComponent(c)}`); const d = await res.json().catch(() => ({})); IMP.chk[c] = res.ok && d.status === "ok" ? (d.exists ? "ok" : "no") : "err"; } catch (e) { IMP.chk[c] = "err"; } }
+        if (IMP.chk[c] === "ok") { if (bad) IMP.fix[bad] = c; else IMP.add[LK[r]] = c; used.add(nk(c)); fixed++; break; }
+      }
+    }
+    if (fixed && seq === IMP.seq) { IMP.msg = `사진 계정 ${fixed}개를 다른 읽기 결과로 고쳤습니다(Riot에 있는 계정으로 확인) — 남은 ✕는 텍스트 칸에서 직접 고쳐 주세요`; parseText(); }
+  }
+  function impCheckHtml(P) {
+    if (!P) return "";
+    const ids = [...new Set(P.teams.flatMap((t) => Object.values(t.players).flatMap((x) => [x.riot, ...(x.alts || [])])).filter(Boolean))];
+    if (!ids.length) return "";
+    if (!SPACE || SPACE.bad) return `<p class="help" id="ipChk">팀 공간에 들어오면 계정마다 Riot에 있는지 확인합니다</p>`;
+    const no = ids.filter((id) => IMP.chk[id] === "no").length, ok = ids.filter((id) => IMP.chk[id] === "ok").length;
+    return `<div class="ip-chk" id="ipChk"><b>계정 확인 <small>${ok + no} / ${ids.length}</small></b>${no ? `<span class="sd-warn">Riot에 없는 계정 ${no}개 — 텍스트에서 고치고 다시 바꾸거나, 엑셀이면 고쳐서 다시 올려 주세요</span>` : ""}
+      <span class="ip-ids">${ids.map((id) => { const st = IMP.chk[id] || "wait"; return `<span class="ip-id ${st}" title="${st === "ok" ? "Riot에 있음" : st === "no" ? "Riot에 없는 계정" : st === "err" ? "확인 못 함" : "확인 중"}">${st === "ok" ? "✓" : st === "no" ? "✕" : st === "err" ? "?" : "…"} ${esc(id)}</span>`; }).join("")}</span></div>`;
+  }
   async function readImport(file) {
+    if (/^image\//.test(file.type || "") || /\.(png|jpe?g|webp|bmp|gif)$/i.test(file.name || "")) return readImage(file);
+    if (/\.txt$/i.test(file.name || "") || file.type === "text/plain") { IMP.src = "text"; IMP.file = file.name; IMP.text = (await file.text()).slice(0, 20000); IMP.msg = ""; parseText(); return; }
+    IMP.src = "file"; IMP.chk = IMP.chk || {};
     IMP.file = file.name; IMP.parsed = null; IMP.diff = null; IMP.json = null; IMP.msg = ""; IMP.busy = true; render();
     try {
       if (file.size > 2 * 1024 * 1024) throw new Error("파일이 너무 큽니다(2MB까지)");
@@ -2169,7 +2447,7 @@
         IMP.diff = window.TeamSheet.diff(S.teams, IMP.parsed, S.ourTeam);
       }
     } catch (e) { IMP.msg = "읽지 못했습니다: " + (e.message || e); }
-    IMP.busy = false; render();
+    IMP.busy = false; render(); checkIds();
   }
   function applyImport() {
     if (IMP.json) {
@@ -2194,10 +2472,7 @@
   }
   const accTxt = (a) => (a.length ? a.map(esc).join(" · ") : "없음");
   const champList = (pool, cls) => pool.map(([id, lv, one]) => `<span class="cp ${cls}">${esc(CH[id] ? CH[id].ko : id)} ${one ? "원챔" : LEVEL_KO[lv]}</span>`).join("");
-  function renderImport() {
-    const ex = [["팀", "수빈이의아이들", "우리팀"], ["라인", "본계정", "부계정1", "부계정2", "티어", "점수", "챔프폭"],
-      ["탑", "loegu#kr1", "", "", "에메랄드 4 24LP", "45", "다리우스:상, 말파이트:상, 케넨:중"], ["정글", "키아나#1234", "장국보#KR1", "", "챌린저 630LP", "90", "키아나:원챔, 누누:중"], ["…", "", "", "", "", "", ""]];
-    const exHtml = `<div class="tbl-wrap"><table class="imp-ex"><tbody>${ex.map((r, i) => `<tr class="${i === 0 ? "t" : i === 1 ? "h" : ""}">${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  function impPreview() {
     let pv = "";
     if (IMP.busy) pv = `<p class="help">읽는 중…</p>`;
     else if (IMP.json) pv = `<div class="card imp-pv"><h3>예전 내보내기 파일(.json)</h3><p class="help">팀 ${IMP.json.teams.length}개 · 지금 팀·챔프폭이 이 파일 내용으로 통째로 바뀝니다.</p>
@@ -2212,9 +2487,37 @@
         : `<span class="imp-c">챔프폭 ${c.add.length ? `<span class="cpills">${champList(c.add, "good")}</span>` : ""}${c.del.length ? `<span class="cpills">${champList(c.del, "bad")}</span>` : ""}</span>`).join("") : `<span class="help">새로 넣음</span>`}</li>`;
       const cards = changed.map((x) => `<div class="card imp-team"><h3>${esc(x.name)} ${x.isNew ? `<span class="pill gold">새 팀</span>` : `<span class="pill">바뀜</span>`}${x.becomesOur ? `<span class="pill blue">우리팀으로</span>` : x.our ? `<span class="pill blue">우리팀</span>` : ""}</h3><ul class="imp-lanes">${x.lanes.map(lane).join("")}</ul></div>`).join("");
       pv = `<section class="imp-pv"><div class="imp-sum"><b>${esc(IMP.file)}</b><span class="help">팀 ${D.length}개 · 바뀌는 팀 ${changed.length}${same ? ` · 그대로 ${same}` : ""}${D.some((x) => x.isNew) ? ` · 새 팀 ${D.filter((x) => x.isNew).length}` : ""}</span></div>
-        ${errs}${warns}${cards || (P.errors.length ? "" : `<p class="help">바뀌는 것이 없습니다.</p>`)}
+        ${impCheckHtml(P)}${errs}${warns}${cards || (P.errors.length ? "" : `<p class="help">바뀌는 것이 없습니다.</p>`)}
         <div class="dnav"><button class="btn primary" data-act="impapply" ${P.errors.length || !changed.length ? "disabled" : ""}>적용</button><button class="btn ghost" data-act="impclear">다시 고르기</button></div></section>`;
     }
+    return pv;
+  }
+  function renderImportPC() {
+    const busy = IMP.busy && IMP.ocr != null;
+    const ex = "팀: 반클러치 (상대)\n탑 도도한낫츠#kr1 마스터 레넥톤 상, 아트록스 중\n정글 김진규#0516\n부계정 김진규부캐#KR2\n미드 달 구#1234\n원딜 해피#KR1\n서폿 판도라#KR3";
+    const input = `<section class="ip-in">
+      <label class="ip-drop" id="impDrop"><input type="file" id="impFile" accept="image/*,.xlsx,.xls,.json,.txt" hidden>
+        <span class="ip-ic">${lbi("note", 30)}</span><b>사진 · 엑셀 파일을 여기로 끌어다 놓기</b><span>눌러서 고르기 · 캡처한 사진은 <kbd>Ctrl</kbd>+<kbd>V</kbd>로 바로 붙여 넣기</span></label>
+      ${busy ? `<div class="ip-bar"><i id="ipBar" style="--w:${Math.round((IMP.ocr || 0) * 100)}%"></i><span id="ipBarT">사진 글자 읽는 중 ${Math.round((IMP.ocr || 0) * 100)}%</span><small>처음 한 번은 글자 인식 자료(약 2MB)를 받습니다 · 사진은 이 브라우저 밖으로 나가지 않음</small></div>` : IMP.busy ? `<p class="help">읽는 중…</p>` : ""}
+      <div class="ip-team"><label class="sd-fl"><small>팀 이름 · 글에 「팀:」 줄이 없을 때</small><input class="input" id="ipTeam" maxlength="30" value="${esc(IMP.team)}" placeholder="예: 반클러치"></label>
+        <div class="seg" role="group" aria-label="우리팀인지"><button data-act="ipour" data-v="0" aria-pressed="${!IMP.our}">상대</button><button data-act="ipour" data-v="1" aria-pressed="${!!IMP.our}">우리팀</button></div></div>
+      <label class="sd-fl ip-txt"><small>텍스트 · 사진에서 읽은 글도 여기 나옵니다(고쳐도 됨)</small><textarea class="input" id="ipText" rows="9" spellcheck="false" placeholder="${esc(ex)}">${esc(IMP.text)}</textarea></label>
+      <div class="nu-act"><button class="n-new" data-act="ipparse">명단으로 바꾸기</button><span class="dim">계정은 「이름#태그」 · 라인 이름이 없으면 순서대로 탑·정글·미드·원딜·서폿</span></div>
+      ${IMP.msg ? `<p class="help ip-msg" role="status">${esc(IMP.msg)}</p>` : ""}</section>`;
+    const help = `<aside class="sd-side"><section class="sd-card"><h3>이렇게 넣으면 됩니다</h3>
+      <p class="help"><b>사진</b> 로비·디스코드·단톡 캡처. 글자를 읽어 텍스트 칸에 넣고 바로 명단으로 바꿉니다</p>
+      <p class="help"><b>엑셀</b> 내려받은 양식 그대로(팀·라인·계정·챔프폭)</p>
+      <p class="help"><b>텍스트</b> 한 줄에 라인과 계정. 「팀: 이름」 줄로 팀을 나누고, 「부계정」 줄은 바로 위 라인에 붙습니다</p>
+      <pre class="ip-ex">${esc(ex)}</pre>
+      <p class="help">적용하면 본계정·부계정의 솔랭·자랭 티어를 Riot에서 받고, 챔프폭은 기록으로 채웁니다</p>
+      <span class="sd-btns"><button class="soft-b" data-act="export">지금 명단 엑셀로 내려받기</button></span></section></aside>`;
+    return `<div class="home imp-pc"><div class="ip-grid">${input}${help}</div>${impPreview()}</div>`;
+  }
+  function renderImport() {
+    const ex = [["팀", "수빈이의아이들", "우리팀"], ["라인", "본계정", "부계정1", "부계정2", "티어", "점수", "챔프폭"],
+      ["탑", "loegu#kr1", "", "", "에메랄드 4 24LP", "45", "다리우스:상, 말파이트:상, 케넨:중"], ["정글", "키아나#1234", "장국보#KR1", "", "챌린저 630LP", "90", "키아나:원챔, 누누:중"], ["…", "", "", "", "", "", ""]];
+    const exHtml = `<div class="tbl-wrap"><table class="imp-ex"><tbody>${ex.map((r, i) => `<tr class="${i === 0 ? "t" : i === 1 ? "h" : ""}">${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    const pv = impPreview();
     return `<div class="section-title"><h2>팀·챔프폭 불러오기</h2><p>엑셀로 팀 명단·계정·챔프폭을 한 번에 넣습니다</p><button class="ib btn sm" data-act="impback" aria-label="돌아가기" title="돌아가기">${ico("back")}</button></div>
       <div class="imp">
         <section class="card imp-how"><h3>엑셀 쓰는 법</h3><ol class="steps">
@@ -2970,6 +3273,12 @@
   let lastIdx = -1;
   function render() {
     if (typeof hideHover === "function") hideHover();
+    if (guest()) {
+      if (!GUEST_TABS.includes(S.tab)) S.tab = "live";
+      if (S.ourTeam !== SOLO.our) { S.ourTeam = SOLO.our; E.setOurTeam(S.ourTeam); }
+      if (S.enemyTeam !== SOLO.enemy) { S.enemyTeam = SOLO.enemy; syncQueue(true); }
+    }
+    document.documentElement.classList.toggle("guest", guest());
     window.QUEUE_MODE = CFG.queue;   // 티어 기준(설정) → 엔진이 솔랭·자랭 전적 중 무엇을 볼지
     applyTiers();   // 반영 티어·점수 = 계정별 솔랭·자랭 중 기준에 맞는 가장 높은 것
     GPC = undefined;
@@ -2984,10 +3293,11 @@
     document.documentElement.classList.toggle("pc", !mob);
     turnTitle();
     if (!mob) { renderSideNav(); renderHead(); }
+    if (!mob) setTimeout(tipIcons, 0);
     const keepEd = !mob && S.tab === "settings" ? document.getElementById("setEd") : null;
     const keepEdF = keepEd && keepEd.contains(document.activeElement) ? keepEd : null;
     const edAE = keepEdF ? document.activeElement : null;
-    v.innerHTML = mobV ? mobV() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderVisionPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? renderImport() : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : (mob ? renderEnemy() : renderEnemyPC());
+    v.innerHTML = mobV ? mobV() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderVisionPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : (mob ? renderEnemy() : renderEnemyPC());
     if (!mob && S.tab === "settings") { const ph = document.getElementById("setEd"); if (ph) { if (keepEdF && keepEdF.dataset.team === setTeamPC()) { ph.replaceWith(keepEdF); if (edAE && keepEdF.contains(edAE)) { const c = edAE.selectionStart; edAE.focus(); try { edAE.setSelectionRange(c, c); } catch (e) { /* select */ } } } else renderEditor(); } }
     // 휴대폰: 챔프 고르기·「⋯」 메뉴는 화면 아래 시트로
     const ms = document.getElementById("msheet") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "msheet" }));
@@ -3088,6 +3398,15 @@
       case "edfill": { const p = editing && team(editing).players[el.dataset.role]; if (p) { p.tier = el.dataset.v; const pv = ptsOf(p.tier); if (pv != null) p.pts = pv; save(); shareChanged(editing, el.dataset.role); renderEditor(); render(); } break; }
       case "setsec": S.ui.setSec = el.dataset.k; save(); render(); break;
       case "setteam": S.ui.setTeam = el.dataset.v; save(); render(); break;
+      case "lglogin": startLogin(el.dataset.k); break;
+      case "lgnew": case "lgjoin": case "lgcode": case "lgleave": case "lgout": case "lgcopy": case "lgdel": authAction(a, el); break;
+      case "lgswitch": try { localStorage.setItem("lolban.space.v1", el.dataset.id); } catch (e) { /* 이번만 */ } SPACE = loginSpace(); spaceJoined(); break;
+      case "vsopen": S.ui.vsOpen = S.ui.vsOpen === el.dataset.k ? "" : el.dataset.k; renderHead(); { const f = document.querySelector(".vs-pop [aria-selected=true]") || document.querySelector(".vs-pop button"); if (f && S.ui.vsOpen) f.focus(); } break;
+      case "vspick": { const id = el.dataset.id; S.ui.vsOpen = "";
+        if (el.dataset.k === "our") { S.ourTeam = id; E.setOurTeam(S.ourTeam); if (S.enemyTeam === S.ourTeam) S.enemyTeam = (S.teams.find((x) => x.id !== S.ourTeam && !x.solo) || { id: SOLO.enemy }).id; }
+        else S.enemyTeam = id;
+        syncQueue(true); save(); render(); break; }
+      case "theme": { const t = isDark() ? "light" : "dark"; document.documentElement.dataset.theme = t; try { localStorage.setItem("lolban.theme", t); } catch (e) { /* 이번만 */ } render(); break; }
       case "tqall": { const tid = setTeamPC(); if (tid) fetchTiers(ROLES.map((r) => [tid, r])); break; }
       case "altadd": { S.ui.altOpen = { ...(S.ui.altOpen || {}), [el.dataset.team + "|" + el.dataset.role]: Number(el.dataset.n) }; renderEditor(); const i = document.querySelector(`#setEd [data-role="${el.dataset.role}"][data-alt="${Number(el.dataset.n) - 1}"]`); if (i) i.focus(); break; }
       case "sharenow": { const tid = setTeamPC(); if (tid) { ROLES.forEach((r) => shareChanged(tid, r)); shareNoteUpdate(); toast("팀원에게 올리는 중…"); } break; }
@@ -3156,6 +3475,8 @@
       case "import": MV.more = false; IMP.from = S.tab === "import" ? IMP.from : S.tab; S.tab = "import"; { const dm = document.getElementById("dataMenu"); if (dm) dm.hidden = true; } render(); window.scrollTo(0, 0); break;
       case "impback": S.tab = IMP.from && IMP.from !== "import" ? IMP.from : "our"; render(); window.scrollTo(0, 0); break;
       case "impapply": applyImport(); break;
+      case "ipparse": { if (IMP.src !== "image") IMP.alts = null; const ta = document.getElementById("ipText"); if (ta) IMP.text = ta.value; const tm = document.getElementById("ipTeam"); if (tm) IMP.team = tm.value; if (IMP.src !== "image") IMP.src = "text"; IMP.file = IMP.src === "image" ? IMP.file : "텍스트"; IMP.msg = ""; parseText(); break; }
+      case "ipour": { const tm = document.getElementById("ipTeam"); if (tm) IMP.team = tm.value; const ta = document.getElementById("ipText"); if (ta) IMP.text = ta.value; IMP.our = el.dataset.v === "1"; if (IMP.parsed && IMP.src !== "file") parseText(); else render(); break; }
       case "impclear": IMP.parsed = null; IMP.diff = null; IMP.json = null; IMP.file = ""; IMP.msg = ""; render(); break;
       case "wipe": if (confirm("모든 입력(챔프폭·밴픽·피어리스)을 처음 상태로 되돌릴까요?")) { S = fresh(); E.setOurTeam(S.ourTeam); save(); render(); } break;
     }
@@ -3194,11 +3515,25 @@
     if (near) d.tr.scrollTo({ left: near.offsetLeft - base, behavior: "smooth" });
   });
   document.addEventListener("click", (ev) => { if (dragEat) { ev.stopPropagation(); ev.preventDefault(); dragEat = false; } }, true);
+  // 명단 등록 화면: 캡처 사진 붙여 넣기(Ctrl+V). 글 칸이 아닌 곳에 붙인 글도 텍스트로
+  document.addEventListener("paste", (ev) => {
+    if (S.tab !== "import" || MOB.matches) return;
+    const items = [...((ev.clipboardData && ev.clipboardData.items) || [])];
+    const img = items.find((x) => x.kind === "file" && /^image\//.test(x.type));
+    if (img) { ev.preventDefault(); const f = img.getAsFile(); if (f) readImage(f); return; }
+    const a = document.activeElement;
+    if (a && (a.tagName === "TEXTAREA" || a.tagName === "INPUT")) return;
+    const txt = ev.clipboardData && ev.clipboardData.getData("text/plain");
+    if (txt && txt.trim()) { ev.preventDefault(); IMP.text = txt.slice(0, 20000); IMP.src = "text"; IMP.file = "붙여 넣은 글"; IMP.msg = ""; parseText(); }
+  });
+  document.addEventListener("click", (ev) => { if (S.ui.vsOpen && !(ev.target.closest && ev.target.closest(".vs-side"))) { S.ui.vsOpen = ""; renderHead(); } }, true);
   document.addEventListener("dragover", (ev) => { const d = ev.target.closest && ev.target.closest("#impDrop"); if (d) { ev.preventDefault(); d.classList.add("over"); } });
   document.addEventListener("dragleave", (ev) => { const d = ev.target.closest && ev.target.closest("#impDrop"); if (d) d.classList.remove("over"); });
   document.addEventListener("drop", (ev) => { const d = ev.target.closest && ev.target.closest("#impDrop"); if (!d) return; ev.preventDefault(); d.classList.remove("over"); const f = ev.dataTransfer && ev.dataTransfer.files[0]; if (f) readImport(f); });
   document.addEventListener("input", (ev) => {
     const t = ev.target;
+    if (t.id === "ipText") { IMP.text = t.value; return; }
+    if (t.id === "ipTeam") { IMP.team = t.value; return; }
     if (t.id === "q") { S.ui.q = t.value; const box = document.getElementById("champs"); if (box) box.innerHTML = champButtons(); else render();
       const sh = document.querySelector(".mv-pick"); if (sh) sh.classList.toggle("searching", !!t.value.trim()); return; }
     if (t.dataset && t.dataset.tf === "lp" && editing) { setTierFrom(t); return; }
@@ -3232,6 +3567,7 @@
     else if (ev.key === "Enter" && ev.target.id === "goalIn") { ev.preventDefault(); addGoal(); }
     else if (ev.key === "Enter" && ev.target.id === "q") { const first = document.querySelector("#champs .cbtn:not([disabled])"); if (first) choose(first.dataset.id); }
     else if (ev.key === "Escape" && editing) { editing = null; renderEditor(); }
+    else if (ev.key === "Escape" && S.ui.vsOpen) { S.ui.vsOpen = ""; renderHead(); }
     else if (ev.key === "Escape" && TSM.open) { TSM.open = ""; render(); }
     else if (ev.key === "Escape" && MV.more) { MV.more = false; render(); }
     else if (ev.key === "Escape" && S.ui.sheet) { S.ui.sheet = false; render(); }
@@ -3569,7 +3905,7 @@
     pullShared(); loadNotes(); loadPrep(); loadRecent(); loadSeed(); render();
   }
   async function checkSpace() {
-    if (!SPACE || !WURL()) return;
+    if (!SPACE || !WURL() || SPACE.viaLogin) return;   // 로그인 팀은 /auth/me가 이름·팀원 수를 줌
     try {
       const res = await wfetch(`/team/me`);
       const d = await res.json().catch(() => ({}));
@@ -3722,6 +4058,7 @@
   MOB.addEventListener("change", () => { MV.more = false; S.ui.sheet = false; render(); });
   if (!SPACE && S.ui.queue && QUEUE_TXT[S.ui.queue]) CFG.queue = S.ui.queue;
   ensureSpaceTeam(JUST_JOINED);
+  if (guest() && S.tab === "our") S.tab = "live";   // 손님은 실시간 밴픽으로 시작(로그인 화면은 사이드바에서)
   render();
   checkSpace();
   loadSelfEval();
@@ -3730,4 +4067,6 @@
   loadPrep();
   loadRecent();
   loadSeed();
+  loadProviders();
+  loadMe();
 })();

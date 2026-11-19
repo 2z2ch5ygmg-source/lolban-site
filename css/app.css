@@ -1360,3 +1360,6 @@ button.gp-t { cursor: pointer; }
 }
 @keyframes mvUp { from { transform: translateY(100%); } to { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .mv-sheet { animation: none; } }
+
+/* 손님(로그인 전, 11-19): 휴대폰 아래 탭도 실시간 밴픽·로그인만 */
+html.guest .tabs .tab:not([data-tab="live"]):not([data-tab="our"]) { display: none; }

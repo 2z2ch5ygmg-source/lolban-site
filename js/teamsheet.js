@@ -197,5 +197,106 @@
     return { cells, heights, merges, cols: [{ wch: 7 }, { wch: 26 }, { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 7 }, { wch: 72 }] };
   }
 
-  root.TeamSheet = { LANES, HEAD, MAX, riotOf, toRows, parse, diff, apply, sheetLayout };
+
+  // ---- 텍스트 → 줄 배열(사용자 요청 11-19: 엑셀·사진·텍스트 어느 것이든 명단으로) ----
+  // 받는 모양(섞여도 됨):
+  //   팀: 반클러치 (상대)          ← 「팀」으로 시작하는 줄 = 새 팀. 「우리」가 있으면 우리팀
+  //   탑 도도한낫츠#kr1 / 부계정#kr2 에메랄드 2 다리우스 상, 말파 중
+  //   정글: 김진규#0516           ← 라인 이름이 없으면 나온 순서대로 탑·정글·미드·원딜·서폿
+  //   부계정 장국보#KR1           ← 「부계정·부캐·서브」 줄은 바로 위 라인의 부계정
+  //   엑셀에서 복사한 표(탭으로 나뉜 칸)도 그대로
+  // opts: { team: 팀 이름이 없을 때 쓸 이름, our: 그 팀이 우리팀인지, ocr: 사진에서 읽은 글(팀 이름을 글에서 짐작하지 않음), resolve: 챔프 이름 → ID }
+  const LANE_RE = /^(탑|top|정글|jg|jug|jungle|미드|mid|원딜|바텀|봇|adc?|bot|서폿|서포터|서포트|sup|support)(?=$|[\s:：.)\]\-–|]|\d)/i;
+  const ALT_RE = /^(부계정|부계|부캐|서브|sub|alt)\s*\d?\s*[:：.)\-–]?\s*/i;
+  const TIER_RE = /(아이언|브론즈|실버|골드|플래티넘|플래|에메랄드|에메|다이아몬드|다이아|그랜드마스터|그마|마스터|챌린저|챌)\s*([1-4])?\s*(\d{1,4}\s*LP)?/i;
+  const TIER_FIX = { 플래: "플래티넘", 에메: "에메랄드", 다이아몬드: "다이아", 그마: "그랜드마스터", 챌: "챌린저" };
+  // 라이엇 ID: 이름(1~16자, 가운데 빈칸 가능) + # + 태그(2~5자). 사진 글은 「＃」·「 # 」로도 읽힘
+  const ID_RE = /([^\s#,，/|·\t:：()\[\]][^#,，/|·\t:：()\[\]]{0,15}?)\s*#\s*([0-9A-Za-z가-힣]{2,5})(?=$|[\s,，/|·\t)\]])/g;
+  // 사진 글 잡음 정리: 「*」「&#」「#*」 → #, 태그의 l·I·| → 1(숫자 사이·kr 뒤), 칸 사이 「_」「|」「=」 잡음
+  function ocrClean(line) {
+    return String(line || "")
+      .replace(/&#|#\s*[*＊]|[*＊]\s*#/g, "#")
+      .replace(/\s*[*＊]\s*(?=[0-9A-Za-z가-힣]{2,5}(?:$|\s))/g, "#")
+      .replace(/#\s*(kr|KR|Kr|kR)\s*[lI|!]/g, "#$11").replace(/#\s*([0-9]*)[Oo]([0-9]+)/g, "#$10$2")
+      .replace(/(^|\s)[_|=©¦]+(?=\s)/g, "$1  ").replace(/\s*[…⋯]+\s*/g, "  ");
+  }
+  // 라인 이름 오인식(한 글자 차이): 성글·정굴 → 정글, 서풋 → 서폿 …
+  const LANE_KO = ["탑", "정글", "미드", "원딜", "서폿"];
+  function fuzzyLane(tok) {
+    const t = String(tok || "").trim();
+    if (!/^[가-힣]{1,2}$/.test(t)) return null;
+    if (LANE_KO.includes(t)) return t;
+    const near = LANE_KO.filter((k) => k.length === t.length && [...k].filter((c, i) => c !== t[i]).length === 1);
+    return near.length === 1 && t.length === 2 ? near[0] : null;
+  }
+  function idsOf(line) {
+    const out = []; let m; ID_RE.lastIndex = 0;
+    while ((m = ID_RE.exec(line))) out.push({ id: `${m[1].trim()}#${m[2]}`, at: m.index, end: m.index + m[0].length });
+    return out;
+  }
+  function fromText(text, opts) {
+    opts = opts || {};
+    const resolve = opts.resolve || (() => null);
+    const src = String(text || "").replace(/\r/g, "").replace(/[＃♯]/g, "#").replace(/[  ]+/g, " ");
+    const lines = src.split("\n").map((l) => l.trim());
+    // 엑셀에서 복사한 표: 칸이 탭으로 나뉘고 첫 칸이 「팀」·라인 이름이면 그대로 줄 배열
+    if (lines.some((l) => l.includes("\t")) && lines.filter((l) => l.includes("\t")).every((l) => /^(팀|팀명|team|라인|탑|정글|미드|원딜|서폿|top|jg|mid|ad|adc|bot|sup)?\t/i.test(l) || !l.split("\t")[0]))
+      return { rows: lines.map((l) => l.split("\t").map((c) => c.trim())), notes: [] };
+    const rows = [], notes = [];
+    let team = null, nextLane = 0, last = null;
+    const ORDER = ["탑", "정글", "미드", "원딜", "서폿"];
+    const KO = { top: "탑", jg: "정글", jug: "정글", jungle: "정글", mid: "미드", 바텀: "원딜", 봇: "원딜", ad: "원딜", adc: "원딜", bot: "원딜", 서포터: "서폿", 서포트: "서폿", sup: "서폿", support: "서폿" };
+    const newTeam = (name, our) => { team = { head: ["팀", name, our ? "우리팀" : "상대"], lanes: {} }; rows.push(team); nextLane = 0; last = null; };
+    const hasIds = lines.map((l) => idsOf(l).length > 0);
+    lines.forEach((l0, i) => {
+      if (!l0) return;
+      let l = l0.replace(/^\s*(\d{1,2}[.)]|[-•·*▶►])\s*/, "");   // 「1.」「-」 같은 줄머리
+      let ocrLane = null;
+      if (opts.ocr) {
+        // 사진 글: 칸 사이가 넓은 빈칸·잡음으로 나뉨 → 첫 칸이 라인 이름(오인식 포함)이면 떼고, 계정은 # 있는 칸에서
+        l = ocrClean(l);
+        const segs = l.split(/\s{2,}/).map((x) => x.trim()).filter(Boolean);
+        if (segs.length > 1) { const fl = fuzzyLane(segs[0]) || (LANE_RE.test(segs[0]) ? segs[0] : null); const withId = segs.filter((x) => idsOf(x).length);
+          if (withId.length) { ocrLane = fl ? (LANE_KO.includes(fl) ? fl : null) : null; l = (fl ? fl + " " : "") + withId.join("  "); } }
+        else { const m2 = l.match(/^([가-힣]{2})\s+(.+#.+)$/); if (m2 && fuzzyLane(m2[1])) l = fuzzyLane(m2[1]) + " " + m2[2]; }
+        l = l.replace(/(^|\s)[^\s#가-힣A-Za-z0-9]+(?=[가-힣A-Za-z0-9])/g, "$1");   // 이름 앞 기호 잡음
+      }
+      const isAlt = ALT_RE.test(l), lm = isAlt ? null : l.match(LANE_RE);
+      // 라인 이름·「부계정」 머리를 떼고 계정을 찾는다(머리가 이름에 붙지 않게)
+      const body = isAlt ? l.replace(ALT_RE, "") : lm ? l.slice(lm[0].length).replace(/^[\s:：.)\]\-–|]+/, "") : l;
+      const ids = idsOf(body);
+      const head = l.match(/^(팀명?|team)\s*[:：]?\s*(.+)$/i);
+      if (!ids.length) {
+        // 팀 이름 줄: 「팀: 이름」, 또는 (사진 글이 아닐 때) 바로 아래가 계정 줄인 짧은 줄
+        const nm = head ? head[2] : !opts.ocr && l.length <= 30 && hasIds.slice(i + 1).find((x, k) => lines[i + 1 + k]) && !LANE_RE.test(l) ? l : null;
+        if (nm) { const our = /우리/.test(nm); newTeam(nm.replace(/[(（\[]?\s*(우리\s*팀?|상대\s*팀?)\s*[)）\]]?/g, "").replace(/[:：\-–]+$/, "").trim() || opts.team || "새 팀", our); }
+        return;
+      }
+      if (!team) newTeam(opts.team || "새 팀", !!opts.our);
+      // 부계정 줄 → 바로 위 라인
+      if (isAlt && last) { ids.forEach((x) => { if (last.acc.length < 3 && !last.acc.includes(x.id)) last.acc.push(x.id); }); return; }
+      let ko = lm ? (ORDER.includes(lm[1]) ? lm[1] : KO[lm[1].toLowerCase()] || null) : null;
+      if (!ko) { ko = ORDER.find((x, k) => k >= nextLane && !team.lanes[x]) || ORDER.find((x) => !team.lanes[x]); if (!ko) { notes.push(`${team.head[1]}: 라인이 다 찼는데 계정 줄이 더 있습니다 — 「${l0.slice(0, 30)}」`); return; } }
+      nextLane = ORDER.indexOf(ko) + 1;
+      // 계정 뒤 남은 글: 티어 · 챔프폭
+      const restRaw = body.slice(ids[ids.length - 1].end) + " " + body.slice(0, ids[0].at);
+      let tier = "";
+      const tm = restRaw.match(TIER_RE);
+      if (tm) { const t = TIER_FIX[tm[1]] || tm[1]; tier = /마스터|챌린저/.test(t) ? `${t}${tm[3] ? " " + tm[3].replace(/\s/g, "") : ""}` : `${t}${tm[2] ? " " + tm[2] : ""}`; }
+      const rest = restRaw.replace(TIER_RE, " ");
+      const pool = rest.split(/[,，、;/]+/).map((x) => x.trim()).filter(Boolean).filter((tok) => { const nm = tok.replace(/\s*[:：(]?\s*(상|중|하|원챔|원)\s*\)?$/, "").trim(); return nm && resolve(nm); }).join(", ");
+      const p = { acc: [], tier, pool };
+      ids.forEach((x) => { if (p.acc.length < 3 && !p.acc.includes(x.id)) p.acc.push(x.id); });
+      if (team.lanes[ko]) notes.push(`${team.head[1]} ${ko}: 두 번 나와 나중 것을 씁니다`);
+      team.lanes[ko] = p; last = p;
+    });
+    const out = [];
+    rows.forEach((t) => {
+      out.push(t.head.slice()); out.push(HEAD.slice());
+      ORDER.forEach((ko) => { const p = t.lanes[ko]; if (p) out.push([ko, p.acc[0] || "", p.acc[1] || "", p.acc[2] || "", p.tier, "", p.pool]); });
+      out.push([]);
+    });
+    return { rows: out, notes };
+  }
+  root.TeamSheet = { LANES, HEAD, MAX, riotOf, toRows, parse, diff, apply, sheetLayout, fromText, idsOf, ocrClean };
 })(typeof window !== "undefined" ? window : globalThis);
