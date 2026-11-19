@@ -981,3 +981,10 @@ html.pc :is(.live-pc, .enemy-pc) .rec :is(.rl, .ans) { align-items: flex-start; 
 .mr-n small { font-size: 11px; padding: 1px 6px; border-radius: 999px; background: var(--bg2); color: var(--muted); } .mr-n .mr-own { background: var(--hi-bg); color: var(--hi); }
 .mr-sel { width: 96px; height: 34px; padding: 0 8px; } .mr-r { font-size: 14px; font-weight: 600; color: var(--muted); }
 .tv-l { display: grid; gap: 2px; } .tv-mem { font-size: 11px; font-weight: 600; color: var(--hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 56px; }
+
+/* 상대 챔프폭 편집 창: 부계정(11-20) */
+.ed-alts { display: grid; gap: 6px; margin: 4px 0 6px 52px; }
+.ed-alt-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.ed-alt-row .input { height: 38px; } .ed-alt-row .sd-altdel { height: 38px; width: 38px; }
+.ed-alts .sd-altadd { justify-self: start; } .ed-alts .ed-chk { margin: 0; font-size: 13px; }
+.ed-who small { color: var(--muted); font-weight: 500; margin-left: 2px; }
