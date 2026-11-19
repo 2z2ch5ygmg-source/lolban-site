@@ -760,7 +760,7 @@ html.pc .sd-tm.our[aria-current="true"] { background: var(--bg2); }
 html.pc .sd-tm-inv, html.pc .sd-tm-x { position: absolute; }
 
 /* ---------- 실시간 밴픽 한 줄 정리(11-19) ---------- */
-html.pc .live-pc .dstat-act { display: none; }   /* 되돌리기·밴 넘기기는 아래 한 줄 가운데로 */
+html.pc .live-pc .dstat-act.m-act { display: none; }   /* PC 되돌리기·밴 넘기기는 제목 줄 오른쪽(.pc-act) */
 html.pc .lv-c { display: flex; flex-direction: column; gap: 14px; }
 html.pc .lv-c > .dock-pc { flex: 1 1 auto; min-height: 0; }
 .lv-ctrl { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 16px; }
@@ -900,3 +900,16 @@ html.pc :is(.live-pc, .enemy-pc) .rec.ban.first .hero .lab { background: var(--p
 .sd-altw { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
 .sd-altdel { width: 40px; height: 44px; border: 0; border-radius: 10px; background: var(--bg2); color: var(--muted); display: grid; place-items: center; cursor: pointer; }
 .sd-altdel:hover { color: var(--red); background: var(--red-bg); } .sd-altdel svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+/* 승률 우위(11-19 B): 카운터보다 연하게, 점선 */
+.e-edge > small { color: var(--hi); font-weight: 600; opacity: .85; }
+.e-mi.edge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px 2px 2px; border-radius: 999px; border: 1px dashed var(--line); margin: 2px 6px 2px 0; }
+.e-mi.edge small { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* 11-19: 되돌리기·밴 넘기기 = 제목 줄 오른쪽, 호버 카드 = 추천 카드 오른쪽 두 칸 */
+html.pc .live-pc .dstat-act.pc-act { order: 3; margin-left: auto; display: flex; gap: 8px; }
+html.pc .live-pc .dstat-act.pc-act .lc-b { background: var(--bg2); color: var(--text); }
+.dstat-act.pc-act { display: none; } html.pc .dstat-act.pc-act { display: flex; }
+.hovercard.hc-wide { width: 600px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 18px; overflow: hidden; }
+.hovercard.hc-wide .hc-h { grid-column: 1 / -1; }
+.hovercard.hc-wide li:nth-child(n+3) { display: none; }

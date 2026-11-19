@@ -1902,6 +1902,14 @@ window.Engine = (function () {
   }
 
   // ---- 상대 분석 ----
+  const EDGE_WR = 52, EDGE_G = 1000;
+  // 같은 라인 맞대결만(op.gg 라인 상대 전적: mu[챔프][라인][상대] = [승률, 판수])
+  function muWrRole(a, b, role) {
+    const M = window.META; if (!M || !M.mu) return null;
+    const x = M.mu[a] && M.mu[a][role] && M.mu[a][role][b]; if (x) return { wr: x[0], g: x[1] };
+    const y = M.mu[b] && M.mu[b][role] && M.mu[b][role][a]; if (y) return { wr: 100 - y[0], g: y[1] };
+    return null;
+  }
   function laneStudy(ourTeam, enTeam, role) {
     const ep = poolMap(enTeam, role);
     const op = poolMap(ourTeam, role);
@@ -1910,7 +1918,9 @@ window.Engine = (function () {
       const have = counters.filter((x) => op[x]);
       const learn = counters.filter((x) => !op[x] && CH[x].pos.includes(role)).slice(0, 3);
       const risky = Object.keys(op).filter((x) => lanesCounter(id, x));
-      return { id, e, have, learn, risky };
+      // 승률 우위(11-19 사용자 결정 B): 손으로 만든 카운터가 아니어도, 솔랭 맞대결 52% 이상·1,000판 이상인 우리 챔프폭 챔프
+      const edge = Object.keys(op).filter((x) => x !== id && !have.includes(x)).map((x) => ({ id: x, vs: id, ...(muWrRole(x, id, role) || {}) })).filter((x) => x.wr >= EDGE_WR && x.g >= EDGE_G).sort((a, b) => b.wr - a.wr);
+      return { id, e, have, learn, risky, edge };
     });
     return rows;
   }

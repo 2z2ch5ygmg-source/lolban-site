@@ -724,7 +724,8 @@
     const phase = done ? "아래 전략 확인" : phaseName(S.draft.idx);
     return `<div class="dstat ${side || ""} ${extra || ""}"><div class="dstat-top"><span class="dstat-n">${done ? 20 : S.draft.idx + 1}<small>/20</small></span><span class="dstat-ph">${phase}</span></div>
       <div class="dstat-what">${what}</div>
-      <div class="dstat-act">${st && st[1] === "ban" ? `<button class="ib btn sm ghost" data-act="skip" aria-label="밴 넘기기" title="밴 넘기기">${ico("skip")}</button>` : ""}<button class="ib btn sm" data-act="undo" ${S.draft.idx ? "" : "disabled"} aria-label="되돌리기" title="되돌리기">${ico("undo")}</button>${done ? "" : `<button class="btn sm primary m-only" data-act="sheet">고르기</button>`}</div></div>`;
+      ${!MOB.matches ? `<div class="dstat-act pc-act"><button class="lc-b" data-act="undo" ${S.draft.idx ? "" : "disabled"}>${ico("undo")}되돌리기</button>${st && st[1] === "ban" ? `<button class="lc-b" data-act="skip">${ico("skip")}밴 넘기기</button>` : ""}</div>` : ""}
+      <div class="dstat-act m-act">${st && st[1] === "ban" ? `<button class="ib btn sm ghost" data-act="skip" aria-label="밴 넘기기" title="밴 넘기기">${ico("skip")}</button>` : ""}<button class="ib btn sm" data-act="undo" ${S.draft.idx ? "" : "disabled"} aria-label="되돌리기" title="되돌리기">${ico("undo")}</button>${done ? "" : `<button class="btn sm primary m-only" data-act="sheet">고르기</button>`}</div></div>`;
   }
 
   // 챔피언 버튼 목록만 따로 만든다: 검색 입력 중에는 이것만 바꿔서 한글 조합(ㄹ+ㅜ→루)이 끊기지 않게
@@ -1109,7 +1110,7 @@
   function liveCtrlPC() {
     NOW_HEAD = null;
     const now = renderNow(true), H = NOW_HEAD || {}, G = goalLinePC(), st = curStep();
-    const acts = `<span class="lc-c"><button class="lc-b" data-act="undo" ${S.draft.idx ? "" : "disabled"}>${ico("undo")}되돌리기</button>${st && st[1] === "ban" ? `<button class="lc-b" data-act="skip">${ico("skip")}밴 넘기기</button>` : ""}</span>`;
+    const acts = `<span class="lc-c"></span>`;   // 되돌리기·밴 넘기기는 제목 줄로 옮김(11-19)
     const row = `<div class="lv-ctrl"><span class="lc-l">${H.step ? `<span class="step">${H.step}</span>` : ""}${H.tabs || ""}</span>${acts}<span class="lc-r">${G.goal}</span></div>`;
     const plan = G.plan || H.dir ? `<div class="gline">${G.plan || ""}${H.dir ? `<span class="dir">${H.dir}</span>` : ""}</div>` : "";
     return row + plan + now;
@@ -1758,7 +1759,10 @@
     const lanes = `<section class="h-sec"><h3 class="h-h">라인별 상대와 연습 포인트<small>점수 차 = 우리 − 상대</small>${teamSetMenu("enemy")}</h3><div class="lane5">${ROLES.map((r) => {
       const p = en.players[r] || {}, o = ours.players[r] || {}, x = E.recentOf(en, r);
       const st = E.laneStudy(ours, en, r);
-      const have = [...new Set(st.flatMap((y) => y.have))].slice(0, 4), learn = [...new Set(st.flatMap((y) => y.learn))].slice(0, 3), risky = [...new Set(st.flatMap((y) => y.risky))].slice(0, 4);
+      const edgeM = {}; st.forEach((y) => (y.edge || []).forEach((x) => { if (!edgeM[x.id] || edgeM[x.id].wr < x.wr) edgeM[x.id] = x; }));
+      const have0 = [...new Set(st.flatMap((y) => y.have))];
+      const edge = Object.values(edgeM).filter((x) => !have0.includes(x.id)).sort((a, b) => b.wr - a.wr).slice(0, 3);
+      const have = have0.slice(0, 4), learn = [...new Set(st.flatMap((y) => y.learn))].slice(0, 3), risky = [...new Set(st.flatMap((y) => y.risky))].slice(0, 4);
       const pm = E.poolMap(en, r), list = Object.entries(pm).sort((a, b) => E.lvScore(b[1]) - E.lvScore(a[1])).slice(0, 4);
       const gap = (o.pts || 0) - (p.pts || 0);
       const row = (t, ids, cls) => `<span class="e-mini"><small class="${cls}">${t}</small><span>${ids.length ? ids.map((id) => `<span class="e-mi ${cls}" title="${esc(CH[id].ko)}">${icon(id, "xs")}</span>`).join("") : `<span class="dim">—</span>`}</span></span>`;
@@ -1766,7 +1770,7 @@
         <span class="l5-s">${esc([p.tier, x && x.n ? `${x.n}판 ${Math.round((x.w / x.n) * 100)}%` : ""].filter(Boolean).join(" · ")) || "&nbsp;"}</span>
         <span class="l5-s">vs ${esc(nick(o.riot) || "—")} <b class="${gap >= 15 ? "pos" : gap <= -15 ? "neg" : ""}">${gap > 0 ? "+" : ""}${gap}</b></span>
         ${list.map(([id, e], j) => `<span class="l5-c ${j ? "" : "first"}">${icon(id, j ? "md" : "lg")}<b>${esc(CH[id].ko)}</b>${lvTag({ lv: e.lv, one: e.one })}</span>`).join("") || `<span class="help">챔프폭 없음</span>`}
-        ${row("우리 대응 가능", have, "good")}${row("새로 연습 추천", learn, "hi")}${row("우리 챔프 중 주의", risky, "bad")}</div>`;
+        ${row("우리 대응 가능", have, "good")}${edge.length ? `<span class="e-mini e-edge"><small>승률 우위</small><span>${edge.map((x) => `<span class="e-mi edge" title="${esc(`${CH[x.id].ko} vs ${CH[x.vs].ko} · 솔랭 맞대결 ${x.wr.toFixed(1)}% (${x.g.toLocaleString()}판)`)}">${icon(x.id, "xs")}<small>vs ${esc(CH[x.vs].ko)} ${Math.round(x.wr)}%</small></span>`).join("")}</span></span>` : ""}${row("새로 연습 추천", learn, "hi")}${row("우리 챔프 중 주의", risky, "bad")}</div>`;
     }).join("")}</div></section>`;
     // 예상 조합: 지금 시리즈 설정(피어리스·세트) 기준, 우리 밴은 반영 안 함
     const comps = has ? `<section class="h-sec"><h3 class="h-h">예상 조합<small>상대가 나올 만한 조합 · 가능성 순 · 카드에 마우스를 올리면 우리 대응</small><button class="ec-more" data-act="ecopen">상황별 전체 보기 ${lbi("chev", 16)}</button></h3>
@@ -4361,6 +4365,7 @@
     hc.innerHTML = `<div class="hc-h">${icon(id, "sm")}<b>${esc(CH[id].ko)}</b><span class="pill">${labels.tag} ${ROLE_KO[role]}</span></div>
       <div class="hc-sec"><div class="hc-t ${who === "our" ? "bad" : "good"}">${labels.bad}</div>${h.threats.length ? `<ul>${h.threats.map(row).join("")}</ul>` : `<p class="help">뚜렷한 카운터 없음</p>`}</div>
       <div class="hc-sec"><div class="hc-t ${who === "our" ? "good" : "bad"}">${labels.good}</div>${h.synergy.length ? `<ul>${h.synergy.map(row).join("")}</ul>` : `<p class="help">남은 라인 챔프폭에서 뚜렷한 시너지 없음</p>`}</div>`;
+    hc.classList.toggle("hc-wide", !!(el.closest(".now-box") && el.closest(".lv-c")));
     hc.hidden = false;
     hcFor = el;
     el.setAttribute("aria-describedby", "hovercard");
@@ -4369,9 +4374,9 @@
     let top = r.top;
     // 추천 카드: 아래 기록 줄(#recDetail — 시즌·연습·팀원)을 가리지 않게 그 줄 아래, 카드 왼쪽에 맞춤(사용자 지적 11-19)
     const det = el.closest(".lv-c") && document.getElementById("recDetail");
-    const below = det && el.closest(".now-box") && det.offsetHeight;
+    const side = det && el.closest(".now-box") && det.offsetHeight;
     hc.style.maxHeight = "";
-    if (below) { const d = det.getBoundingClientRect(); top = d.bottom + gap; left = Math.min(innerWidth - w - 8, Math.max(8, r.left)); hc.style.maxHeight = Math.max(160, innerHeight - top - 8) + "px"; }
+    if (side) { const d = det.getBoundingClientRect(); top = r.top; left = r.right + gap; if (left + hc.offsetWidth > innerWidth - 8) left = Math.max(8, r.left - hc.offsetWidth - gap); hc.style.maxHeight = Math.max(r.height, d.top - gap - top) + "px"; }
     else { if (top + hgt > innerHeight - 8) top = Math.max(8, innerHeight - hgt - 8); if (top < 8) top = 8; }
     hc.style.left = left + "px"; hc.style.top = top + "px";
   }
