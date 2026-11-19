@@ -727,3 +727,7 @@ html.pc #side [data-tip]:hover::after, html.pc #side [data-tip]:focus-visible::a
 .lg-code-box { display: grid; gap: 8px; padding: 16px; border-radius: 14px; background: var(--hi-bg); } .lg-code-box > b { font: 800 30px/1.1 var(--font-num); letter-spacing: .18em; color: var(--hi); }
 .lg-msg { margin: 0; color: var(--text); }
 .sd-card .lg-two { grid-template-columns: 1fr; }
+
+.sd-me { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; }
+.sd-me > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; } .sd-me small { margin-left: 6px; font-weight: 500; color: var(--muted); }
+.sd-me .nc-a { margin-left: auto; flex: none; color: var(--muted); }

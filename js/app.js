@@ -420,7 +420,7 @@
         <button class="tab sd-tm sd-new" data-tab="our" aria-current="${S.tab === "our"}">${lbi("plus", 20)}<span class="nm">${SESS ? "팀 만들기 · 들어가기" : "로그인 · 팀 만들기"}</span></button>
         ${SESS && AUTH.user ? `<p class="help sd-guest">${esc(AUTH.user.nick || "로그인됨")}님 로그인됨</p>` : ""}
         <p class="help sd-guest">팀을 등록하면 우리 팀 홈 · 상대 분석 · 피드백 노트 · 시야 공부를 씁니다. 지금은 솔랭·자랭 기준 밴픽만</p>
-        <div class="sd-foot">${themeBtn()}</div>`;
+        <div class="sd-foot">${meRow()}${themeBtn()}</div>`;
       return;
     }
     el.innerHTML = `<a class="sd-logo" href="/" aria-label="lolban 처음 화면">lolban<i>.</i></a>
@@ -432,7 +432,7 @@
       ${opp.map((t) => `<button class="sd-tm" data-act="pickenemy" data-id="${t.id}" aria-current="${t.id === curOpp}">${crestOf(t, t.id === curOpp ? "r" : "")}<span class="nm" title="${esc(t.name)}">${esc(t.name)}</span></button>`).join("")
         || `<span class="help" style="padding:4px 12px">아직 없음 · 위 + 로 등록</span>`}
       <button class="sd-tm" data-act="pickenemy" data-id="${SOLO.enemy}" aria-current="${curOpp === SOLO.enemy}"><span class="crest" aria-hidden="true">솔</span><span class="nm" style="color:var(--muted)">솔랭·자랭</span></button>
-      <div class="sd-foot"><button class="sd-mi" data-act="settings" aria-selected="${S.tab === "settings"}">${lbi("settings", 22)}설정</button>${themeBtn()}</div>`;
+      <div class="sd-foot">${meRow()}<button class="sd-mi" data-act="settings" aria-selected="${S.tab === "settings"}">${lbi("settings", 22)}설정</button>${themeBtn()}</div>`;
   }
   // 글자 없는 아이콘 버튼에 이름표: aria-label(없으면 title)을 data-tip으로, 브라우저 기본 툴팁(늦게 뜸)은 지움
   function tipIcons() {
@@ -447,6 +447,8 @@
   const SUN = `<svg class="lbi" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>`;
   const MOON = `<svg class="lbi" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>`;
   // 토글 스위치(사용자 지시 11-19): 켜짐 = 다크 모드
+  // 사이드바 아래: 로그인한 사람 · 로그아웃(어디서든 보이게, 11-19 사용자 지적)
+  function meRow() { return SESS ? `<div class="sd-me"><span title="${esc(AUTH.user && AUTH.user.nick || "")}">${esc((AUTH.user && AUTH.user.nick) || "로그인됨")}<small>${PROVIDER_KO[AUTH.user && AUTH.user.provider] || ""}</small></span><button class="nc-a" data-act="lgout">로그아웃</button></div>` : ""; }
   function themeBtn() { const d = isDark(); return `<button class="sd-mi sd-theme" role="switch" aria-checked="${d}" data-act="theme">${d ? MOON : SUN}<span>다크 모드</span><span class="sw" aria-hidden="true"><i></i></span></button>`; }
   function renderHead() {
     const el = document.getElementById("mhead");
