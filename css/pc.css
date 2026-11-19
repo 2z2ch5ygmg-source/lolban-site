@@ -988,3 +988,13 @@ html.pc :is(.live-pc, .enemy-pc) .rec :is(.rl, .ans) { align-items: flex-start; 
 .ed-alt-row .input { height: 38px; } .ed-alt-row .sd-altdel { height: 38px; width: 38px; }
 .ed-alts .sd-altadd { justify-self: start; } .ed-alts .ed-chk { margin: 0; font-size: 13px; }
 .ed-who small { color: var(--muted); font-weight: 500; margin-left: 2px; }
+/* 상대 요약 한 줄(11-20): 운영 방향이 길어도 요주의 인물은 같은 줄 오른쪽 — 운영 방향은 남는 폭에서 줄바꿈 */
+html.pc .e-sum { flex-wrap: nowrap; gap: 32px; }
+html.pc .e-sum > .e-k { flex: none; }
+html.pc .e-sum > .e-dir { flex: 1 1 auto; min-width: 180px; }
+html.pc .e-sum > .e-dir > b { line-height: 1.45; word-break: keep-all; overflow-wrap: anywhere; }
+html.pc .e-thr { flex: none; max-width: 52%; gap: 20px; }
+html.pc .e-thr .e-t { min-width: 0; } html.pc .e-thr .e-t small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; max-width: 230px; }
+@media (max-width: 1599px) { html.pc .e-sum { gap: 22px; } html.pc .e-thr { max-width: 46%; } html.pc .e-thr .e-t small { max-width: 170px; } }
+html.pc .e-thr .e-t > span { min-width: 0; display: grid; } html.pc .e-thr .e-t b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 230px; }
+@media (max-width: 1599px) { html.pc .e-thr .e-t b { max-width: 170px; } }

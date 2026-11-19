@@ -1,0 +1,72 @@
+# 매일 0시(한국 시간) Riot 기록 수집 → Worker(/data)에 올리기 — 11-20부터 맥 대신 GitHub에서(맥이 꺼져 있어도, 기한 없이)
+# 필요한 비밀값(저장소 Settings → Secrets → Actions): RIOT_API_KEY, COLLECT_KEY — 값은 이 파일·로그에 나오지 않음
+# 손으로 돌리기: Actions 탭 → 「기록 수집」 → Run workflow, 또는 gh workflow run collect.yml
+name: 기록 수집
+
+on:
+  schedule:
+    - cron: "0 15 * * *"   # UTC 15:00 = 한국 0:00 (GitHub 사정으로 몇 분~수십 분 늦게 시작할 수 있음)
+  workflow_dispatch:
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 한 번 받은 경기 상세는 다시 받지 않게(Riot 조회 한도 절약) — 실행마다 새 이름으로 저장하고 가장 최근 것을 이어 씀
+      - uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/fearless-draft
+          key: matches-${{ github.run_id }}
+          restore-keys: matches-
+
+      - name: 비밀값을 설정 파일로(출력하지 않음)
+        env:
+          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+          COLLECT_KEY: ${{ secrets.COLLECT_KEY }}
+        run: |
+          set -eu
+          if [ -z "$RIOT_API_KEY" ] || [ -z "$COLLECT_KEY" ]; then echo "비밀값 RIOT_API_KEY·COLLECT_KEY가 없습니다"; exit 1; fi
+          mkdir -p ~/.config/fearless-draft
+          umask 077
+          printf 'RIOT_API_KEY=%s\n' "$RIOT_API_KEY" > ~/.config/fearless-draft/riot.env
+          printf 'COLLECT_KEY=%s\n' "$COLLECT_KEY" > ~/.config/fearless-draft/collect.env
+
+      - name: 수집 중 알림
+        run: python -I tools/collect_status.py running
+
+      - name: 수집
+        id: run
+        run: python -I tools/recent.py
+
+      - name: 올리기
+        if: steps.run.outcome == 'success'
+        run: python -I tools/upload_data.py
+
+      - name: 끝 알림
+        if: always()
+        run: |
+          if [ "${{ steps.run.outcome }}" = "success" ]; then python -I tools/collect_status.py done; else python -I tools/collect_status.py failed; fi
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ~/.cache/fearless-draft
+          key: matches-${{ github.run_id }}
+
+      - name: 설정 파일 지우기
+        if: always()
+        run: rm -f ~/.config/fearless-draft/riot.env ~/.config/fearless-draft/collect.env

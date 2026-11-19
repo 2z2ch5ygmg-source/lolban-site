@@ -1304,10 +1304,11 @@
     return out;
   }
   const QA_T = {};
-  async function poolOf(id) {
-    for (let tries = 0; tries < 2; tries++) {
+  // Riot 한도(2분 100회)가 차면 1분씩 기다렸다 최대 3번 더(11-20: 갱신 버튼이 다른 조회와 겹쳐 부계정이 조용히 빠짐)
+  async function poolOf(id, onWait) {
+    for (let tries = 0; tries < 4; tries++) {
       const res = await wfetch(`/riot/pool?id=${encodeURIComponent(id)}`); const d = await res.json().catch(() => ({}));
-      if (res.status === 429 && !tries) { await new Promise((ok) => setTimeout(ok, 61000)); continue; }
+      if (res.status === 429 && tries < 3) { if (onWait) onWait(); await new Promise((ok) => setTimeout(ok, 61000)); continue; }
       return res.ok && d.status === "ok" ? d.data : null;
     }
     return null;
@@ -1315,21 +1316,26 @@
   // pairs = [[팀, 라인]]: 0시 수집 기록(본계정)이 있으면 부계정만 받아 더하고, 없으면 본계정까지
   async function quickPools(pairs, quiet) {
     if (!SPACE || SPACE.bad || !pairs.length) return;
-    let got = 0;
+    let got = 0, fail = 0, k = 0;
+    const say = (m) => { if (!quiet) toast(m); };
+    say(`챔프폭 받는 중… (${pairs.length}명)`);
     for (const [tid, r] of pairs) {
+      k++;
       const t = team(tid), p = t && t.players[r], riot = p && p.riot; if (!riot || !/#/.test(riot)) continue;
       const alts = ((p.alts || altsOf(tid, r)) || []).filter((x) => /#/.test(x || ""));
       const R = window.RECENT, cur = R && R.season && R.season[tid] && R.season[tid][r];
       const base = cur && !cur.error && !cur.quick && cur.riot === riot ? cur : null;
       try {
-        const main = base || (await poolOf(riot)); if (!main) continue;
-        const altPools = []; for (const a of alts) { const x = await poolOf(a); if (x) altPools.push(x); }
+        const wait = () => say(`Riot 조회 한도 — 1분 뒤 이어서 받습니다 (${k}/${pairs.length})`);
+        const main = base || (await poolOf(riot, wait)); if (!main) { fail++; continue; }
+        const altPools = []; for (const a of alts) { const x = await poolOf(a, wait); if (x) altPools.push(x); else fail++; }
         const merged = mergePool([main, ...altPools]);
         const m = qpLoad(); m[`${tid}|${r}`] = { ...merged, riot, quick: true, accs: qpAccs(t, r), fetchedAt: Date.now() }; qpSave(m); got++;
       } catch (e) { /* 다음 계정 */ }
     }
     if (got && !window.RECENT) window.RECENT = { status: "ok", season: {}, players: {}, groups: {}, stacks: {} };
-    if (got) { mergeQuick(); render(); if (!quiet) toast(`계정 ${got}명 챔프폭을 바로 받았습니다(부계정 포함 · 최근 랭크 30판 · 0시 수집 때 100판으로)`); }
+    if (got) { mergeQuick(); render(); }
+    if (!quiet || fail) toast(got ? `${got}명 챔프폭 반영(부계정 포함 · 최근 랭크 30판 · 0시 수집 때 100판으로)${fail ? ` · ${fail}개 계정은 못 받음` : ""}` : "챔프폭을 받지 못했습니다 — 잠시 뒤 「기록 갱신」을 다시 눌러 주세요");
   }
   // 부계정이 있는데 아직 바로 받은 기록에 안 들어간 라인
   function lanesNeedingAlts(teams) {
@@ -3921,7 +3927,8 @@
       case "dock": S.ui.dock = el.dataset.k; S.ui.dockAt = S.draft.idx; render(); break;
       case "grefresh": if (!refreshing) { chainEnemy = true; refreshRecent(false);
         if (SPACE && !SPACE.bad && !TQ.busy) { const en = E.teamOf(S, "enemy"); const list = [team(S.ourTeam), en].filter((x) => x && !x.solo).flatMap((x) => ROLES.map((r) => [x.id, r])); if (list.length) fetchTiers(list, true); }
-        { const en = E.teamOf(S, "enemy"), need = lanesNeedingAlts([team(S.ourTeam), en]); if (need.length) quickPools(need); } } break;
+        { const en = E.teamOf(S, "enemy"), need = lanesNeedingAlts([team(S.ourTeam), en]);
+          if (need.length) { const go = () => (refreshing || TQ.busy ? setTimeout(go, 1500) : quickPools(need)); setTimeout(go, 1500); } } } break;
       case "prefresh": refreshPractice(false); break;
       case "prepedit": PREP.edit = true; PREP.msg = ""; render(); { const d = document.getElementById("prepDate"); if (d) d.focus(); } break;
       case "prepcancel": PREP.edit = false; render(); break;
