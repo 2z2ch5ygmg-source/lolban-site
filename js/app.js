@@ -1596,7 +1596,9 @@
   const needOnboard = () => guest() || (!S.ui.flowHide && !nuSteps().every((x) => x.done));
   function newUserPC() {
     const st = nuSteps(), curI = st.findIndex((x) => !x.done);
-    const view = st.some((x, i) => x.k === S.ui.nuStep && (x.done || i === curI)) ? st.findIndex((x) => x.k === S.ui.nuStep) : curI;
+    // 직접 고른 단계는 그때의 진행 상태에서만 보여 줌 — 단계를 끝내면(진행이 바뀌면) 다음 할 단계로 넘어감
+    const pick = S.ui.nuStep && typeof S.ui.nuStep === "object" && S.ui.nuStep.at === curI ? S.ui.nuStep.k : null;
+    const view = pick && st.some((x, i) => x.k === pick && (x.done || i === curI)) ? st.findIndex((x) => x.k === pick) : curI;
     const bar = `<ol class="nu-bar">${st.map((x, i) => `<li class="${x.done ? "done" : ""} ${i === view ? "on" : ""}">${x.done || i === curI ? `<button data-act="nustep" data-k="${x.k}">` : "<span>"}<span class="nu-n">${x.done ? lbi("check", 16) : i + 1}</span><span class="nu-t"><b>${x.n}</b><small>${x.d}</small></span>${x.done || i === curI ? "</button>" : "</span>"}</li>`).join(`<li class="nu-line" aria-hidden="true"></li>`)}</ol>`;
     const msg = TM.msg ? `<p class="help nu-msg" role="status">${esc(TM.msg)}</p>` : `<p class="help nu-msg" role="status"></p>`;
     const k = st[view].k;
@@ -3485,7 +3487,7 @@
       case "pickenemy": if (el.dataset.id && team(el.dataset.id)) { S.enemyTeam = el.dataset.id; syncQueue(true); S.tab = "enemy"; MV.more = false; save(); render(); window.scrollTo(0, 0); } break;
       case "gotab": S.tab = el.dataset.k; MV.more = false; save(); render(); window.scrollTo(0, 0); break;
       case "flowhide": S.ui.flowHide = true; save(); render(); break;
-      case "nustep": S.ui.nuStep = el.dataset.k; save(); render(); break;
+      case "nustep": { const st = nuSteps(); S.ui.nuStep = { k: el.dataset.k, at: st.findIndex((x) => !x.done) }; save(); render(); break; }
       case "settings": TSM.open = ""; openSettings(el.dataset.k); checkSpace(); break;
       case "tsm": TSM.open = TSM.open === el.dataset.k ? "" : el.dataset.k; render(); { const f = document.querySelector(".tsm-pop .tsm-i"); if (f && TSM.open) f.focus(); } break;
       case "edsug": case "eduse": edSet(el.dataset.role, el.dataset.k, el.dataset.v); break;
