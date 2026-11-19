@@ -1632,13 +1632,13 @@
     } else {
       body = `<div class="nu-act"><button class="n-new" data-act="import">엑셀로 상대 팀 등록</button><span class="dim">상대 명단·챔프폭을 한 번에 · 등록하면 사이드바에 상대 팀이 생김</span></div>`;
     }
-    return `<div class="home nu-pc">${bar}<section class="nu-body">${body}</section></div>`;
+    return `<div class="home nu-pc">${collectBanner()}${bar}<section class="nu-body">${body}</section></div>`;
   }
   function renderOurPC() {
     if (needOnboard()) return newUserPC();
     const t = team(S.ourTeam);
     if (!t || t.solo) return flowCard() + noTeamHtml();
-    return `<div class="home">${flowCard()}${homeRosterPC(t)}${homeCompsPC(t)}${homeGamesPC(t)}${homeBoostPC(t)}</div>`;
+    return `<div class="home">${collectBanner()}${flowCard()}${homeRosterPC(t)}${homeCompsPC(t)}${homeGamesPC(t)}${homeBoostPC(t)}</div>`;
   }
 
   // ---------- 상대 예상 조합 ----------
@@ -1732,7 +1732,7 @@
     // 예상 조합: 지금 시리즈 설정(피어리스·세트) 기준, 우리 밴은 반영 안 함
     const comps = has ? `<section class="h-sec"><h3 class="h-h">예상 조합<small>상대가 나올 만한 조합 · 가능성 순 · 카드에 마우스를 올리면 우리 대응</small><button class="ec-more" data-act="ecopen">상황별 전체 보기 ${lbi("chev", 16)}</button></h3>
       <div class="ec-grid">${ecomps(ours, en, ecOpt(false), false).list.filter((x) => x.kind !== "other").slice(0, 6).map((x) => ecCard(x)).join("")}</div></section>` : "";
-    return `<div class="home enemy-pc">${summary}${bans}${lanes}${comps}${homeGamesPC(en, true)}</div>`;
+    return `<div class="home enemy-pc">${collectBanner()}${summary}${bans}${lanes}${comps}${homeGamesPC(en, true)}</div>`;
   }
 
   // ---------- opponent ----------
@@ -1928,7 +1928,12 @@
     const root = document.getElementById("modal");
     if (!editing) { root.innerHTML = ""; return; }
     const t = team(editing);
-    const roles = ROLES.map((r) => { const p = t.players[r]; return `<div class="ed-role" data-r="${r}"><div class="ed-row"><b style="width:40px">${ROLE_KO[r]}</b>
+    const roles = MOB.matches ? edRolesFull(t) : ROLES.map((r) => { const p = t.players[r]; return `<div class="ed-role ed-pool-only" data-r="${r}"><div class="ed-row"><b style="width:40px">${ROLE_KO[r]}</b><span class="ed-who">${esc(nick(p.riot) || "계정 없음")}</span></div>
+      <div class="row-chips">${poolChips(t, r, { edit: true })}</div>
+      <div class="ed-row"><input class="input" style="flex:1" list="champList" data-add="${r}" placeholder="챔피언 추가 (이름 입력 후 Enter)">
+      <select data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select>
+      <button class="ib btn sm" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></div></div>`; }).join("");
+    function edRolesFull(t) { return ROLES.map((r) => { const p = t.players[r]; return `<div class="ed-role" data-r="${r}"><div class="ed-row"><b style="width:40px">${ROLE_KO[r]}</b>
       <input class="input ed-acc" style="flex:2" data-f="riot" data-role="${r}" value="${esc(p.riot)}" placeholder="본계정 이름#태그" aria-label="${ROLE_KO[r]} 라이엇 ID">
       ${[0, 1].map((k) => `<input class="input ed-acc ed-alt" style="flex:1.4" data-alt="${k}" data-role="${r}" value="${esc(((p.alts || altsOf(t.id, r)) || [])[k] || "")}" placeholder="부계정${k + 1}(선택)" aria-label="${ROLE_KO[r]} 부계정 ${k + 1}">`).join("")}
       ${tierPicker(r, p.tier)}
@@ -1938,7 +1943,7 @@
       <div class="row-chips">${poolChips(t, r, { edit: true })}</div>
       <div class="ed-row"><input class="input" style="flex:1" list="champList" data-add="${r}" placeholder="챔피언 추가 (이름 입력 후 Enter)">
       <select data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select>
-      <button class="ib btn sm" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></div></div>`; }).join("");
+      <button class="ib btn sm" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></div></div>`; }).join(""); }
     root.innerHTML = `<div class="modal-bg" data-act="close"><div class="modal" role="dialog" aria-modal="true" aria-label="챔프폭 편집" ${MOB.matches ? `data-edr="${edLane}"` : ""}>
       <div class="modal-h"><h2>${esc(t.name)} · ${t.id === S.ourTeam ? "자기평가 입력" : "챔프폭 편집"}</h2><button class="ib btn sm" data-act="close" aria-label="닫기" title="닫기">${ico("x")}</button></div>
       <p class="help ed-intro">${t.id === S.ourTeam ? "<b>대회에서 실제로 꺼낼 수 있는 챔프</b>만 넣고 자신감을 고르세요. 본인 평가가 있는 선수는 이 목록만 추천에 쓰고, 전적은 참고로만 붙습니다. " : ""}${t.id === S.ourTeam ? "" : "여기 넣은 챔프는 전적 추천에 <b>더해집니다</b>(전적 챔프는 그대로 남음). "}칩을 누르면 상 → 중 → 하 → 원챔 순서로 바뀝니다. ×는 삭제.</p>
@@ -1973,24 +1978,49 @@
     p.rk = { [rkKey(p.riot)]: v && tierNum(v) >= 0 ? { [m ? "f" : "s"]: v } : {} };
     if (!v) p.ptsU = p.pts;   // 티어 없이 넣어 둔 점수는 언랭 점수로 유지
   }
+  // ---- 기록 수집 상태(수집기가 서버에 알림) ----
+  const CS = { state: "", at: "", startAt: "", timer: null };
+  async function loadCollectStatus() {
+    if (!SPACE || SPACE.bad || !WURL()) return;
+    try {
+      const res = await wfetch(`/data/status`); const d = await res.json().catch(() => ({}));
+      const was = CS.state;
+      if (res.ok && d.status === "ok" && d.data) Object.assign(CS, d.data);
+      if (was === "running" && CS.state !== "running") loadRecent();   // 수집이 끝나면 기록 다시 읽기
+      clearTimeout(CS.timer);
+      if (CS.state === "running") CS.timer = setTimeout(loadCollectStatus, 60000);
+      if (["our", "enemy", "team", "live"].includes(S.tab)) render();
+    } catch (e) { /* 다음에 */ }
+  }
+  // 우리·상대 팀 기록이 아직 없으면 위쪽 띠
+  function collectBanner() {
+    if (guest()) return "";
+    const R = window.RECENT, has = (t) => t && !t.solo && R && R.status === "ok" && R.players && R.players[t.id] && Object.keys(R.players[t.id]).length;
+    const ids = [team(S.ourTeam), S.tab === "our" || S.tab === "team" ? null : team(S.enemyTeam)].filter((t) => t && !t.solo && ROLES.some((r) => /#/.test((t.players[r] || {}).riot || "")));
+    const miss = ids.filter((t) => !has(t));
+    if (!miss.length) return "";
+    const hm = (v) => String(v || "").slice(11, 16);
+    if (CS.state === "running") return `<div class="cs-band run" role="status"><span class="cs-dot"></span><b>Riot 기록을 모으는 중입니다</b><span>${CS.startAt ? `${hm(CS.startAt)} 시작 · ` : ""}${miss.map((t) => esc(t.name)).join(" · ")} 시즌 기록·챔프폭·함께 한 경기 — 끝나면 자동으로 채워집니다(보통 10~20분)</span></div>`;
+    return `<div class="cs-band" role="status"><b>아직 기록이 없습니다</b><span>${miss.map((t) => esc(t.name)).join(" · ")} — 등록은 끝났고, Riot 기록은 다음 수집(매일 0시) 때 채워집니다${CS.state === "failed" ? " · 지난 수집이 실패해 다시 시도합니다" : ""}</span></div>`;
+  }
   // Riot에서 계정별 솔랭·자랭 받기: pairs = [[팀ID, 라인]…]. 팀 공간 열쇠가 있어야 조회됨
-  const TQ = { busy: false, done: 0, all: 0, miss: 0, msg: "" };
+  const TQ = { busy: false, done: 0, all: 0, miss: 0, msg: "", fails: [] };
   const lowLp = (x) => (x ? tierLine(x).replace(/^(\S+ \d) \d+LP$/, "$1") : "");
   async function fetchTiers(pairs) {
     if (!SPACE || SPACE.bad) { TQ.msg = "팀 공간에 들어오면 Riot에서 티어를 받습니다"; render(); return; }
     if (TQ.busy) return;
     const jobs = [];
     pairs.forEach(([tid, r]) => { const t = team(tid); if (t && !t.solo && t.players[r]) accountsOf(t, r).forEach(([a]) => jobs.push([tid, r, a])); });
-    Object.assign(TQ, { busy: true, done: 0, all: jobs.length, miss: 0, msg: "" }); render();
+    Object.assign(TQ, { busy: true, done: 0, all: jobs.length, miss: 0, msg: "", fails: [] }); render();
     for (const [tid, r, a] of jobs) {
-      let d = null;
+      let d = null, why = "확인 못 함";
       for (let tries = 0; tries < 8; tries++) {
         try {
           const res = await wfetch(`/riot/check?id=${encodeURIComponent(a)}`);
           const j = await res.json().catch(() => ({}));
           if (res.status === 429) { TQ.msg = "Riot 조회 한도 — 1분 뒤 이어서 받습니다"; render(); await new Promise((ok) => setTimeout(ok, 61000)); continue; }
-          if (res.ok && j.status === "ok") d = j;
-        } catch (e) { /* 다음 계정 */ }
+          if (res.ok && j.status === "ok") d = j; else why = j.reason || `응답 ${res.status}`;
+        } catch (e) { why = "연결 실패"; }
         break;
       }
       const t = team(tid);
@@ -1998,11 +2028,11 @@
         const p = t.players[r], k = rkKey(a);
         p.rk = { ...(p.rk || {}), [k]: { ...(d.solo ? { s: lowLp(d.solo) } : {}), ...(d.flex ? { f: lowLp(d.flex) } : {}) } };
         applyTiers(); shareChanged(tid, r);
-      } else TQ.miss++;
+      } else { TQ.miss++; const tm = team(tid); TQ.fails.push({ team: tm ? tm.name : "", r, a, why: d && !d.exists ? "Riot에 없는 계정(이름·태그 확인)" : why }); }
       TQ.done++; TQ.msg = `Riot에서 티어 받는 중 ${TQ.done} / ${TQ.all}`;
       if (TQ.done % 5 === 0 || TQ.done === TQ.all) { save(); render(); }
     }
-    TQ.busy = false; TQ.msg = `티어 받기 끝 — 계정 ${TQ.all}개${TQ.miss ? ` 중 ${TQ.miss}개는 못 받음(계정 이름 확인)` : ""}`;
+    TQ.busy = false; TQ.msg = `티어 받기 끝 — 계정 ${TQ.all}개${TQ.miss ? ` 중 ${TQ.miss}개는 못 받음(아래 목록)` : ""}`;
     save(); render(); toast(TQ.msg);
   }
   function applyTiers() {
@@ -2069,7 +2099,7 @@
     const left = `<section class="sd-main-c"><h3 class="h-h">선수·챔프폭<small>${t ? esc(t.name) : ""}</small></h3>
       <div class="n-bar sd-bar">${tseg}<span class="dim sd-help">${isOur ? "챔프 알약을 누르면 원챔 → 상 → 중 → 하 순서로 바뀜 · 우리 챔프폭은 자기평가" : "여기 넣은 챔프는 전적 추천에 더해짐"}</span><span class="n-sp"></span>
         ${t && !t.solo ? `<button class="soft-b" data-act="tqall" ${TQ.busy ? "disabled" : ""} title="본계정·부계정 모두 솔랭·자랭 티어를 Riot에서 받기">${TQ.busy ? `받는 중 ${TQ.done}/${TQ.all}` : "Riot에서 티어 받기"}</button>` : ""}${t && !isOur && !t.solo ? `<button class="soft-b bad" data-act="delteam" data-id="${t.id}">이 팀 삭제</button>` : ""}<button class="soft-b" data-act="export">엑셀 내보내기</button><button class="soft-b" data-act="import">명단 등록</button>${canShare ? `<button class="n-new sm" data-act="sharenow" title="지금 팀원에게 다시 올리기">팀에 공유</button>` : ""}</div>
-      <p class="help" id="shareNote" aria-live="polite">${t && t.solo ? "" : shareNote()}</p>${TQ.msg ? `<p class="help" role="status">${esc(TQ.msg)}</p>` : ""}
+      <p class="help" id="shareNote" aria-live="polite">${t && t.solo ? "" : shareNote()}</p>${TQ.msg ? `<p class="help" role="status">${esc(TQ.msg)}</p>` : ""}${TQ.fails.length ? `<details class="tq-fails" open><summary>티어를 못 받은 계정 ${TQ.fails.length}개 — 「Riot에서 티어 받기」로 다시 시도</summary><ul>${TQ.fails.map((f) => `<li><b>${esc(f.team)}</b> ${ROLE_KO[f.r]} · ${esc(f.a)} <span class="dim">${esc(f.why)}</span></li>`).join("")}</ul></details>` : ""}
       ${t ? `<div id="setEd" class="sd-ed" data-team=""></div>` : `<p class="help">${S.ui.setTeam === "enemy" ? "상대 팀이 없습니다 — 「엑셀 불러오기」로 상대 팀을 넣으세요." : "우리 팀이 없습니다 — 오른쪽에서 팀을 만들거나 초대 링크로 들어오세요."}</p>`}</section>`;
     const inv = (SESS || !SPACE) ? loginBody() : SPACE && !SPACE.bad ? `<span class="sd-team">${crestOf(ours && !ours.solo ? ours : { name: SPACE.name || "팀" }, "b")}<b>${esc(SPACE.name || "팀 공간")}</b>${SPACE.owner ? `<small>팀장 인증 ${esc(SPACE.owner)}</small>` : ""}</span>
         <span class="sd-link" title="초대 링크(열쇠는 가림)">${esc(location.origin + location.pathname)}#join=${esc(SPACE.id)}.●●●●●●●●</span>
@@ -2079,7 +2109,7 @@
         <span class="sd-btns"><button class="soft-b" data-act="trotate">${lbi("refresh", 16)}링크 새로 만들기</button><button class="soft-b bad" data-act="tleave">이 브라우저 열쇠 지우기</button></span>`
       : `<div class="sd-tb">${teamBody()}</div>`;
     const right = `<aside class="sd-side"><section class="sd-card"><h3>우리 팀·초대</h3>${inv}</section></aside>`;
-    return `<div class="home settings-pc">${left}${right}</div>`;
+    return `<div class="home settings-pc">${collectBanner() ? `<div class="cs-wrap">${collectBanner()}</div>` : ""}${left}${right}</div>`;
   }
   // 설정(PC): 분석 기준 · 이 브라우저 · 계정
   function renderSettingsPC() {
@@ -2594,7 +2624,7 @@
         <div class="seg" role="group" aria-label="우리팀인지"><button data-act="ipour" data-v="0" aria-pressed="${!IMP.our}">상대</button><button data-act="ipour" data-v="1" aria-pressed="${!!IMP.our}">우리팀</button></div></div>
       <label class="sd-fl ip-txt"><small>텍스트 · 사진에서 읽은 글도 여기 나옵니다(고쳐도 됨)</small><textarea class="input" id="ipText" rows="9" spellcheck="false" placeholder="${esc(ex)}">${esc(IMP.text)}</textarea></label>
       <div class="nu-act"><button class="n-new" data-act="ipparse">명단으로 바꾸기</button><span class="dim">계정은 「이름#태그」 · 라인 이름이 없으면 순서대로 탑·정글·미드·원딜·서폿</span></div>
-      ${IMP.msg ? `<p class="help ip-msg" role="status">${esc(IMP.msg)}</p>` : ""}</section>`;
+      ${IMP.msg ? `<p class="help ip-msg" role="status">${esc(IMP.msg)}</p>` : ""}${TQ.busy || TQ.msg ? `<p class="help ip-msg" role="status">${esc(TQ.busy ? `Riot에서 티어 받는 중 ${TQ.done} / ${TQ.all}` : TQ.msg)}</p>` : ""}${TQ.fails.length && !TQ.busy ? `<details class="tq-fails" open><summary>티어를 못 받은 계정 ${TQ.fails.length}개</summary><ul>${TQ.fails.map((f) => `<li><b>${esc(f.team)}</b> ${ROLE_KO[f.r]} · ${esc(f.a)} <span class="dim">${esc(f.why)}</span></li>`).join("")}</ul></details>` : ""}</section>`;
     const help = `<aside class="sd-side"><section class="sd-card"><h3>이렇게 넣으면 됩니다</h3>
       <p class="help"><b>사진</b> 로비·디스코드·단톡 캡처. 글자를 읽어 텍스트 칸에 넣고 바로 명단으로 바꿉니다</p>
       <p class="help"><b>엑셀</b> 내려받은 양식 그대로(팀·라인·계정·챔프폭)</p>
@@ -4012,7 +4042,7 @@
     NT.list = null; NT.status = "idle";
     ensureSpaceTeam(true);
     RS.loaded = false; RS.last = "";
-    pullShared(); loadNotes(); loadPrep(); loadRecent(); loadSeed(); loadRoster(); render();
+    pullShared(); loadNotes(); loadPrep(); loadRecent(); loadSeed(); loadRoster(); loadCollectStatus(); render();
   }
   async function checkSpace() {
     if (!SPACE || !WURL() || SPACE.viaLogin) return;   // 로그인 팀은 /auth/me가 이름·팀원 수를 줌
@@ -4181,4 +4211,5 @@
   loadProviders();
   loadMe();
   loadRoster();
+  loadCollectStatus();
 })();

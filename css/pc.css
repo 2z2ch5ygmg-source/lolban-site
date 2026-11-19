@@ -799,3 +799,11 @@ html.pc .lv-c > .dock-pc { flex: 1 1 auto; }
 /* 1순위 알약: 반투명 바탕은 초상화가 비쳐 안 보임(라이트) → 불투명 카드 바탕 + 색 글자·테두리 */
 html.pc :is(.live-pc, .enemy-pc) .rec.first .hero .lab { background: var(--panel); color: var(--hi); box-shadow: 0 0 0 1.5px var(--hi); }
 html.pc :is(.live-pc, .enemy-pc) .rec.ban.first .hero .lab { background: var(--panel); color: var(--red); box-shadow: 0 0 0 1.5px var(--red); }
+
+/* 기록 수집 상태 띠 */
+.cs-band { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-radius: 14px; background: var(--bg2); font-size: 14px; }
+.cs-band span { color: var(--muted); } .cs-band.run { background: var(--hi-bg); } .cs-band.run b { color: var(--hi); }
+.cs-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--hi); animation: csPulse 1.2s ease-in-out infinite; flex: none; }
+@keyframes csPulse { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .cs-dot { animation: none; } }
+.settings-pc > .cs-wrap { grid-column: 1 / -1; }
