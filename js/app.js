@@ -161,7 +161,53 @@
   S.ui.ans = {};   // 새로 열면 문제는 처음부터 다시 푼다(맞힌 기록 dScore는 진행률로 남김)
   if (S.ui.tut && S.ui.tut.step === "quiz") S.ui.tut = { ...S.ui.tut, k: 0 };   // 새로 열면 장면은 마지막 모습으로(다시 보기로 재생)
   if (S.ui.tut && S.ui.tut.u && !(window.VISION && window.VISION.units.some((u) => u.id === S.ui.tut.u && u.scenes))) S.ui.tut = {};
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 무시 */ } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 무시 */ } rosterChanged(); }
+
+  // ---------- 팀 명단 서버 동기화(11-19): 팀 이름·우리팀·계정·부계정을 팀 공간에 하나로 — 팀원끼리 같고, 0시 수집기가 이 명단으로 기록을 모음 ----
+  const RS = { last: "", timer: null, loaded: false, msg: "" };
+  const rosterCan = () => !!(SPACE && !SPACE.bad && WURL() && SPACE.id !== "subin");
+  function rosterOf() {
+    const ok = (v) => /^[^#<>"'`\\]{1,32}#[^#<>"'`\\]{1,8}$/.test(String(v || "").trim());
+    return { teams: S.teams.filter((t) => !t.solo).slice(0, 40).map((t) => ({ id: t.id, name: String(t.name || "팀").replace(/[<>"`\\]/g, "").slice(0, 30) || "팀", our: t.id === S.ourTeam,
+      players: Object.fromEntries(ROLES.map((r) => { const p = t.players[r] || {}; return [r, { riot: ok(p.riot) ? String(p.riot).trim() : "", alts: (p.alts || []).filter(ok).map((a) => String(a).trim()).slice(0, 2) }]; })) })) };
+  }
+  function rosterChanged() {
+    if (!rosterCan() || !RS.loaded) return;
+    const sig = JSON.stringify(rosterOf());
+    if (sig === RS.last) return;
+    clearTimeout(RS.timer); RS.timer = setTimeout(pushRoster, 1000);
+  }
+  async function pushRoster() {
+    RS.timer = null; if (!rosterCan()) return;
+    const body = rosterOf(), sig = JSON.stringify(body);
+    try { const res = await wfetch(`/roster`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: sig }); const d = await res.json().catch(() => ({})); if (res.ok && d.status === "ok") { RS.last = sig; RS.msg = ""; } else RS.msg = "명단 저장 실패: " + (d.reason || res.status); }
+    catch (e) { RS.msg = "명단 저장 실패 — 다시 바꾸면 또 올립니다"; }
+  }
+  async function loadRoster() {
+    if (!rosterCan() || RS.timer) return;   // 올리기를 기다리는 동안에는 받지 않음(내 입력을 덮지 않게)
+    try {
+      const res = await wfetch(`/roster`); const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.status !== "ok") return;
+      const R = d.roster;
+      if (!R || !Array.isArray(R.teams)) { RS.loaded = true; RS.last = ""; rosterChanged(); return; }   // 서버에 아직 없음 → 이 브라우저 명단을 올림
+      let changed = false;
+      const ids = new Set(R.teams.map((t) => t.id));
+      R.teams.forEach((rt) => {
+        let t = S.teams.find((x) => x.id === rt.id);
+        if (!t) { t = blankTeam(rt.id, rt.name); S.teams.push(t); changed = true; }
+        if (t.name !== rt.name && rt.id !== SPACE.id) { t.name = rt.name; changed = true; }
+        ROLES.forEach((r) => { const p = t.players[r] || (t.players[r] = { riot: "", alts: [], tier: "", pts: 50, pool: [] }), q = rt.players[r] || {};
+          if ((p.riot || "") !== (q.riot || "") || JSON.stringify((p.alts || []).filter(Boolean)) !== JSON.stringify(q.alts || [])) { p.riot = q.riot || ""; p.alts = (q.alts || []).slice(); changed = true; } });
+      });
+      const before = S.teams.length;
+      S.teams = S.teams.filter((t) => t.solo || ids.has(t.id) || t.id === SPACE.id);
+      if (S.teams.length !== before) changed = true;
+      if (!team(S.enemyTeam)) S.enemyTeam = (S.teams.find((x) => !x.solo && x.id !== S.ourTeam) || { id: SOLO.enemy }).id;
+      RS.loaded = true; RS.last = JSON.stringify(rosterOf());
+      if (changed) { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 무시 */ } render(); }
+      rosterChanged();
+    } catch (e) { /* 다음에 */ }
+  }
 
   // ---------- 밴픽 저장(버튼으로만) ----------
   // 저장 목록은 따로 두어 「처음 상태로」·「시리즈 초기화」가 지우지 않는다. 같은 시리즈를 다시 저장하면 그 칸을 덮어쓴다.
@@ -3271,7 +3317,15 @@
   const MOB_VIEW = { live: renderLiveM, our: renderOurM, enemy: renderEnemyM, notes: renderNotesM };
 
   let lastIdx = -1;
+  // 그리는 도중(입력 칸이 사라지며 change·blur가 또 render를 부름) 다시 들어오면 끝난 뒤 한 번 더
+  let RENDERING = false, RENDER_AGAIN = false;
   function render() {
+    if (RENDERING) { RENDER_AGAIN = true; return; }
+    RENDERING = true;
+    try { renderInner(); } finally { RENDERING = false; }
+    if (RENDER_AGAIN) { RENDER_AGAIN = false; render(); }
+  }
+  function renderInner() {
     if (typeof hideHover === "function") hideHover();
     if (guest()) {
       if (!GUEST_TABS.includes(S.tab)) S.tab = "live";
@@ -3904,7 +3958,8 @@
     SH.url = window.SELF_EVAL_SHARE_URL || ""; SH.status = SH.url ? "loading" : "unset";
     NT.list = null; NT.status = "idle";
     ensureSpaceTeam(true);
-    pullShared(); loadNotes(); loadPrep(); loadRecent(); loadSeed(); render();
+    RS.loaded = false; RS.last = "";
+    pullShared(); loadNotes(); loadPrep(); loadRecent(); loadSeed(); loadRoster(); render();
   }
   async function checkSpace() {
     if (!SPACE || !WURL() || SPACE.viaLogin) return;   // 로그인 팀은 /auth/me가 이름·팀원 수를 줌
@@ -3987,7 +4042,7 @@
   setInterval(() => { const el = document.getElementById("nuLeft"); if (!el) return; const left = Math.max(0, Math.round((Number(el.dataset.end) - Date.now()) / 1000)); el.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`; }, 1000);
   {
     // 팀원이 새로 쓴 자기평가·피드백 노트도 보이게: 화면이 보이는 동안 45초마다, 다시 돌아왔을 때 읽는다(팀 공간에 들어와 있을 때만)
-    const tick = () => { if (document.visibilityState === "visible" && SH.url) { pullShared(); if (S.tab === "notes" && !NT.form) loadNotes(); } };
+    const tick = () => { if (document.visibilityState === "visible" && SH.url) { pullShared(); loadRoster(); if (S.tab === "notes" && !NT.form) loadNotes(); } };
     setInterval(tick, 45000);
     document.addEventListener("visibilitychange", tick);
   }
@@ -4071,4 +4126,5 @@
   loadSeed();
   loadProviders();
   loadMe();
+  loadRoster();
 })();
