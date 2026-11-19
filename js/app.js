@@ -2867,9 +2867,18 @@
   // ---------- 공부자료(11-19 사용자 요청): 이론 학습 / 문제 풀이, 라인별·운영으로 나눔 ----------
   // 자료: js/study.js(window.STUDY — 영상 자막을 정리한 이론·문제) + 예전 시야 공부의 장면 단원·지도 문제를 같은 분류로
   const ST_CATS = [["T", "탑"], ["J", "정글"], ["M", "미드"], ["A", "원딜"], ["S", "서폿"], ["macro", "운영"]];
-  const ST_UNIT = { u1: ["S", "시야·와드"], u2: ["S", "시야·와드"], u3: ["J", "시야·와드"], u4: ["S", "시야·와드"], u5: ["macro", "시야·와드"], u6: ["A", "한타·포지셔닝"], u7: ["T", "사이드 운영·스플릿"], u8: ["J", "동선"], u9: ["M", "웨이브 관리"], u10: ["macro", "웨이브 관리"] };
-  const ST_DRILL = { 와드: "시야·와드", 한타: "한타·포지셔닝", 포지셔닝: "한타·포지셔닝", "운영:조합": "사이드 운영·스플릿", "운영:불리": "불리할 때", "운영:유리": "유리할 때", "운영:라인": "웨이브 관리", "운영:모름": "적 위치 모를 때" };
-  let SDATA = null;
+  const ST_UNIT = { u1: ["S", "시야·와드"], u2: ["S", "시야·와드"], u3: ["J", "시야·와드"], u4: ["S", "시야·와드"], u5: ["macro", "시야·와드"], u6: ["A", "한타·포지셔닝"], u7: ["macro", "탑사이드 운영"], u8: ["J", "동선"], u9: ["M", "웨이브·귀환"], u10: ["macro", "웨이브·귀환"] };
+  const ST_DRILL = { 와드: "시야·와드", 한타: "한타·포지셔닝", 포지셔닝: "한타·포지셔닝", "운영:조합": "사이드 운영 심화·스플릿", "운영:불리": "불리할 때", "운영:유리": "유리할 때", "운영:라인": "웨이브·귀환", "운영:모름": "적 위치 모를 때" };
+  let SDATA = null, STLOAD = false;
+  // 공부자료(약 400KB)는 공부자료 탭을 열 때만 받음
+  function loadStudy() {
+    if (window.STUDY || STLOAD) return; STLOAD = true;
+    const sc = document.createElement("script"); const av = ((document.querySelector('script[src*="js/app.js"]') || {}).src || "").split("v=")[1] || Date.now().toString(36); sc.src = "js/study.js?v=" + av;   // 캐시 꼬리표는 app.js와 같게
+    sc.onload = () => { SDATA = null; if (S.tab === "vision") render(); }; sc.onerror = () => { STLOAD = false; };
+    document.head.appendChild(sc);
+  }
+  // 주제 순서: 운영은 운영 방식(사이드 운영)부터, 나머지는 많은 순
+  const ST_ORDER = ["미드사이드 운영", "탑사이드 운영", "바텀사이드 운영", "사이드 운영 기본", "사이드 운영 심화·스플릿", "운영 우선순위", "오브젝트", "시야·와드", "웨이브·귀환", "라인전·딜교", "로밍", "동선", "갱킹"];
   function studyData() {
     if (SDATA) return SDATA;
     const ST = window.STUDY || { theory: [], quiz: [], videos: [] }, V = window.VISION;
@@ -2885,19 +2894,24 @@
   const ytAt = (v, t) => `https://www.youtube.com/watch?v=${encodeURIComponent(v)}${t ? `&t=${Math.max(0, Math.floor(t))}s` : ""}`;
   const stMmss = (t) => `${Math.floor((t || 0) / 60)}:${String(Math.floor((t || 0) % 60)).padStart(2, "0")}`;
   function stSrc(SD, list) {
-    return (list || []).filter((x) => x && x.v).slice(0, 4).map((x) => { const m = SD.videos[x.v] || {};
+    const seen = new Set();
+    return (list || []).filter((x) => x && x.v).sort((a, b) => (b.t ? 1 : 0) - (a.t ? 1 : 0)).filter((x) => !seen.has(x.v) && seen.add(x.v)).slice(0, 4).map((x) => { const m = SD.videos[x.v] || {};
       return `<a class="st-src" href="${ytAt(x.v, x.t)}" target="_blank" rel="noopener" title="${esc(m.title || "")}">${ico("play")}<span>${esc(m.ch || "영상")}</span><small>${esc((m.title || "").slice(0, 26))}${x.t ? ` · ${stMmss(x.t)}` : ""}</small></a>`; }).join("");
   }
   const stOk = (it) => { const sc = S.ui.dScore || {}; return sc[it.id]; };
   function renderStudyPC() {
+    if (!window.STUDY) { loadStudy(); }
     const V = window.VISION, SD = studyData(), u = S.ui;
+    if (!window.STUDY) SDATA = null;   // 받는 중에는 예전 자료만, 다 받으면 다시 계산
     // 장면 단원(예전 배우기)을 연 상태: 그 화면 그대로, 맨 위 「← 이론 학습」
     if (u.tut && u.tut.u && V) return renderVisionPC(true);
     const mode = u.stMode === "quiz" ? "quiz" : "theory";
     const items = mode === "quiz" ? SD.quiz : SD.theory;
     const cat = ST_CATS.some(([k]) => k === u.stCat) ? u.stCat : "macro";
     const inCat = items.filter((x) => x.cat === cat);
-    const topics = [...new Set(inCat.map((x) => x.topic))];
+    const cnt = {}; inCat.forEach((x) => (cnt[x.topic] = (cnt[x.topic] || 0) + 1));
+    const oi = (t) => { const i = ST_ORDER.indexOf(t); return i < 0 ? 99 : i; };
+    const topics = Object.keys(cnt).sort((a, b) => oi(a) - oi(b) || cnt[b] - cnt[a]);
     const topic = topics.includes(u.stTopic) ? u.stTopic : "";
     const list = inCat.filter((x) => !topic || x.topic === topic);
     const nav = `<nav class="st-nav" aria-label="분류">${ST_CATS.map(([k, n]) => { const all = items.filter((x) => x.cat === k), ok = mode === "quiz" ? all.filter(stOk).length : 0;
