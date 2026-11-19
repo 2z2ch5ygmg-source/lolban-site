@@ -962,3 +962,8 @@ html.pc :is(.live-pc, .enemy-pc) .rec .rl > span:last-child, html.pc :is(.live-p
 html.pc :is(.live-pc, .enemy-pc) .rec .rec-who { display: block; }
 html.pc :is(.live-pc, .enemy-pc) .rec .rl > span:last-child, html.pc :is(.live-pc, .enemy-pc) .rec .ans > span, html.pc :is(.live-pc, .enemy-pc) .rec .rec-who { white-space: normal; text-overflow: clip; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; word-break: keep-all; }
 html.pc :is(.live-pc, .enemy-pc) .rec :is(.rl, .ans) { align-items: flex-start; }
+
+/* 이론 지도 보기(11-19) */
+.st-tv { align-items: start; } .st-tv-r { display: grid; gap: 12px; align-content: start; }
+.st-play { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; } .st-play .dim { font-size: 13px; }
+.n-new.sm { padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; } .n-new.sm svg { width: 14px; height: 14px; }

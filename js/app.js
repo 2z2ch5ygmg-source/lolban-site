@@ -2910,6 +2910,23 @@
       return `<a class="st-src" href="${ytAt(x.v, x.t)}" target="_blank" rel="noopener" title="${esc(m.title || "")}">${ico("play")}<span>${esc(m.ch || "영상")}</span><small>${esc((m.title || "").slice(0, 26))}${x.t ? ` · ${stMmss(x.t)}` : ""}</small></a>`; }).join("");
   }
   const stOk = (it) => { const sc = S.ui.dScore || {}; return sc[it.id]; };
+  // 이론 지도 보기(11-19 사용자 요청: 글로만은 상황이 안 보임): 왼쪽 장면, 「움직임 보기」 = 이 개념대로 했을 때
+  const stSnapA = (A) => Object.fromEntries(Object.entries(A || {}).map(([k, o]) => [k, o && o.at && window.WORLD ? { ...o, at: window.WORLD.snap(o.at) } : o]));
+  function stTheoryMap(SD, it, list) {
+    const m = it.map, play = S.ui.stPlay === it.id;
+    const base = { ...m.scene, ph: "", a: stSnapA(m.scene.a), w: { ...(m.scene.w || {}) } };
+    let sc = base, prev = null;
+    if (play && m.after) { const af = m.after, a = { ...base.a }; Object.entries(stSnapA(af.a)).forEach(([k, t]) => { a[k] = { ...(a[k] || {}), ...t }; });
+      sc = { ...base, a, w: { ...base.w, ...(af.w || {}) }, p: af.p, hit: af.hit, l: af.l || base.l, waves: af.waves ? { ...(base.waves || {}), ...af.waves } : base.waves }; prev = base; }
+    const k = list.findIndex((x) => x.id === it.id), withMap = list.filter((x) => x.map), j = withMap.findIndex((x) => x.id === it.id);
+    const nav = `<div class="iw-nav"><button class="soft-b" data-act="stmap" data-id="">${ico("left")}목록</button>${j > 0 ? `<button class="soft-b" data-act="stmap" data-id="${esc(withMap[j - 1].id)}">이전 이론</button>` : ""}${j >= 0 && j < withMap.length - 1 ? `<button class="soft-b" data-act="stmap" data-id="${esc(withMap[j + 1].id)}">다음 이론</button>` : ""}</div>`;
+    return `<section class="vz st-tv"><div class="vz-l">${stageHtml(sc, prev, {})}<p class="help sc-note">${esc(play && m.afterCap ? m.afterCap : m.cap || "")}</p></div>
+      <div class="vz-r st-tv-r"><span class="st-tag">${esc(it.topic)}</span><h2 class="vz-q">${esc(it.title)}</h2>${it.summary ? `<p class="st-sum">${esc(it.summary)}</p>` : ""}
+        ${m.after ? `<div class="st-play"><button class="${play ? "soft-b" : "n-new"}" data-act="stplay" data-id="${esc(it.id)}" data-v="${play ? "" : "1"}">${play ? "처음 장면" : `${ico("play")}움직임 보기`}</button>${m.afterCap ? `<span class="dim">${esc(m.afterCap)}</span>` : ""}</div>` : ""}
+        ${it.points && it.points.length ? `<ul class="st-pts">${it.points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+        ${it.when ? `<p class="st-when"><b>언제</b>${esc(it.when)}</p>` : ""}${it.mistakes && it.mistakes.length ? `<p class="st-mis"><b>흔한 실수</b>${it.mistakes.map(esc).join(" · ")}</p>` : ""}
+        <div class="st-foot">${stSrc(SD, it.src)}</div>${nav}</div></section>`;
+  }
   function renderStudyPC() {
     if (!window.STUDY) { loadStudy(); }
     const V = window.VISION, SD = studyData(), u = S.ui;
@@ -2929,12 +2946,14 @@
       return `<button data-act="stcat" data-v="${k}" aria-pressed="${k === cat}"><span>${n}</span><small>${mode === "quiz" ? `${ok}/${all.length}` : all.length}</small></button>`; }).join("")}</nav>`;
     const tchips = `<div class="st-topics" role="group" aria-label="주제"><button data-act="sttopic" data-v="" aria-pressed="${!topic}">전체 <small>${inCat.length}</small></button>${topics.map((t) => `<button data-act="sttopic" data-v="${esc(t)}" aria-pressed="${t === topic}">${esc(t)} <small>${inCat.filter((x) => x.topic === t).length}</small></button>`).join("")}</div>`;
     let body = "";
-    if (mode === "theory") {
+    const openT = mode === "theory" && u.stOpen ? SD.theory.find((x) => x.id === u.stOpen && x.map) : null;
+    if (openT) body = stTheoryMap(SD, openT, list);
+    else if (mode === "theory") {
       const qn = (it) => SD.quiz.filter((q) => q.cat === it.cat && q.topic === it.topic).length;
       body = list.length ? `<div class="st-cards">${list.map((it) => `<article class="st-card"><span class="st-tag">${esc(it.topic)}</span><h3>${esc(it.title)}</h3>${it.summary ? `<p class="st-sum">${esc(it.summary)}</p>` : ""}
         ${it.points && it.points.length ? `<ul class="st-pts">${it.points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
         ${it.when ? `<p class="st-when"><b>언제</b>${esc(it.when)}</p>` : ""}${it.mistakes && it.mistakes.length ? `<p class="st-mis"><b>흔한 실수</b>${it.mistakes.map(esc).join(" · ")}</p>` : ""}
-        <div class="st-foot">${stSrc(SD, it.src)}<span class="n-sp"></span>${it.unit ? `<button class="soft-b" data-act="tunit" data-v="${it.unit}">${ico("play")}장면으로 보기</button>` : ""}${qn(it) ? `<button class="soft-b" data-act="stgoq" data-cat="${it.cat}" data-topic="${esc(it.topic)}">문제 ${qn(it)}개</button>` : ""}</div></article>`).join("")}</div>`
+        <div class="st-foot">${stSrc(SD, it.src)}<span class="n-sp"></span>${it.map ? `<button class="n-new sm" data-act="stmap" data-id="${esc(it.id)}">${ico("eye")}지도로 보기</button>` : ""}${it.unit ? `<button class="soft-b" data-act="tunit" data-v="${it.unit}">${ico("play")}장면으로 보기</button>` : ""}${qn(it) ? `<button class="soft-b" data-act="stgoq" data-cat="${it.cat}" data-topic="${esc(it.topic)}">문제 ${qn(it)}개</button>` : ""}</div></article>`).join("")}</div>`
         : `<p class="help st-empty">이 분류의 이론이 아직 없습니다.</p>`;
     } else {
       const key = cat + "|" + topic, qi = (u.stQi || {})[key] || 0;
@@ -3646,7 +3665,7 @@
   let RENDERING = false, RENDER_AGAIN = false;
   // 공부자료 탭을 나갔다 오면 처음 화면(이론 학습 · 운영 · 전체)부터(사용자 지시 11-19). 새로고침해도 처음부터
   let lastTab = null;
-  function resetStudyUi() { if (!S.ui) return; S.ui.stMode = "theory"; S.ui.stCat = ""; S.ui.stTopic = ""; S.ui.stQi = {}; S.ui.tut = {}; }
+  function resetStudyUi() { if (!S.ui) return; S.ui.stOpen = ""; S.ui.stPlay = ""; S.ui.stMode = "theory"; S.ui.stCat = ""; S.ui.stTopic = ""; S.ui.stQi = {}; S.ui.tut = {}; }
   function render() {
     if (lastTab !== S.tab) { if (lastTab === "vision" || (lastTab === null && S.tab === "vision")) resetStudyUi(); lastTab = S.tab; }
     if (RENDERING) { RENDER_AGAIN = true; return; }
@@ -3840,9 +3859,11 @@
       case "vside": S.ui.vSide = el.dataset.v; S.ui.vSideBase = S.draft.ourSide; save(); render(); break;
       case "vrole": S.ui.vRole = el.dataset.v; save(); render(); break;
       case "vmode": S.ui.vMode = el.dataset.v; save(); render(); break;
-      case "stmode": S.ui.stMode = el.dataset.v; S.ui.tut = {}; save(); render(); window.scrollTo(0, 0); break;
-      case "stcat": S.ui.stCat = el.dataset.v; S.ui.stTopic = ""; save(); render(); break;
-      case "sttopic": S.ui.stTopic = el.dataset.v; save(); render(); break;
+      case "stmode": S.ui.stMode = el.dataset.v; S.ui.tut = {}; S.ui.stOpen = ""; save(); render(); window.scrollTo(0, 0); break;
+      case "stcat": S.ui.stCat = el.dataset.v; S.ui.stTopic = ""; S.ui.stOpen = ""; save(); render(); break;
+      case "sttopic": S.ui.stTopic = el.dataset.v; S.ui.stOpen = ""; save(); render(); break;
+      case "stmap": S.ui.stOpen = el.dataset.id; S.ui.stPlay = ""; save(); render(); window.scrollTo(0, 0); break;
+      case "stplay": S.ui.stPlay = el.dataset.v ? el.dataset.id : ""; render(); break;
       case "stgoq": S.ui.stMode = "quiz"; S.ui.stCat = el.dataset.cat; S.ui.stTopic = el.dataset.topic; S.ui.stQi = { ...(S.ui.stQi || {}), [el.dataset.cat + "|" + el.dataset.topic]: 0 }; save(); render(); window.scrollTo(0, 0); break;
       case "stq": { const cat = S.ui.stCat || "macro", key = cat + "|" + (S.ui.stTopic || ""); S.ui.stQi = { ...(S.ui.stQi || {}), [key]: Math.max(0, Number(el.dataset.v)) }; save(); render(); window.scrollTo(0, 0); break; }
       case "stwrong": { const SD = studyData(), cat = S.ui.stCat || "macro", tp = S.ui.stTopic || "", key = cat + "|" + tp;
