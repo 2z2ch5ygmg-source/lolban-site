@@ -893,3 +893,10 @@ html.pc :is(.live-pc, .enemy-pc) .rec.ban.first .hero .lab { background: var(--p
 .tv-alt { font-size: 12px; color: var(--muted); } .tv-t { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 .tv-pool { gap: 6px; }
 .hovercard { overflow: hidden; }
+
+/* 편집 칸: 티어는 보기만, 부계정 지우기(11-19) */
+.sd-rkv { display: flex; gap: 18px; flex-wrap: wrap; margin: 2px 0 6px; font-size: 14px; font-weight: 600; } .sd-rkv.dim { font-weight: 400; font-size: 13px; color: var(--muted); }
+.sd-rkq { display: inline-flex; align-items: center; gap: 6px; } .sd-rkq small { color: var(--muted); font-weight: 500; margin-right: 2px; }
+.sd-altw { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.sd-altdel { width: 40px; height: 44px; border: 0; border-radius: 10px; background: var(--bg2); color: var(--muted); display: grid; place-items: center; cursor: pointer; }
+.sd-altdel:hover { color: var(--red); background: var(--red-bg); } .sd-altdel svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; }

@@ -1912,6 +1912,14 @@
       const fill = tierFor(d), field = el.dataset.f === "riot" ? "riot" : "alt" + el.dataset.alt;
       const inl = !!el.closest("#setEd"), fs = d.solo ? tierLine(d.solo).replace(/^(\S+ \d) \d+LP$/, "$1") : "", ff = d.flex ? tierLine(d.flex).replace(/^(\S+ \d) \d+LP$/, "$1") : "";
       const same = d.riot.toLowerCase() === v.toLowerCase();   // 대소문자만 다르면 같은 계정(Riot ID는 대소문자 구분 없음)
+      if (inl && editing && team(editing)) {   // 우리 팀 편집 칸: 받은 솔랭·자랭을 바로 넣음(고르는 칸 없음)
+        const tt = team(editing), p = tt.players[r], val = { ...(d.solo ? { s: lowLp(d.solo) } : {}), ...(d.flex ? { f: lowLp(d.flex) } : {}) };
+        p.rk = { ...(p.rk || {}), [rkKey(v)]: val, [rkKey(d.riot)]: val }; applyTiers(); save();
+        const slot = el.dataset.f === "riot" ? "m" : el.dataset.alt, box = document.getElementById(`edrk-${r}-${slot}`); if (box) box.outerHTML = rkView(tt, r, v, slot);
+        const eff = document.getElementById(`edeff-${r}`); if (eff) eff.innerHTML = effLine(tt, r);
+        show(`<span class="ed-ok">✓ ${esc(d.riot)}</span>` + (!same ? `<button type="button" class="btn sm" data-act="eduse" data-role="${r}" data-k="${field}" data-v="${esc(d.riot)}">이걸로</button>` : ""));
+        rememberId(d.riot); return;
+      }
       show(`<span class="ed-ok">✓ ${esc(d.riot)}</span><span class="help">${esc(tiers)}</span>`
         + (!same ? `<button type="button" class="btn sm" data-act="eduse" data-role="${r}" data-k="${field}" data-v="${esc(d.riot)}">이걸로</button>` : "")
         + (inl ? ((fs || ff) ? `<button type="button" class="btn sm" data-act="rkfill" data-role="${r}" data-acc="${esc(d.riot)}" data-s="${esc(fs)}" data-f="${esc(ff)}">솔랭·자랭 채우기</button>` : `<span class="help">솔랭·자랭 모두 언랭</span>`)
@@ -2085,6 +2093,15 @@
       + (x.t && !HIGH(x.t) ? `<select class="input sd-qd" data-rkf="d" ${at} aria-label="${ROLE_KO[r]} ${Q_KO[q]} 단계">${[4, 3, 2, 1].map((n) => opt(n, n, String(n) === String(x.d || 4))).join("")}</select>` : "")
       + (x.t && HIGH(x.t) ? `<input class="input sd-qd" type="number" min="0" step="1" inputmode="numeric" data-rkf="lp" ${at} value="${esc(x.lp)}" placeholder="LP" aria-label="${ROLE_KO[r]} ${Q_KO[q]} LP">` : "") + `</span></span>`;
   }
+  // 우리 팀 편집 칸(11-19 사용자 지적: 계정만 넣으면 티어는 알아서): Riot에서 받은 솔랭·자랭을 보여 주기만
+  function rkView(t, r, acc, slot) {
+    const id = `edrk-${r}-${slot}`;
+    if (!/#/.test(acc || "")) return `<p class="sd-rkv dim" id="${id}">계정을 넣으면 Riot에서 솔랭·자랭 티어를 불러옵니다</p>`;
+    const v = (t.players[r].rk || {})[rkKey(acc)];
+    if (!v) return `<p class="sd-rkv dim" id="${id}">${TQ.busy ? "티어 불러오는 중…" : "아직 티어를 못 받음 — 저장하면 Riot에서 다시 받습니다"}</p>`;
+    const q = (k) => { const x = parseTier(v[k]); return `<span class="sd-rkq"><small>${Q_KO[k]}</small>${tierImg(x.t, 18)}${x.t ? esc(v[k]) : "언랭"}</span>`; };
+    return `<p class="sd-rkv" id="${id}">${q("s")}${q("f")}</p>`;
+  }
   function rkRow(t, r, acc) {
     const v = (t.players[r].rk || {})[rkKey(acc)] || {}, dis = !/#/.test(acc || "");
     return `<div class="sd-rk">${rkPicker(r, acc, "s", v.s, dis)}${rkPicker(r, acc, "f", v.f, dis)}</div>`;
@@ -2103,12 +2120,12 @@
   function edInlineHtml(t) {
     return ROLES.map((r) => { const p = t.players[r], alts = (p.alts || altsOf(t.id, r)) || [];
       return `<div class="sd-role ed-role" data-r="${r}"><b class="sd-r">${ROLE_KO[r]}</b>
-        <div class="sd-acc"><label class="sd-fl sd-main"><small>본계정</small><input class="input ed-acc" data-f="riot" data-role="${r}" value="${esc(p.riot)}" placeholder="이름#태그" aria-label="${ROLE_KO[r]} 라이엇 ID"></label>${rkRow(t, r, p.riot)}
+        <div class="sd-acc"><label class="sd-fl sd-main"><small>본계정</small><input class="input ed-acc" data-f="riot" data-role="${r}" value="${esc(p.riot)}" placeholder="이름#태그" aria-label="${ROLE_KO[r]} 라이엇 ID"></label>${rkView(t, r, p.riot, "m")}
           <div class="ed-sug" id="edsug-${r}" role="listbox" aria-label="${ROLE_KO[r]} 계정 추천" hidden></div>
           <p class="ed-chk" id="edchk-${r}" aria-live="polite" data-k="${t.id}|${r}|riot">${CHK[`${t.id}|${r}|riot`] || ""}</p>
-          ${[0, 1].filter((k) => alts[k] || ((S.ui.altOpen || {})[t.id + "|" + r] || 0) > k).map((k) => `<label class="sd-fl"><small>부계정 ${k + 1}</small><input class="input ed-acc ed-alt" data-alt="${k}" data-role="${r}" value="${esc(alts[k] || "")}" placeholder="이름#태그" aria-label="${ROLE_KO[r]} 부계정 ${k + 1}"></label>${rkRow(t, r, alts[k] || "")}`).join("")}
+          ${[0, 1].filter((k) => alts[k] || ((S.ui.altOpen || {})[t.id + "|" + r] || 0) > k).map((k) => `<div class="sd-altw"><label class="sd-fl"><small>부계정 ${k + 1}</small><input class="input ed-acc ed-alt" data-alt="${k}" data-role="${r}" value="${esc(alts[k] || "")}" placeholder="이름#태그" aria-label="${ROLE_KO[r]} 부계정 ${k + 1}"></label><button type="button" class="sd-altdel" data-act="altdel" data-team="${t.id}" data-role="${r}" data-k="${k}" aria-label="부계정 ${k + 1} 지우기" title="부계정 지우기"><svg class="ico-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>${rkView(t, r, alts[k] || "", k)}`).join("")}
           ${alts.filter(Boolean).length < 2 && ((S.ui.altOpen || {})[t.id + "|" + r] || 0) < 2 ? `<button class="sd-altadd" data-act="altadd" data-role="${r}" data-team="${t.id}" data-n="${Math.max(alts.filter(Boolean).length, (S.ui.altOpen || {})[t.id + "|" + r] || 0) + 1}">${lbi("plus", 14)}부계정 <small>(라인당 3개까지)</small></button>` : ""}
-          ${effLine(t, r)}</div>
+          <div id="edeff-${r}">${effLine(t, r)}</div></div>
         <div class="sd-pool"><div class="row-chips">${poolChips(t, r, { edit: true })}</div>
           <div class="ed-row sd-add"><label class="sd-fl"><small>챔프 추가</small><input class="input" list="champList" data-add="${r}" placeholder="이름 입력 후 Enter" aria-label="${ROLE_KO[r]} 챔프 추가"></label>
           <label class="sd-fl"><small>숙련도</small><select class="input" data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select></label>
@@ -3639,10 +3656,11 @@
         if (el.dataset.act === "tcancel" && before) { const i = S.teams.findIndex((x) => x.id === t.id); if (i >= 0) S.teams[i] = before; }
         const now = team(S.ourTeam);
         TE.on = false; TE.snap = null; editing = null;
+        if (S.ui.altOpen) ROLES.forEach((r) => delete S.ui.altOpen[t.id + "|" + r]);   // 비워 둔 부계정 칸은 닫음
         applyTiers(); save(); rosterChanged(); ROLES.forEach((r) => shareChanged(now.id, r));
         // 저장: 계정이 바뀐 라인만 Riot에서 솔랭·자랭 다시 받기
         const accSig = (x, r) => JSON.stringify([((x.players[r] || {}).riot || ""), ((x.players[r] || {}).alts || [])]);
-        if (el.dataset.act === "tsave" && before) { const ch = ROLES.filter((r) => accSig(before, r) !== accSig(now, r)); if (ch.length && SPACE && !SPACE.bad) fetchTiers(ch.map((r) => [now.id, r])); }
+        if (el.dataset.act === "tsave" && before) { const ch = ROLES.filter((r) => accSig(before, r) !== accSig(now, r) || accountsOf(now, r).some(([a]) => !(now.players[r].rk || {})[rkKey(a)])); if (ch.length && SPACE && !SPACE.bad) fetchTiers(ch.map((r) => [now.id, r])); }
         toast(el.dataset.act === "tsave" ? "저장했습니다" : "수정을 취소했습니다"); render(); break; }
       case "delteam": { const t = team(el.dataset.id); if (!t || t.solo || t.id === S.ourTeam) break;
         if (!confirm(`「${t.name}」 팀을 지울까요? 명단·챔프폭 메모가 ${SPACE && !SPACE.bad ? "팀원 모두에게서 " : ""}지워집니다.`)) break;
@@ -3661,6 +3679,10 @@
         syncQueue(true); save(); render(); break; }
       case "theme": { const t = isDark() ? "light" : "dark"; document.documentElement.dataset.theme = t; try { localStorage.setItem("lolban.theme", t); } catch (e) { /* 이번만 */ } render(); break; }
       case "tqall": { const tid = setTeamPC(); if (tid) fetchTiers(ROLES.map((r) => [tid, r])); break; }
+      case "altdel": { const tt = team(el.dataset.team), r = el.dataset.role, k = Number(el.dataset.k); if (!tt) break; const p = tt.players[r];
+        const a = (p.alts || altsOf(tt.id, r) || []).slice(); a.splice(k, 1); p.alts = a.filter(Boolean);
+        const key = tt.id + "|" + r; S.ui.altOpen = { ...(S.ui.altOpen || {}), [key]: Math.max(0, ((S.ui.altOpen || {})[key] || 0) - 1, p.alts.length) };
+        applyTiers(); save(); shareChanged(tt.id, r); renderEditor(); break; }
       case "altadd": { S.ui.altOpen = { ...(S.ui.altOpen || {}), [el.dataset.team + "|" + el.dataset.role]: Number(el.dataset.n) }; renderEditor(); const i = document.querySelector(`#setEd [data-role="${el.dataset.role}"][data-alt="${Number(el.dataset.n) - 1}"]`); if (i) i.focus(); break; }
       case "sharenow": { const tid = setTeamPC(); if (tid) { ROLES.forEach((r) => shareChanged(tid, r)); shareNoteUpdate(); toast("팀원에게 올리는 중…"); } break; }
       case "setback": S.tab = S.ui.setFrom && !["settings", "import"].includes(S.ui.setFrom) ? S.ui.setFrom : "our"; save(); render(); window.scrollTo(0, 0); break;
