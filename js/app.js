@@ -281,6 +281,7 @@
     left: "M15 18l-6-6 6-6",
     right: "M9 18l6-6-6-6",
     skip: "M5 4l10 8-10 8V4zM19 5v14",
+    play: "M8 5.5v13l10.5-6.5z",
     replay: "M3 12a9 9 0 1 0 2.64-6.36M3 3v6h6",
     note: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5",
     notePlus: "M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5M17.5 2.5a2.1 2.1 0 0 1 3 3L12 14l-4 1 1-4 8.5-8.5z",
@@ -416,7 +417,7 @@
   // ---------- 새 디자인(PC) 사이드바·머리줄 ----------
   const guest = () => !(SPACE && !SPACE.bad);
   const GUEST_TABS = ["live", "our"];   // our = 로그인·팀 만들기 화면
-  const SIDE_MENU = [["our", "home", "홈"], ["live", "draft", "실시간 밴픽"], ["vision", "vision", "시야 공부"], ["notes", "note", "피드백 노트"]];
+  const SIDE_MENU = [["our", "home", "홈"], ["live", "draft", "실시간 밴픽"], ["vision", "vision", "공부자료"], ["notes", "note", "피드백 노트"]];
   function renderSideNav() {
     const el = document.getElementById("side");
     if (!el) return;
@@ -430,7 +431,7 @@
         <div class="sd-sec">팀으로 쓰기</div>
         <button class="tab sd-tm sd-new" data-tab="our" aria-current="${S.tab === "our"}">${lbi("plus", 20)}<span class="nm">${SESS ? "팀 만들기 · 들어가기" : "로그인 · 팀 만들기"}</span></button>
         ${SESS && AUTH.user ? `<p class="help sd-guest">${esc(AUTH.user.nick || "로그인됨")}님 로그인됨</p>` : ""}
-        <p class="help sd-guest">팀을 등록하면 우리 팀 홈 · 상대 분석 · 피드백 노트 · 시야 공부를 씁니다. 지금은 솔랭·자랭 기준 밴픽만</p>
+        <p class="help sd-guest">팀을 등록하면 우리 팀 홈 · 상대 분석 · 피드백 노트 · 공부자료를 씁니다. 지금은 솔랭·자랭 기준 밴픽만</p>
         <div class="sd-foot">${meRow()}${themeBtn()}</div>`;
       return;
     }
@@ -487,7 +488,7 @@
       c = `<span class="mh-t">${crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b")}<span class="tb">${esc(ourName)}</span></span><span class="mh-s">연습 기간 ${since}~${g ? ` · 함께 한 경기 ${g.length}판 ${g.filter((x) => x.win).length}승` : ""}</span>`;
     } else {
       const VS = window.VISION, nD = typeof allDrills === "function" && VS ? allDrills().length : 0, nOk = Object.values(S.ui.dScore || {}).filter(Boolean).length;
-      const T = { team: ["우리 팀", `${esc(ourName)} · 선수·챔프폭 · 팀원 초대`], vision: ["시야 공부", VS ? `맞힘 ${nOk} / ${nD} · 출처 ${esc(VS.source.author)}` : "배우기 · 문제 · 한눈에 보기"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"] }[S.tab] || ["", ""];
+      const T = { team: ["우리 팀", `${esc(ourName)} · 선수·챔프폭 · 팀원 초대`], vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"] }[S.tab] || ["", ""];
       c = `<b class="mh-t">${T[0]}</b><span class="mh-s">${T[1]}</span>`;
     }
     el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}</div>`;
@@ -619,7 +620,7 @@
       <span class="hero">${icon(r.id, "hero").replace(/ title="[^"]*"/, "")}${rank ? `<b class="rk3" aria-label="${rank}순위">${rank}</b>` : ""}${lab ? `<span class="lab">${esc(lab)}</span>` : ""}</span>
       <span class="nm"><span class="cn">${esc(CH[r.id].ko)}</span>${r.role || r.tgt ? `<span class="pos">${ROLE_KO[r.role || r.tgt]}</span>` : ""}</span>
       <span class="why">${lines}${goods.length ? `<span class="rl gd">${esc(goods.join(" · "))}</span>` : ""}${bads.length && !neg ? `<span class="rl bd">${esc(bads[0])}</span>` : ""}</span>
-      ${r.answers && r.answers.length ? `<span class="ans">${lbi("counter", 15)}우리 대응 ${r.answers.slice(0, 2).map((id) => esc(CH[id].ko)).join("·")}</span>` : ""}</button>`;
+      ${r.answers && r.answers.length ? `<span class="ans">${lbi("counter", 15)}<span>대응: ${r.answers.slice(0, 2).map((id) => esc(CH[id].ko)).join("·")}</span></span>` : ""}</button>`;
   }
   function recCard(r, type, muted, rank, fx) {
     if (!MOB.matches) return recCardPC(r, type, muted, rank, fx);
@@ -2863,10 +2864,80 @@
     return out;
   }
   const drillById = (id) => allDrills().find((d) => d.id === id);
-  function renderVisionPC() {
+  // ---------- 공부자료(11-19 사용자 요청): 이론 학습 / 문제 풀이, 라인별·운영으로 나눔 ----------
+  // 자료: js/study.js(window.STUDY — 영상 자막을 정리한 이론·문제) + 예전 시야 공부의 장면 단원·지도 문제를 같은 분류로
+  const ST_CATS = [["T", "탑"], ["J", "정글"], ["M", "미드"], ["A", "원딜"], ["S", "서폿"], ["macro", "운영"]];
+  const ST_UNIT = { u1: ["S", "시야·와드"], u2: ["S", "시야·와드"], u3: ["J", "시야·와드"], u4: ["S", "시야·와드"], u5: ["macro", "시야·와드"], u6: ["A", "한타·포지셔닝"], u7: ["T", "사이드 운영·스플릿"], u8: ["J", "동선"], u9: ["M", "웨이브 관리"], u10: ["macro", "웨이브 관리"] };
+  const ST_DRILL = { 와드: "시야·와드", 한타: "한타·포지셔닝", 포지셔닝: "한타·포지셔닝", "운영:조합": "사이드 운영·스플릿", "운영:불리": "불리할 때", "운영:유리": "유리할 때", "운영:라인": "웨이브 관리", "운영:모름": "적 위치 모를 때" };
+  let SDATA = null;
+  function studyData() {
+    if (SDATA) return SDATA;
+    const ST = window.STUDY || { theory: [], quiz: [], videos: [] }, V = window.VISION;
+    const theory = (ST.theory || []).slice(), quiz = (ST.quiz || []).slice();
+    if (V) {
+      V.units.forEach((un) => { const [cat, topic] = ST_UNIT[un.id] || [((un.pos || [])[0]) || "macro", "시야·와드"];
+        theory.push({ id: "unit-" + un.id, cat, topic, title: un.title, summary: un.goal, unit: un.id, points: [], src: [] }); });
+      V.drills.forEach((d) => quiz.push({ id: d.id, cat: "macro", topic: ST_DRILL[dcatOf(d)] || "시야·와드", drill: true }));
+    }
+    const videos = Object.fromEntries((ST.videos || []).map((x) => [x.v, x]));
+    return (SDATA = { theory, quiz, videos });
+  }
+  const ytAt = (v, t) => `https://www.youtube.com/watch?v=${encodeURIComponent(v)}${t ? `&t=${Math.max(0, Math.floor(t))}s` : ""}`;
+  const stMmss = (t) => `${Math.floor((t || 0) / 60)}:${String(Math.floor((t || 0) % 60)).padStart(2, "0")}`;
+  function stSrc(SD, list) {
+    return (list || []).filter((x) => x && x.v).slice(0, 4).map((x) => { const m = SD.videos[x.v] || {};
+      return `<a class="st-src" href="${ytAt(x.v, x.t)}" target="_blank" rel="noopener" title="${esc(m.title || "")}">${ico("play")}<span>${esc(m.ch || "영상")}</span><small>${esc((m.title || "").slice(0, 26))}${x.t ? ` · ${stMmss(x.t)}` : ""}</small></a>`; }).join("");
+  }
+  const stOk = (it) => { const sc = S.ui.dScore || {}; return sc[it.id]; };
+  function renderStudyPC() {
+    const V = window.VISION, SD = studyData(), u = S.ui;
+    // 장면 단원(예전 배우기)을 연 상태: 그 화면 그대로, 맨 위 「← 이론 학습」
+    if (u.tut && u.tut.u && V) return renderVisionPC(true);
+    const mode = u.stMode === "quiz" ? "quiz" : "theory";
+    const items = mode === "quiz" ? SD.quiz : SD.theory;
+    const cat = ST_CATS.some(([k]) => k === u.stCat) ? u.stCat : "macro";
+    const inCat = items.filter((x) => x.cat === cat);
+    const topics = [...new Set(inCat.map((x) => x.topic))];
+    const topic = topics.includes(u.stTopic) ? u.stTopic : "";
+    const list = inCat.filter((x) => !topic || x.topic === topic);
+    const nav = `<nav class="st-nav" aria-label="분류">${ST_CATS.map(([k, n]) => { const all = items.filter((x) => x.cat === k), ok = mode === "quiz" ? all.filter(stOk).length : 0;
+      return `<button data-act="stcat" data-v="${k}" aria-pressed="${k === cat}"><span>${n}</span><small>${mode === "quiz" ? `${ok}/${all.length}` : all.length}</small></button>`; }).join("")}</nav>`;
+    const tchips = `<div class="st-topics" role="group" aria-label="주제"><button data-act="sttopic" data-v="" aria-pressed="${!topic}">전체 <small>${inCat.length}</small></button>${topics.map((t) => `<button data-act="sttopic" data-v="${esc(t)}" aria-pressed="${t === topic}">${esc(t)} <small>${inCat.filter((x) => x.topic === t).length}</small></button>`).join("")}</div>`;
+    let body = "";
+    if (mode === "theory") {
+      const qn = (it) => SD.quiz.filter((q) => q.cat === it.cat && q.topic === it.topic).length;
+      body = list.length ? `<div class="st-cards">${list.map((it) => `<article class="st-card"><span class="st-tag">${esc(it.topic)}</span><h3>${esc(it.title)}</h3>${it.summary ? `<p class="st-sum">${esc(it.summary)}</p>` : ""}
+        ${it.points && it.points.length ? `<ul class="st-pts">${it.points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+        ${it.when ? `<p class="st-when"><b>언제</b>${esc(it.when)}</p>` : ""}${it.mistakes && it.mistakes.length ? `<p class="st-mis"><b>흔한 실수</b>${it.mistakes.map(esc).join(" · ")}</p>` : ""}
+        <div class="st-foot">${stSrc(SD, it.src)}<span class="n-sp"></span>${it.unit ? `<button class="soft-b" data-act="tunit" data-v="${it.unit}">${ico("play")}장면으로 보기</button>` : ""}${qn(it) ? `<button class="soft-b" data-act="stgoq" data-cat="${it.cat}" data-topic="${esc(it.topic)}">문제 ${qn(it)}개</button>` : ""}</div></article>`).join("")}</div>`
+        : `<p class="help st-empty">이 분류의 이론이 아직 없습니다.</p>`;
+    } else {
+      const key = cat + "|" + topic, qi = (u.stQi || {})[key] || 0;
+      if (!list.length) body = `<p class="help st-empty">이 분류의 문제가 아직 없습니다.</p>`;
+      else if (qi >= list.length) {
+        const ok = list.filter(stOk).length, wrong = list.filter((x) => (u.dScore || {})[x.id] === false);
+        body = `<section class="st-q st-end"><span class="iw-ok">${lbi("check", 28)}</span><h2>${list.length}문제 중 ${ok}개 맞혔습니다</h2>
+          <div class="iw-nav"><button class="soft-b" data-act="stq" data-v="0">처음부터</button>${wrong.length ? `<button class="n-new" data-act="stwrong">틀린 ${wrong.length}문제 다시</button>` : ""}</div></section>`;
+      } else {
+        const it = list[qi], head = `<span class="st-tag">${esc(it.topic)}</span><b>${qi + 1} / ${list.length}</b>`;
+        const answered = (u.ans || {})[it.id] != null;
+        const navq = `<div class="iw-nav"><button class="soft-b" data-act="stq" data-v="${qi - 1}" ${qi ? "" : "disabled"}>이전</button>${answered ? `<button class="soft-b" data-act="dretry" data-id="${it.id}">다시 풀기</button><button class="n-new" data-act="stq" data-v="${qi + 1}">${qi < list.length - 1 ? "다음 문제" : "결과 보기"}</button>` : `<span class="dim">보기를 고르세요</span>`}</div>`;
+        if (it.drill && V) { const d = drillById(it.id); body = d ? drillPC(V, d, head, navq) : ""; }
+        else {
+          const a = (u.ans || {})[it.id];
+          body = `<section class="st-q"><div class="st-qh">${head}</div>${it.situation ? `<p class="st-sit">${esc(it.situation)}</p>` : ""}<h2 class="st-qq">${esc(it.q)}</h2>
+            <div class="st-opts">${it.opts.map((o, i) => `<button class="st-opt ${answered ? (i === it.ans ? "ok" : i === a ? "bad" : "") : ""}" data-act="sqans" data-id="${esc(it.id)}" data-i="${i}" ${answered ? "disabled" : ""}><span>${"ABCD"[i]}</span>${esc(o)}</button>`).join("")}</div>
+            ${answered ? `<div class="st-why ${a === it.ans ? "ok" : "bad"}"><b>${a === it.ans ? "정답" : `오답 — 정답은 ${"ABCD"[it.ans]}`}</b><p>${esc(it.why || "")}</p>${it.src ? `<div class="st-foot">${stSrc(SD, [it.src])}</div>` : ""}</div>` : ""}${navq}</section>`;
+        }
+      }
+    }
+    const bar = `<div class="n-bar st-bar"><div class="seg st-mode" role="group" aria-label="공부 방식"><button data-act="stmode" data-v="theory" aria-pressed="${mode === "theory"}">이론 학습</button><button data-act="stmode" data-v="quiz" aria-pressed="${mode === "quiz"}">문제 풀이</button></div></div>`;
+    return `<div class="home study-pc">${bar}<div class="st-grid">${nav}<div class="st-main">${tchips}${body}</div></div></div>`;
+  }
+  function renderVisionPC(unitOnly) {
     const V = window.VISION;
     if (!V) return `<div class="home"><p class="help">시야 자료를 불러오지 못했습니다.</p></div>`;
-    const mode = S.ui.vMode || "learn", u = S.ui;
+    const mode = unitOnly ? "learn" : S.ui.vMode || "learn", u = S.ui;
     const D = allDrills(), score = u.dScore || {};
     const pill = (act, cur, items, label) => `<div class="seg" role="group" aria-label="${label}">${items.map(([v, n]) => `<button data-act="${act}" data-v="${v}" aria-pressed="${cur === v}">${n}</button>`).join("")}</div>`;
     let sub = "", body = "";
@@ -2890,7 +2961,7 @@
         sub = pill("lpos", POS.some(([k]) => k === u.lPos) ? u.lPos : "T", POS, "포지션") + `<span class="dim">단원을 누르면 장면 → 문제 → 정리</span>`;
       } else {
         const un = V.units.find((x) => x.id === T.u);
-        sub = `<button class="ec-back" data-act="tback">${ico("left")}단원 목록</button><b class="vz-ut">${esc(un.title)}</b><span class="dim">${esc(un.goal)}</span>`;
+        sub = `<button class="ec-back" data-act="tutback">${ico("left")}${unitOnly ? "이론 학습" : "단원 목록"}</button><b class="vz-ut">${esc(un.title)}</b><span class="dim">${esc(un.goal)}</span>`;
       }
       if (T.u && T.step === "quiz") {
         const un = V.units.find((x) => x.id === T.u), q = T.queue || un.drills, k = Math.min(T.k || 0, q.length - 1), d = drillById(q[k]);
@@ -2899,7 +2970,7 @@
           `<span class="n-sp"></span>${answered ? `<button class="n-new sm" data-act="tnext">${k < q.length - 1 ? "다음 문제" : "정리 보기"} ${lbi("chev", 16)}</button>` : `<span class="dim">보기를 하나 고르세요</span>`}`);
       } else body = renderLearn(V);
     }
-    const bar = `<div class="n-bar vz-bar">${pill("vmode", mode, [["learn", "배우기"], ["drill", "문제"], ["spots", "한눈에 보기"]], "공부 보기")}<span class="vz-sep"></span>${sub}</div>`;
+    const bar = unitOnly ? `<div class="n-bar vz-bar">${sub}</div>` : `<div class="n-bar vz-bar">${pill("vmode", mode, [["learn", "배우기"], ["drill", "문제"], ["spots", "한눈에 보기"]], "공부 보기")}<span class="vz-sep"></span>${sub}</div>`;
     return `<div class="home vision-pc v-${mode}">${bar}${body}</div>`;
   }
   function renderVision() {
@@ -3149,7 +3220,7 @@
     const un = units.find((x) => x.id === T.u);
     const steps = [["learn", "① 장면 보기"], ["quiz", "② 문제"], ["review", "③ 정리"]];
     const stepBar = `<ol class="lsteps">${steps.map(([k, n]) => `<li class="${T.step === k ? "on" : ""}">${n}</li>`).join("")}</ol>`;
-    const top = `<div class="lhead"><button class="btn sm ghost" data-act="tback">← 단원 목록</button><b>${esc(un.title)}</b><span class="dim">${esc(un.goal)}</span></div>${stepBar}`;
+    const top = `<div class="lhead"><button class="btn sm ghost" data-act="tutback">← 단원 목록</button><b>${esc(un.title)}</b><span class="dim">${esc(un.goal)}</span></div>${stepBar}`;
     let body = "";
     if (T.step === "learn") {
       const n = un.scenes.length, k = Math.min(Math.max(0, T.k || 0), n - 1);
@@ -3426,7 +3497,7 @@
         <div class="mv-mb"><button class="btn primary" data-act="nextGame">세트 종료</button><button class="btn" data-act="saveSeries">밴픽 저장</button>
           <button class="btn" data-act="resetGame">이번 세트 다시</button><button class="btn ghost" data-act="resetSeries">시리즈 초기화</button></div></div>` : ""}
       <div class="mv-mg">${topCta().replace("btn sm", "btn mv-wide")}</div>
-      <div class="mv-mg mv-mb"><button class="btn" data-act="settings">${SPACE && !SPACE.bad ? `설정 · ${esc(SPACE.name || "팀 공간")}` : "설정"}</button><button class="btn ${S.tab === "vision" ? "primary" : ""}" data-act="mvision">시야 공부</button></div>
+      <div class="mv-mg mv-mb"><button class="btn" data-act="settings">${SPACE && !SPACE.bad ? `설정 · ${esc(SPACE.name || "팀 공간")}` : "설정"}</button><button class="btn ${S.tab === "vision" ? "primary" : ""}" data-act="mvision">공부자료</button></div>
       <p class="help mv-legal"><a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a> · <a href="mailto:wonseo151@naver.com">문의</a></p>
       </section>`;
   }
@@ -3580,7 +3651,7 @@
     const keepEd = !mob && S.tab === "team" ? document.getElementById("setEd") : null;
     const keepEdF = keepEd && keepEd.contains(document.activeElement) ? keepEd : null;
     const edAE = keepEdF ? document.activeElement : null;
-    v.innerHTML = mobV ? mobV() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderVisionPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : S.tab === "team" ? (mob ? renderSettings() : renderTeamPC()) : (mob ? renderEnemy() : renderEnemyPC());
+    v.innerHTML = mobV ? mobV() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderStudyPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : S.tab === "team" ? (mob ? renderSettings() : renderTeamPC()) : (mob ? renderEnemy() : renderEnemyPC());
     if (!mob && S.tab === "team") { const ph = document.getElementById("setEd"); if (ph) { if (keepEdF && keepEdF.dataset.team === setTeamPC()) { ph.replaceWith(keepEdF); if (edAE && keepEdF.contains(edAE)) { const c = edAE.selectionStart; edAE.focus(); try { edAE.setSelectionRange(c, c); } catch (e) { /* select */ } } } else renderEditor(); } }
     // 휴대폰: 챔프 고르기·「⋯」 메뉴는 화면 아래 시트로
     const ms = document.getElementById("msheet") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "msheet" }));
@@ -3740,6 +3811,17 @@
       case "vside": S.ui.vSide = el.dataset.v; S.ui.vSideBase = S.draft.ourSide; save(); render(); break;
       case "vrole": S.ui.vRole = el.dataset.v; save(); render(); break;
       case "vmode": S.ui.vMode = el.dataset.v; save(); render(); break;
+      case "stmode": S.ui.stMode = el.dataset.v; S.ui.tut = {}; save(); render(); window.scrollTo(0, 0); break;
+      case "stcat": S.ui.stCat = el.dataset.v; S.ui.stTopic = ""; save(); render(); break;
+      case "sttopic": S.ui.stTopic = el.dataset.v; save(); render(); break;
+      case "stgoq": S.ui.stMode = "quiz"; S.ui.stCat = el.dataset.cat; S.ui.stTopic = el.dataset.topic; S.ui.stQi = { ...(S.ui.stQi || {}), [el.dataset.cat + "|" + el.dataset.topic]: 0 }; save(); render(); window.scrollTo(0, 0); break;
+      case "stq": { const cat = S.ui.stCat || "macro", key = cat + "|" + (S.ui.stTopic || ""); S.ui.stQi = { ...(S.ui.stQi || {}), [key]: Math.max(0, Number(el.dataset.v)) }; save(); render(); window.scrollTo(0, 0); break; }
+      case "stwrong": { const SD = studyData(), cat = S.ui.stCat || "macro", tp = S.ui.stTopic || "", key = cat + "|" + tp;
+        const list = SD.quiz.filter((x) => x.cat === cat && (!tp || x.topic === tp)), first = list.findIndex((x) => (S.ui.dScore || {})[x.id] === false);
+        const a = { ...(S.ui.ans || {}) }; list.forEach((x) => { if ((S.ui.dScore || {})[x.id] === false) delete a[x.id]; }); S.ui.ans = a;
+        S.ui.stQi = { ...(S.ui.stQi || {}), [key]: Math.max(0, first) }; save(); render(); break; }
+      case "sqans": { const it = studyData().quiz.find((x) => x.id === el.dataset.id); if (!it) break; const i = Number(el.dataset.i);
+        S.ui.ans = { ...(S.ui.ans || {}), [it.id]: i }; S.ui.dScore = { ...(S.ui.dScore || {}), [it.id]: i === it.ans }; save(); render(); break; }
       case "vpurp": S.ui.vPurp = S.ui.vPurp === el.dataset.v ? "" : el.dataset.v; S.ui.vSpot = null; save(); render(); break;
       case "dcat": S.ui.dCat = el.dataset.v; S.ui.dIdx = 0; S.ui.dAns = null; save(); render(); window.scrollTo(0, 0); break;
       case "lpos": S.ui.lPos = el.dataset.v; save(); render(); break;
@@ -3757,7 +3839,7 @@
       case "tscene": { const T = S.ui.tut || {}; const un = window.VISION.units.find((x) => x.id === T.u); if (!un) break;
         const k = Math.max(0, Math.min(un.scenes.length - 1, Number(el.dataset.k))); S.ui.tut = { ...T, step: "learn", pk: T.k || 0, k }; save(); render(); break; }
       case "treplay": { const T = S.ui.tut || {}; S.ui.tut = { ...T, pk: (T.k || 0) - 1 }; render(); break; }
-      case "tback": S.ui.tut = {}; save(); render(); window.scrollTo(0, 0); break;
+      case "tutback": S.ui.tut = {}; save(); render(); window.scrollTo(0, 0); break;
       case "tlearn": S.ui.tut = { ...S.ui.tut, step: "learn", k: 0, pk: -1 }; save(); render(); break;
       case "tstart": { const un = window.VISION.units.find((x) => x.id === S.ui.tut.u); const a = { ...(S.ui.ans || {}) }; un.drills.forEach((id) => delete a[id]); S.ui.ans = a;
         S.ui.tut = { ...S.ui.tut, step: "quiz", queue: un.drills.slice(), k: 0, retry: false }; save(); render(); window.scrollTo(0, 0); break; }

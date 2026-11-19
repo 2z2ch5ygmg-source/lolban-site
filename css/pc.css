@@ -913,3 +913,52 @@ html.pc .live-pc .dstat-act.pc-act .lc-b { background: var(--bg2); color: var(--
 .hovercard.hc-wide { width: 600px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 18px; overflow: hidden; }
 .hovercard.hc-wide .hc-h { grid-column: 1 / -1; }
 .hovercard.hc-wide li:nth-child(n+3) { display: none; }
+/* ---------- 공부자료(11-19): 이론 학습 / 문제 풀이 · 라인별·운영 ---------- */
+.study-pc { display: grid; gap: 18px; }
+.st-bar .st-mode button { min-width: 110px; font-size: 15px; }
+.st-grid { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 24px; align-items: start; }
+.st-nav { display: grid; gap: 4px; position: sticky; top: 16px; }
+.st-nav button { display: flex; justify-content: space-between; align-items: center; border: 0; background: none; padding: 12px 14px; border-radius: 12px; font: inherit; font-size: 16px; font-weight: 700; color: var(--muted); cursor: pointer; text-align: left; }
+.st-nav button small { font-size: 12px; font-weight: 600; color: var(--dim); }
+.st-nav button:hover { background: var(--bg2); color: var(--text); }
+.st-nav button[aria-pressed="true"] { background: var(--panel); color: var(--text); box-shadow: 0 0 0 1px var(--line); } .st-nav button[aria-pressed="true"] small { color: var(--hi); }
+.st-main { display: grid; gap: 18px; min-width: 0; }
+.st-topics { display: flex; gap: 6px 18px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.st-topics button { border: 0; background: none; padding: 8px 2px 10px; font: inherit; font-size: 14px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+.st-topics button small { font-size: 11px; color: var(--dim); }
+.st-topics button[aria-pressed="true"] { color: var(--text); font-weight: 800; border-bottom-color: var(--hi); }
+.st-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; }
+.st-card { background: var(--panel); border-radius: 16px; padding: 20px 22px; display: grid; gap: 10px; align-content: start; }
+.st-card h3 { margin: 0; font-size: 18px; line-height: 1.35; }
+.st-tag { justify-self: start; font-size: 12px; font-weight: 700; color: var(--hi); background: var(--hi-bg); padding: 3px 10px; border-radius: 999px; }
+.st-sum { margin: 0; font-size: 15px; line-height: 1.6; }
+.st-pts { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; line-height: 1.55; color: var(--text); }
+.st-when, .st-mis { margin: 0; font-size: 13px; line-height: 1.55; color: var(--muted); } .st-when b, .st-mis b { margin-right: 8px; color: var(--text); } .st-mis b { color: var(--red); }
+.st-foot { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+.st-src { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); text-decoration: none; background: var(--bg2); padding: 5px 10px; border-radius: 999px; max-width: 100%; }
+.st-src span { font-weight: 700; color: var(--text); white-space: nowrap; } .st-src small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-src:hover { box-shadow: 0 0 0 1px var(--hi); } .st-src svg { width: 14px; height: 14px; flex: none; }
+.st-empty { padding: 30px 0; }
+.st-q { background: var(--panel); border-radius: 18px; padding: 28px; display: grid; gap: 16px; max-width: 920px; }
+.st-qh { display: flex; gap: 12px; align-items: center; } .st-qh b { font-size: 14px; color: var(--muted); }
+.st-sit { margin: 0; font-size: 15px; line-height: 1.7; background: var(--bg2); border-radius: 12px; padding: 14px 16px; }
+.st-qq { margin: 0; font-size: 20px; line-height: 1.45; }
+.st-opts { display: grid; gap: 10px; }
+.st-opt { display: flex; gap: 12px; align-items: center; text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 13px 16px; font: inherit; font-size: 15px; color: var(--text); cursor: pointer; line-height: 1.5; }
+.st-opt span { width: 26px; height: 26px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--bg2); font-size: 13px; font-weight: 800; }
+.st-opt:hover:not(:disabled) { border-color: var(--hi); } .st-opt:disabled { cursor: default; }
+.st-opt.ok { border-color: var(--good); background: var(--good-bg); } .st-opt.ok span { background: var(--good); color: #fff; }
+.st-opt.bad { border-color: var(--red); background: var(--red-bg); } .st-opt.bad span { background: var(--red); color: #fff; }
+.st-why { border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; font-size: 14px; line-height: 1.6; } .st-why p { margin: 0; }
+.st-why.ok { background: var(--good-bg); } .st-why.ok b { color: var(--good); } .st-why.bad { background: var(--red-bg); } .st-why.bad b { color: var(--red); }
+.st-end { justify-items: start; } .st-end h2 { margin: 0; }
+@media (max-width: 1599px) { .st-grid { grid-template-columns: 150px minmax(0, 1fr); gap: 18px; } .st-cards { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); } }
+
+/* 추천 카드: 글씨가 카드 밖으로 안 나가게(11-19) — 줄마다 카드 폭 안에서 말줄임 */
+html.pc :is(.live-pc, .enemy-pc) .rec { min-width: 0; overflow: hidden; }
+html.pc :is(.live-pc, .enemy-pc) .rec :is(.why, .nm) { max-width: 100%; min-width: 0; }
+html.pc :is(.live-pc, .enemy-pc) .rec :is(.rl, .ans) { max-width: 100%; min-width: 0; overflow: hidden; }
+html.pc :is(.live-pc, .enemy-pc) .rec .rl > span:last-child, html.pc :is(.live-pc, .enemy-pc) .rec .ans > span, html.pc :is(.live-pc, .enemy-pc) .rec .rec-who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+html.pc :is(.live-pc, .enemy-pc) .rec .rec-who { display: block; }
+html.pc :is(.live-pc, .enemy-pc) .rec .rl > span:last-child, html.pc :is(.live-pc, .enemy-pc) .rec .ans > span, html.pc :is(.live-pc, .enemy-pc) .rec .rec-who { white-space: normal; text-overflow: clip; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; word-break: keep-all; }
+html.pc :is(.live-pc, .enemy-pc) .rec :is(.rl, .ans) { align-items: flex-start; }

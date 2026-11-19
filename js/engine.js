@@ -295,11 +295,14 @@ window.Engine = (function () {
     const M = window.META;
     if (!M) return null;
     const pro = M.pro && M.pro[id];
-    const sq = M.soloq && M.soloq[id] && (M.soloq[id][role] || Object.values(M.soloq[id])[0]);
+    // 티어 기준이 자랭이면 op.gg 자유랭크 통계(표본 부족으로 없으면 솔랭으로), 아니면 솔랭(11-19)
+    const pickQ = (Q) => Q && Q[id] && (Q[id][role] || Object.values(Q[id])[0]);
+    const fq = queueMode() === "flex" ? pickQ(M.flex) : null;
+    const sq = fq || pickQ(M.soloq), q = fq ? "flex" : "solo";
     if (!pro && !sq) return null;
     const prio = pro ? pro.prio : 0;
     const score = Math.min(1, prio / 60) * 0.6 + (sq ? TIER_SCORE[sq.tier] || 0.1 : 0.1) * 0.4;
-    return { prio, rp: pro ? pro.rp : 0, games: pro ? pro.p + pro.b : 0, tier: sq ? sq.tier : null, br: sq ? sq.br : 0, wr: sq ? sq.wr : null, score };
+    return { prio, rp: pro ? pro.rp : 0, games: pro ? pro.p + pro.b : 0, tier: sq ? sq.tier : null, br: sq ? sq.br : 0, wr: sq ? sq.wr : null, score, q };
   }
   // 카드 근거 한 줄씩(분류 + 한 문장): 그 라인 선수의 이 챔프 기록. 라인·선수 이름은 카드 밖에서 보이므로 뺀다
   //  k: self(자기평가) · season(시즌 전체) · recent(11/10 이후) · team(팀 경기) · pro(대회) · solo(솔랭)
@@ -316,7 +319,7 @@ window.Engine = (function () {
     if (tr) out.push({ k: "team", l: "팀 경기", t: `함께 한 ${tr.of}판 중 ${tr.g}판 (${tr.w}승)` });
     const mi = metaInfo(id, role);
     if (mi && mi.prio) out.push({ k: "pro", l: "대회", t: `밴픽 우선도 ${Math.round(mi.prio)}%` });
-    if (mi && mi.tier) out.push({ k: "solo", l: "솔랭", t: `${mi.tier}티어` });
+    if (mi && mi.tier) out.push({ k: "solo", l: mi.q === "flex" ? "자랭" : "솔랭", t: `${mi.tier}티어` });
     if (!out.length && e) out.push({ k: "self", l: "챔프폭", t: LEVEL_KO[e.lv] || "기록 적음" });
     return out;
   }
@@ -388,7 +391,7 @@ window.Engine = (function () {
     if (!m) return "";
     const a = [];
     if (m.prio) a.push(`대회 밴픽 우선도 ${Math.round(m.prio)}%`);
-    if (m.tier) a.push(`솔랭 ${m.tier}티어`);
+    if (m.tier) a.push(`${m.q === "flex" ? "자랭" : "솔랭"} ${m.tier}티어`);
     return a.join(" · ");
   }
 
