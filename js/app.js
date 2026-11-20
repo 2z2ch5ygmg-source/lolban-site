@@ -593,11 +593,11 @@
   function reasonShort(x) {
     const vs = x.d && x.d.match(/^vs (\S+)/);
     if (/카운터 픽/.test(x.t) && vs) return `${vs[1]} 카운터`;
+    const cb = x.t === "카운터 차단" && x.d && x.d.match(/^우리 (.+?) 상대로 강함/);
+    if (cb) return `${cb[1]} 카운터`;   // 우리 챔프를 카운터하는 챔프 = 밴 이유(칩에 누구 카운터인지까지)
     if (x.t === "주의") return x.d.replace(/\(.*\)$/, "").replace(/ 상대로 /, " 상대 ").trim();
     return x.t.replace(/\(\d+판\)$/, "");
   }
-  // 카드 아래 상세 줄(사용자 결정 11-19): 카드에 줄인 근거 전체를 마우스·키보드 초점이 간 카드 기준으로 한 줄에. 카운터·시너지는 기존 떠 있는 창 그대로
-  const REC_DET = {};
   // 기록 숫자 강조 기준(사용자 요청 11-19): 기준 이상이면 강조(우리 = 보라 굵게, 상대 = 빨강 굵게 = 위협), 우리 쪽이 기준 아래면 옅은 빨강
   //   시즌 20판 이상·승률 55% 이상 / 연습 3판 이상·승률 60% 이상 / 팀원과 함께 2판 이상·승률 60% 이상 / 대회 밴픽 우선도 30% 이상
   //   약함(우리만): 시즌 10판 이상·승률 45% 이하, 연습 3판 이상·승률 35% 이하
@@ -613,42 +613,40 @@
     if (g >= R[2] && wr <= R[3]) return ["weak", `${R[2]}판 이상·승률 ${R[3]}% 이하`];
     return ["", ""];
   }
-  // 상세 줄은 카드에 없는 것만, 한 줄로(사용자 지적 11-19 「잡다하고 많음」): 기록 숫자 · 카드에 안 나온 이유 이름 · 카드에 안 나온 장단점
-  function recDetailHtml(r, type, muted, fx) {
+  // 카드 강조 칩(11-20 사용자 요청: 카드 아래 흰색 상세 줄은 눈에 안 감 → 추천 사유 3~4개를 카드 안에 색 칩으로)
+  //   순서: 지금 판 이유(강한 순) → 기준 넘는 기록(강조) → 장점 → 기록(3개까지 채움) → 경고(빨강) 하나
+  function recChips(r, muted, fx, lab) {
     let pills = fx;
     if (!pills && r.role) { try { pills = E.cardPills(E.teamOf(S, muted ? "enemy" : "our"), r.role, r.id, r.reasons, !!muted); } catch (e) { pills = null; } }
-    const kv = (pills || []).map((x) => String(x.t).match(PILL_K)).filter((m) => m && m[1] !== "자기평가");
+    const kv = (pills || []).map((x) => String(x.t).match(PILL_K)).filter((m) => m && m[1] !== "자기평가").map((m) => {
+      const [lv, why] = kvLevel(m[1], m[2]);
+      return { ic: "mastery", t: `${m[1] === "팀원과" ? "팀원과" : m[1]} ${m[2]}`, c: lv === "hot" ? (muted ? "threat" : "hot") : lv === "weak" && !muted ? "bad" : "", why: why ? `기준: ${why}` : "" };
+    });
     const rs = (r.reasons || []).filter((x) => !REASON_SKIP.test(x.t));
-    const shown = new Set([...rs.filter((x) => x.v > 0).slice(0, 2), rs.filter((x) => x.v < 0).sort((a, b) => a.v - b.v)[0]].filter(Boolean).map((x) => x.t));
-    const more = rs.filter((x) => !shown.has(x.t)).sort((a, b) => Math.abs(b.v) - Math.abs(a.v)).slice(0, 3);
-    const goodShown = muted ? [] : (r.good || []).filter((g) => !/조합에 맞음$/.test(g)).slice(0, 2);
-    const extraBad = (r.bad || []).slice(muted ? 0 : 1, 3);
-    const parts = [];
-    if (kv.length) parts.push(`<span class="rd-p">${kv.map((m) => { const [lv, why] = kvLevel(m[1], m[2]); const cls = lv === "hot" ? (muted ? "kv-threat" : "kv-hot") : lv === "weak" && !muted ? "kv-weak" : "";
-      return `<span class="${cls}" ${why ? `title="기준: ${esc(why)}"` : ""}><i>${esc(m[1] === "팀원과" ? "팀원" : m[1])}</i><em>${esc(m[2])}</em></span>`; }).join("")}</span>`);
-    if (more.length) parts.push(`<span class="rd-p">${more.map((x) => `<span class="${x.v < 0 ? "bad" : ""}">${lbi(x.v < 0 ? "warn" : reasonIcon(x.t), 14)}${esc(reasonShort(x))}</span>`).join("")}</span>`);
-    if (extraBad.length) parts.push(`<span class="rd-p">${extraBad.map((b) => `<span class="bad">${esc(b)}</span>`).join("")}</span>`);
-    return parts.length ? `<b class="rd-n">${esc(CH[r.id].ko)}</b>${parts.join(`<span class="rd-sep"></span>`)}` : "";
+    const pos = rs.filter((x) => x.v > 0).sort((a, b) => b.v - a.v).map((x) => ({ ic: reasonIcon(x.t), t: reasonShort(x), c: muted ? "info" : "good", why: x.d }));
+    const negR = rs.filter((x) => x.v < 0).sort((a, b) => a.v - b.v)[0];
+    const neg = negR ? { ic: "warn", t: reasonShort(negR), c: "bad", why: negR.d } : !muted && r.bad && r.bad[0] ? { ic: "warn", t: r.bad[0], c: "bad", why: r.bad[0] } : null;
+    const goods = muted ? [] : (r.good || []).filter((g) => !/조합에 맞음$/.test(g)).map((g) => ({ ic: reasonIcon(g), t: g, c: "good", why: g }));
+    const hot = kv.filter((k) => k.c === "hot" || k.c === "threat");
+    const cap = neg ? 3 : 4, out = [];
+    const add = (x) => { if (x && x.t && out.length < cap && x.t !== lab && !out.some((o) => o.t === x.t)) out.push(x); };
+    pos.slice(0, hot.length ? cap - 1 : cap).forEach(add);
+    hot.forEach(add); pos.forEach(add); goods.forEach(add);
+    kv.filter((k) => !k.c).forEach((x) => out.length < 3 && add(x));
+    if (neg) out.push(neg);
+    return out;
   }
-  function recCardPC(r, type, muted, rank, fx) {
-    REC_DET[r.id] = recDetailHtml(r, type, muted, fx);
+  const chipHtml = (x) => `<span class="rc rc-${x.c || "plain"}" ${x.why ? `title="${esc(x.why)}"` : ""}>${x.c === "bad" ? lbi("warn", 14) : lbi(x.ic, 14)}<span>${esc(x.t)}</span></span>`;
+  // act: 카드를 누르면 할 일(실시간 밴픽 = 기록, 상대 팀 = 자세히 보기 모달)
+  function recCardPC(r, type, muted, rank, fx, act) {
     const rs = (r.reasons || []).filter((x) => !REASON_SKIP.test(x.t));
-    const pos = rs.filter((x) => x.v > 0).slice(0, 2), neg = rs.filter((x) => x.v < 0).sort((a, b) => a.v - b.v)[0];
     const full = rs.map((x) => `${x.t}: ${x.d}`).join("\n");
-    const line = (ic, txt, cls) => `<span class="rl ${cls || ""}">${lbi(ic, 15)}<span>${esc(txt)}</span></span>`;
-    let lines = "";
-    if (muted) {   // 상대 예상: 그 선수 기록 한 줄 + 이유 한 줄
-      const top = pos[0];
-      const rec = top && top.d ? top.d.replace(/^(탑|정글|미드|원딜|서폿)\s+/, "").split(" · ").slice(1, 3).join(" · ") : "";   // 선수 이름은 빼고 기록만(사용자 지시 11-19)
-      lines = (rec ? `<span class="rl rec-who">${esc(rec)}</span>` : "") + (pos[1] ? line(reasonIcon(pos[1].t), reasonShort(pos[1])) : "");
-    } else lines = pos.map((x) => line(reasonIcon(x.t), reasonShort(x))).join("");
-    if (neg) lines += line("warn", reasonShort(neg), "bad");
     const lab = r.comp || r.label;
-    const goods = muted ? [] : (r.good || []).filter((g) => !/조합에 맞음$/.test(g) && !pos.some((x) => x.t === g)).slice(0, 2), bads = muted ? [] : (r.bad || []).slice(0, 1);
-    return `<button class="rec ${type} ${muted ? "muted" : ""} ${rank === 1 || r.comp ? "first" : ""} ${r.comp ? "comp" : ""}" data-act="pick" data-id="${r.id}" ${r.role ? `data-role="${r.role}"` : ""} aria-label="${esc(CH[r.id].ko + (full ? " · " + full.replace(/\n/g, " · ") : ""))}">
+    const chips = recChips(r, muted, fx, lab);
+    return `<button class="rec ${type} ${muted ? "muted" : ""} ${rank === 1 || r.comp ? "first" : ""} ${r.comp ? "comp" : ""}" data-act="${act || "pick"}" data-id="${r.id}" ${(act === "chdet" ? r.role || r.tgt : r.role) ? `data-role="${act === "chdet" ? r.role || r.tgt : r.role}"` : ""} aria-label="${esc(CH[r.id].ko + (act === "chdet" ? " 자세히 보기" : "") + (full ? " · " + full.replace(/\n/g, " · ") : ""))}">
       <span class="hero">${icon(r.id, "hero").replace(/ title="[^"]*"/, "")}${rank ? `<b class="rk3" aria-label="${rank}순위">${rank}</b>` : ""}${lab ? `<span class="lab">${esc(lab)}</span>` : ""}</span>
       <span class="nm"><span class="cn">${esc(CH[r.id].ko)}</span>${r.role || r.tgt ? `<span class="pos">${ROLE_KO[r.role || r.tgt]}</span>` : ""}</span>
-      <span class="why">${lines}${goods.length ? `<span class="rl gd">${esc(goods.join(" · "))}</span>` : ""}${bads.length && !neg ? `<span class="rl bd">${esc(bads[0])}</span>` : ""}</span>
+      ${chips.length ? `<span class="why rchips">${chips.map(chipHtml).join("")}</span>` : ""}
       ${r.answers && r.answers.length ? `<span class="ans">${lbi("counter", 15)}<span>대응: ${r.answers.slice(0, 2).map((id) => esc(CH[id].ko)).join("·")}</span></span>` : ""}</button>`;
   }
   function recCard(r, type, muted, rank, fx) {
@@ -1202,18 +1200,7 @@
       <div class="st-3">${[["초반", C.early, "~14분"], ["중반", C.mid, "14~25분"], ["후반", C.late, "25분~"]].map(([t, d, m]) => `<div><span><b>${t}</b><small>${m}</small></span><p>${esc(d)}</p></div>`).join("")}</div>
       <p class="st-w bad"><b>${lbi("warn", 16)}주의</b>${esc(C.risk)}</p></div>`;
   }
-  function showRecDetail(id) {
-    const box = document.getElementById("recDetail");
-    if (!box) return;
-    const first = document.querySelector(":is(.live-pc, .enemy-pc) .recs .rec");
-    const k = id && REC_DET[id] ? id : first && first.dataset.id;
-    box.innerHTML = k && REC_DET[k] ? REC_DET[k] : "";
-    document.querySelectorAll(":is(.live-pc, .enemy-pc) .recs .rec").forEach((el) => el.classList.toggle("det", el.dataset.id === k));
-  }
-  document.addEventListener("mouseover", (ev) => { const el = ev.target.closest && ev.target.closest(":is(.live-pc, .enemy-pc) .recs .rec"); if (el) showRecDetail(el.dataset.id); });
-  document.addEventListener("focusin", (ev) => { const el = ev.target.closest && ev.target.closest(":is(.live-pc, .enemy-pc) .recs .rec"); if (el) showRecDetail(el.dataset.id); });
   function renderLivePC() {
-    for (const k in REC_DET) delete REC_DET[k];
     const plan = E.pickPlan(S, "our");
     const planned = {};
     plan.plan.forEach((p) => p.items.forEach((x) => !x.done && x.role && (planned[x.i] = x.role)));
@@ -1222,7 +1209,7 @@
     const lock = L.length ? `<div class="lock-pc">${lbi("lock", 16)}<span>앞 세트 사용</span>${L.map((x) => `<span title="${esc(CH[x.id] ? CH[x.id].ko : x.id)} · ${x.game}세트">${icon(x.id, "xs")}</span>`).join("")}</div>` : "";
     const tk = st ? `${S.draft.idx}:${who}` : "done", go = tk !== lastTurnKey; lastTurnKey = tk;
     return `<div class="live-pc ${who ? "turn-" + who : ""} ${go ? "go" : ""}">${renderSide("B", planned)}
-      <div class="lv-c">${renderStatus()}${liveCtrlPC()}<div class="rdet" id="recDetail" aria-live="polite"></div>${renderDockPC()}${lock}</div>
+      <div class="lv-c">${renderStatus()}${liveCtrlPC()}${renderDockPC()}${lock}</div>
       ${renderSide("R", planned)}</div>`;
   }
 
@@ -1802,9 +1789,62 @@
       ${ifs.length ? `<section class="h-sec"><h3 class="h-h">상황이 바뀌면<small>밴 싸움에서 핵심이 막히거나, 피어리스로 다음 세트에 갈 때</small></h3><div class="ecl">${ifs.map(row).join("")}</div></section>` : ""}</div>`;
   }
 
+  // ---------- 상대 챔프 자세히 보기 모달(11-20 사용자 요청: 상대 팀 화면의 사전 밴 후보·라인별 상대 챔프를 누르면) ----------
+  //   기록(강조 기준은 카드와 같음) · 밴 이유 전부 · 우리 대응(라인 연습 포인트와 같은 계산 laneStudy)
+  const CHD = { bans: {}, from: null };
+  function champDetailHtml(id, role) {
+    const ours = team(S.ourTeam), en = team(S.enemyTeam);
+    const p = en.players[role] || {}, o = ours.players[role] || {};
+    const e = E.poolMap(en, role)[id];
+    const b = CHD.bans[id] && (!CHD.bans[id].r.tgt || CHD.bans[id].r.tgt === role) ? CHD.bans[id] : null;
+    const reasons = b ? (b.r.reasons || []).filter((x) => !REASON_SKIP.test(x.t)).sort((x, y) => Math.abs(y.v) - Math.abs(x.v)) : [];
+    let pills = []; try { pills = E.cardPills(en, role, id, reasons, true); } catch (er) { pills = []; }
+    const kv = pills.map((x) => String(x.t).match(PILL_K)).filter(Boolean);
+    const mi = E.metaInfo(id, role), meta = mi ? E.metaText(mi) : "";
+    const st = E.laneStudy(ours, en, role).find((x) => x.id === id);
+    const op = E.poolMap(ours, role);
+    const tile = (k, v, cls, why) => `<span class="cd-kv ${cls || ""}" ${why ? `title="기준: ${esc(why)}"` : ""}><small>${esc(k)}</small><b>${esc(v)}</b></span>`;
+    const tiles = kv.map((m) => { const [lv, why] = kvLevel(m[1], m[2]); return tile(m[1] === "팀원과" ? "팀원과 함께" : m[1], m[2], lv === "hot" ? "threat" : "", why); });
+    if (e) tiles.unshift(tile("숙련도", e.one ? "원챔" : LEVEL_KO[e.lv] || "기록 적음", e.one || e.lv >= 3 ? "threat" : ""));
+    if (meta && !kv.some((m) => m[1] === "대회")) tiles.push(tile("메타", meta, ""));
+    const champ = (x, sub, cls) => `<span class="cd-ch ${cls || ""}">${icon(x, "sm")}<span><b>${esc(CH[x].ko)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</span></span>`;
+    const ourLv = (x) => (op[x] ? (op[x].one ? "원챔" : `숙련도 ${LEVEL_KO[op[x].lv] || ""}`) : "");
+    const grp = (t, cls, items, empty) => `<div class="cd-g"><h4 class="${cls}">${t}</h4>${items.length ? `<div class="cd-chs">${items.join("")}</div>` : `<p class="help">${empty}</p>`}</div>`;
+    const ans = st ? [
+      grp("우리 대응 가능", "good", st.have.map((x) => champ(x, ourLv(x), "good")), "우리 챔프폭에 이 챔프 카운터 없음"),
+      st.edge.length ? grp("승률 우위", "good", st.edge.slice(0, 4).map((x) => champ(x.id, `솔랭 맞대결 ${x.wr.toFixed(1)}% · ${x.g.toLocaleString()}판`, "good")), "") : "",
+      grp("새로 연습 추천", "hi", st.learn.map((x) => champ(x, "이 챔프 카운터")), "추천할 카운터 없음"),
+      grp("우리 챔프 중 주의", "bad", st.risky.map((x) => champ(x, `${ourLv(x)} · 이 챔프에 약함`, "bad")), "이 챔프에 약한 우리 챔프 없음"),
+    ].join("") : `<p class="help">이 라인 챔프폭 밖의 챔프입니다.</p>`;
+    const why = reasons.length ? `<ul class="cd-rs">${reasons.map((x) => `<li class="${x.v < 0 ? "bad" : ""}">${lbi(x.v < 0 ? "warn" : reasonIcon(x.t), 16)}<b>${esc(reasonShort(x))}</b><span>${esc(x.d || "")}</span></li>`).join("")}</ul>`
+      : `<p class="help">첫 밴 페이즈 밴 후보 순위 밖입니다.</p>`;
+    return `<div class="modal-bg" data-act="chdclose"><div class="modal chd" role="dialog" aria-modal="true" aria-labelledby="chdT">
+      <div class="cd-h">${icon(id, "xl")}<div class="cd-hm"><h2 id="chdT">${esc(CH[id].ko)}<span class="pos">${ROLE_KO[role]}</span>${b ? `<span class="cd-rk">밴 후보 ${b.rank}위</span>` : ""}</h2>
+        <p>상대 ${ROLE_KO[role]} <a href="${opgg(p.riot)}" target="_blank" rel="noopener">${esc(nick(p.riot) || "—")}</a>${o.riot ? ` · vs 우리 ${esc(nick(o.riot))}` : ""}</p></div>
+        <button class="ib btn sm" data-act="chdclose" aria-label="닫기" title="닫기">${ico("x")}</button></div>
+      ${tiles.length ? `<div class="cd-kvs">${tiles.join("")}</div>` : ""}
+      <section class="cd-sec"><h3>${b ? "밴 이유" : "밴 후보 아님"}</h3>${why}</section>
+      <section class="cd-sec"><h3>우리 대응</h3><div class="cd-ans">${ans}</div></section></div></div>`;
+  }
+  function openChampDetail(id, role, from) {
+    if (!CH[id] || !role || !team(S.enemyTeam)) return;
+    hideHover();
+    CHD.from = from || null;
+    const root = document.getElementById("chdmodal") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "chdmodal" }));
+    root.innerHTML = champDetailHtml(id, role);
+    const x = root.querySelector(".cd-h [data-act='chdclose']"); if (x) x.focus();
+  }
+  function closeChampDetail() {
+    const root = document.getElementById("chdmodal");
+    if (!root || !root.innerHTML) return false;
+    root.innerHTML = "";
+    if (CHD.from && document.body.contains(CHD.from)) CHD.from.focus();
+    CHD.from = null;
+    return true;
+  }
+
   // ---------- 상대 팀 분석(PC 새 디자인 A) ----------
   function renderEnemyPC() {
-    for (const k in REC_DET) delete REC_DET[k];
     const ours = team(S.ourTeam), en = team(S.enemyTeam);
     if (!en || en.solo) return `<p class="help">사이드바에서 상대 팀을 고르세요. 상대 팀이 없으면 + 로 엑셀 등록.</p>`;
     const has = E.teamHasPools(en);
@@ -1825,8 +1865,10 @@
     </section>`;
     // 사전 밴 후보(운영과 같은 virtual 밴픽)
     const virtual = Object.assign({}, S, { enemyTeam: en.id, draft: { ourSide: "B", steps: emptySteps(), idx: 0 }, series: { game: 1, mode: "off", locked: [] } });
-    const preBans = has ? E.recommendBan(virtual, "our", 8) : [];
-    const bans = `<section class="h-sec"><h3 class="h-h">사전 밴 후보<small>첫 밴 페이즈 기준 · 우선순위 순</small></h3>${preBans.length ? `<div class="recs e-bans">${preBans.map((r, i) => recCardPC(r, "ban", true, i + 1, E.cardPills(en, r.tgt, r.id, r.reasons, true))).join("")}</div><div class="rdet" id="recDetail"></div>` : `<p class="help">상대 챔프폭을 넣으면 나옵니다.</p>`}</section>`;
+    const allBans = has ? E.recommendBan(virtual, "our", 60) : [];
+    const preBans = allBans.slice(0, 8);
+    CHD.bans = {}; allBans.forEach((r, i) => { CHD.bans[r.id] = { r, rank: i + 1 }; });
+    const bans = `<section class="h-sec"><h3 class="h-h">사전 밴 후보<small>첫 밴 페이즈 기준 · 우선순위 순</small></h3>${preBans.length ? `<div class="recs e-bans">${preBans.map((r, i) => recCardPC(r, "ban", true, i + 1, E.cardPills(en, r.tgt, r.id, r.reasons, true), "chdet")).join("")}</div>` : `<p class="help">상대 챔프폭을 넣으면 나옵니다.</p>`}</section>`;
     // 라인 다섯 칸
     const lanes = `<section class="h-sec"><h3 class="h-h">라인별 상대와 연습 포인트<small>점수 차 = 우리 − 상대</small>${teamSetMenu("enemy")}</h3><div class="lane5">${ROLES.map((r) => {
       const p = en.players[r] || {}, o = ours.players[r] || {}, x = E.recentOf(en, r);
@@ -1841,7 +1883,7 @@
       return `<div class="l5"><span class="l5-r">${ROLE_KO[r]}</span><b class="l5-n tr"><a href="${opgg(p.riot)}" target="_blank" rel="noopener" title="${esc(p.riot)}">${esc(nick(p.riot) || "—")}</a></b>
         <span class="l5-s">${esc([p.tier, x && x.n ? `${x.n}판 ${Math.round((x.w / x.n) * 100)}%` : ""].filter(Boolean).join(" · ")) || "&nbsp;"}</span>
         <span class="l5-s">vs ${esc(nick(o.riot) || "—")} <b class="${gap >= 15 ? "pos" : gap <= -15 ? "neg" : ""}">${gap > 0 ? "+" : ""}${gap}</b></span>
-        ${list.map(([id, e], j) => `<span class="l5-c ${j ? "" : "first"}">${icon(id, j ? "md" : "lg")}<b>${esc(CH[id].ko)}</b>${lvTag({ lv: e.lv, one: e.one })}</span>`).join("") || `<span class="help">챔프폭 없음</span>`}
+        ${list.map(([id, e], j) => `<button type="button" class="l5-c ${j ? "" : "first"}" data-act="chdet" data-id="${id}" data-role="${r}" aria-label="${esc(CH[id].ko)} 자세히 보기">${icon(id, j ? "md" : "lg")}<b>${esc(CH[id].ko)}</b>${lvTag({ lv: e.lv, one: e.one })}</button>`).join("") || `<span class="help">챔프폭 없음</span>`}
         ${row("우리 대응 가능", have, "good")}${edge.length ? `<span class="e-mini e-edge"><small>승률 우위</small><span>${edge.map((x) => `<span class="e-mi edge" title="${esc(`${CH[x.id].ko} vs ${CH[x.vs].ko} · 솔랭 맞대결 ${x.wr.toFixed(1)}% (${x.g.toLocaleString()}판)`)}">${icon(x.id, "xs")}<small>vs ${esc(CH[x.vs].ko)} ${Math.round(x.wr)}%</small></span>`).join("")}</span></span>` : ""}${row("새로 연습 추천", learn, "hi")}${row("우리 챔프 중 주의", risky, "bad")}</div>`;
     }).join("")}</div></section>`;
     // 예상 조합: 지금 시리즈 설정(피어리스·세트) 기준, 우리 밴은 반영 안 함
@@ -3869,7 +3911,6 @@
     keepX.forEach(([id, x]) => { const el = document.getElementById(id); if (el) el.scrollLeft = x; });
     if (lastIdx !== S.draft.idx) { const sp = document.getElementById("gpStrip"), nw = sp && sp.querySelector(".now"); if (sp && nw) sp.scrollLeft = Math.max(0, nw.offsetLeft - 8); lastIdx = S.draft.idx; }
     if (S.tab === "vision") { drawVision(v); runAnims(v); addZoomHint(v); }
-    if ((S.tab === "live" || S.tab === "enemy") && !mob) showRecDetail(null);
     if (S.tab === "notes") v.querySelectorAll(".nbody").forEach((p) => { if (p.scrollHeight > p.clientHeight + 2) p.classList.add("clamped"); });
     if (keepFocus) { const q = document.getElementById("q"); if (q) { q.focus(); q.setSelectionRange(pos, pos); } }
   }
@@ -3880,9 +3921,11 @@
     if (!el) return;
     if (el.classList.contains("tab")) { if (el.tagName === "A") ev.preventDefault(); S.tab = el.dataset.tab; MV.more = false; save(); render(); window.scrollTo(0, 0); if (S.tab === "notes") loadNotes(); return; }
     const a = el.dataset.act;
-    if ((a === "close" || a === "nclose") && ev.target !== el && el.classList.contains("modal-bg")) return; // 모달 안쪽 클릭
+    if ((a === "close" || a === "nclose" || a === "chdclose") && ev.target !== el && el.classList.contains("modal-bg")) return; // 모달 안쪽 클릭
     switch (a) {
       case "pick": choose(el.dataset.id, el.dataset.role); break;
+      case "chdet": openChampDetail(el.dataset.id, el.dataset.role, el); break;
+      case "chdclose": closeChampDetail(); break;
       case "skip": { const st = curStep(); if (st && st[1] === "ban") { S.draft.steps[S.draft.idx].skip = true; S.draft.idx++; save(); render(); } break; }
       case "undo": if (S.draft.idx > 0) { S.draft.idx--; S.draft.steps[S.draft.idx] = { champ: null, role: null, skip: false }; save(); render(); } break;
       case "resetGame": if (confirm("이번 세트 밴픽을 지울까요?")) { S.draft.steps = emptySteps(); S.draft.idx = 0; save(); render(); } break;
@@ -4202,6 +4245,7 @@
     if (ev.key === "Enter" && ev.target.dataset && ev.target.dataset.add) { ev.preventDefault(); addChamp(ev.target.dataset.add); }
     else if (ev.key === "Enter" && ev.target.id === "goalIn") { ev.preventDefault(); addGoal(); }
     else if (ev.key === "Enter" && ev.target.id === "q") { const first = document.querySelector("#champs .cbtn:not([disabled])"); if (first) choose(first.dataset.id); }
+    else if (ev.key === "Escape" && closeChampDetail()) { /* 상대 챔프 자세히 보기 닫음 */ }
     else if (ev.key === "Escape" && editing) { editing = null; renderEditor(); }
     else if (ev.key === "Escape" && S.ui.vsOpen) { S.ui.vsOpen = ""; renderHead(); }
     else if (ev.key === "Escape" && TSM.open) { TSM.open = ""; render(); }
@@ -4684,13 +4728,8 @@
     const r = el.getBoundingClientRect(), w = hc.offsetWidth, hgt = hc.offsetHeight, gap = 10;
     let left = r.right + gap; if (left + w > innerWidth - 8) left = r.left - w - gap; if (left < 8) left = Math.min(innerWidth - w - 8, Math.max(8, r.left));
     let top = r.top;
-    // 추천 카드: 아래 기록 줄(#recDetail — 시즌·연습·팀원)을 가리지 않게 그 줄 아래, 카드 왼쪽에 맞춤(사용자 지적 11-19)
-    const det = el.closest(".lv-c") && document.getElementById("recDetail");
-    const side = det && el.closest(".now-box") && det.offsetHeight;
     hc.style.maxHeight = "";
-    // 11-20 사용자 요청: 챔프 4개까지 보이게 — 아래 기록 줄은 가리지 않고, 모자라면 위쪽(제목·필터 줄)을 덮으며 올라감
-    if (side) { const d = det.getBoundingClientRect(); left = r.right + gap; if (left + hc.offsetWidth > innerWidth - 8) left = Math.max(8, r.left - hc.offsetWidth - gap); top = Math.max(8, Math.min(r.top, d.top - gap - hc.offsetHeight)); }
-    else { if (top + hgt > innerHeight - 8) top = Math.max(8, innerHeight - hgt - 8); if (top < 8) top = 8; }
+    if (top + hgt > innerHeight - 8) top = Math.max(8, innerHeight - hgt - 8); if (top < 8) top = 8;
     hc.style.left = left + "px"; hc.style.top = top + "px";
   }
   function hideHover() { if (hcFor) hcFor.removeAttribute("aria-describedby"); hc.hidden = true; hcFor = null; }

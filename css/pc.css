@@ -331,34 +331,8 @@ html.pc :is(.live-pc, .enemy-pc) .rec .rk3 { position: absolute; left: calc(50% 
 html.pc :is(.live-pc, .enemy-pc) .rec.first .rk3 { left: calc(50% - 56px); background: var(--hi); color: var(--on-gold); box-shadow: none; }
 html.pc :is(.live-pc, .enemy-pc) .rec.muted.first .rk3 { background: var(--red); color: #fff; }
 html.pc :is(.live-pc, .enemy-pc) .rec.first .cn { color: var(--text); }
-/* 카드 아래 상세 줄 */
-.rdet { display: flex; gap: 28px; align-items: flex-start; padding: 12px 16px; border-radius: 14px; background: var(--panel); font-size: 13px; min-height: 64px; overflow: hidden; max-height: 168px; }
-.rdet:empty { display: none; }
-.rd-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; max-width: 220px; } .rd-h b { font-size: 15px; }
-.rd-tag { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--bg2); color: var(--muted); }
-.rd-tag.gold { background: var(--hi-bg); color: var(--hi); } .rd-tag.bad { background: var(--red-bg); color: var(--red); } .rd-tag.good { background: var(--good-bg); color: var(--good); }
-.rd-col { display: grid; gap: 4px; align-content: start; min-width: 0; }
-.rd-wide { flex: 1; overflow: hidden; }
-.rd-t { font-size: 11px; font-weight: 700; color: var(--muted); }
-.rd-kv { display: grid; grid-template-columns: 50px auto; gap: 6px; white-space: nowrap; } .rd-kv i { font-style: normal; color: var(--muted); }
-.rd-r { display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .rd-r b { font-weight: 600; } .rd-r span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
-.rd-r.bad, .rd-r.bad span { color: var(--red); }
-.rd-g { color: var(--text); white-space: nowrap; } .rd-b { color: var(--red); white-space: nowrap; }
-.rd-ans { display: flex; gap: 6px; align-items: center; color: var(--hi); font-weight: 600; white-space: nowrap; }
-html.pc :is(.live-pc, .enemy-pc) .rec.det:not(.first) { box-shadow: inset 0 0 0 1px var(--line); background: var(--panel); }
 html.pc .lv-c { grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; }
 /* 상세 줄 — 한 줄로 단순하게 */
-.rdet { display: flex; align-items: center; gap: 16px; min-height: 0; max-height: none; padding: 10px 14px; font-size: 13px; flex-wrap: wrap; }
-.rd-n { font-size: 14px; }
-.rd-p { display: inline-flex; align-items: center; gap: 14px; flex-wrap: wrap; color: var(--muted); }
-.rd-p > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
-.rd-p i { font-style: normal; color: var(--muted); } .rd-p > span:not(.bad) { color: var(--text); } .rd-p i + * { color: var(--text); }
-.rd-p .bad { color: var(--red); }
-.rd-sep { width: 1px; height: 16px; background: var(--line); }
-.rd-p em { font-style: normal; color: var(--text); }
-.rd-p .kv-hot em { color: var(--hi); font-weight: 800; }
-.rd-p .kv-threat em { color: var(--red); font-weight: 800; }
-.rd-p .kv-weak em { color: var(--red); opacity: .75; }
 
 /* ---------- 상대 팀 분석 A ---------- */
 .e-sum { display: flex; align-items: center; gap: 40px; padding: 18px 22px; border-radius: 16px; background: var(--panel); flex-wrap: wrap; }
@@ -1069,3 +1043,58 @@ html.pc .dock-pc .champs { scrollbar-width: thin; scrollbar-gutter: stable; }
 .st-cards { grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); }
 html.pc .e-thr { flex: 0 1 auto; min-width: 0; } html.pc .e-thr .e-t { flex: 0 1 auto; }
 .st-card { grid-template-columns: minmax(0, 1fr); }
+
+/* ---------- 11-20: 추천 카드 강조 칩(흰색 상세 줄 대신 카드 안에 추천 사유 3~4개) ---------- */
+html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 4px; padding: 0 4px; max-width: 100%; }
+html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; padding: 3px 9px 3px 6px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.3; white-space: nowrap; background: var(--panel2); color: var(--text); }
+html.pc :is(.live-pc, .enemy-pc) .rec .rc > span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+html.pc :is(.live-pc, .enemy-pc) .rec .rc .lbi { flex: none; }
+html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc-good { background: var(--hi-bg); color: var(--hi); }
+html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc-hot { background: var(--hi); color: var(--on-gold, #fff); font-weight: 800; }
+html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc-threat { background: var(--red); color: #fff; font-weight: 800; }
+html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc-bad { background: var(--red-bg); color: var(--red); }
+html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc-info { background: var(--panel2); color: var(--text); }
+html.pc :is(.live-pc, .enemy-pc) .rec.first .why.rchips > :is(.rc-plain, .rc-info) { background: var(--panel); }
+/* 높이가 낮은 화면: 칩은 두 줄까지(4개), 아주 낮으면 한 줄(2개) — 예전처럼 이유를 통째로 숨기지 않음 */
+@media (max-height: 1000px) {
+  html.pc .live-pc .rec .why.rchips > .rc { display: inline-flex; font-size: 11.5px; padding: 2px 8px 2px 5px; }
+  html.pc .live-pc .rec .why.rchips { max-height: 90px; overflow: hidden; }
+}
+@media (max-height: 800px) {
+  html.pc .live-pc .rec .why.rchips { display: flex; max-height: 42px; }
+  /* 두 개만 보일 때는 가장 강한 이유 + 경고(빨강) */
+  html.pc .live-pc .rec .why.rchips > .rc { order: 2; } html.pc .live-pc .rec .why.rchips > .rc:first-child { order: 0; } html.pc .live-pc .rec .why.rchips > .rc-bad { order: 1; }
+}
+/* 사전 밴 후보 카드 = 누르면 자세히 보기 */
+html.pc .enemy-pc .rec { cursor: pointer; }
+/* 라인별 상대 챔프: 누르면 자세히 보기 */
+html.pc .l5 button.l5-c { font: inherit; color: inherit; text-align: left; background: none; border: 0; padding: 4px 6px; margin: -4px -6px; border-radius: 12px; cursor: pointer; width: calc(100% + 12px); }
+html.pc .l5 button.l5-c:hover { background: var(--hi-bg); }
+html.pc .l5 button.l5-c:focus-visible { outline: 2px solid var(--hi); outline-offset: 0; }
+
+/* 상대 챔프 자세히 보기 모달 */
+html.pc .modal.chd { width: min(720px, 100%); background: var(--panel); border: 0; border-radius: 20px; padding: 24px; display: grid; gap: 18px; color: var(--text); }
+html.pc .ic.xl { width: 72px; height: 72px; border-radius: 50%; flex: none; }
+.chd .cd-h { display: flex; align-items: center; gap: 16px; }
+.chd .cd-hm { flex: 1; min-width: 0; }
+.chd .cd-h h2 { margin: 0; font-size: 22px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.chd .cd-h h2 .pos { font-size: 14px; color: var(--muted); font-weight: 600; }
+.chd .cd-rk { font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: var(--red); color: #fff; align-self: center; }
+.chd .cd-h p { margin: 4px 0 0; color: var(--muted); font-size: 14px; } .chd .cd-h p a { color: var(--text); font-weight: 700; }
+.chd .cd-kvs { display: flex; flex-wrap: wrap; gap: 8px; }
+.chd .cd-kv { display: grid; gap: 2px; padding: 10px 14px; border-radius: 14px; background: var(--panel2); min-width: 96px; }
+.chd .cd-kv small { font-size: 12px; color: var(--muted); font-weight: 600; } .chd .cd-kv b { font-size: 15px; }
+.chd .cd-kv.threat { background: var(--red-bg); } .chd .cd-kv.threat b { color: var(--red); font-weight: 800; }
+.chd .cd-sec h3 { margin: 0 0 10px; font-size: 15px; }
+.chd .cd-rs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.chd .cd-rs li { display: grid; grid-template-columns: 18px auto minmax(0, 1fr); align-items: center; gap: 8px; font-size: 14px; }
+.chd .cd-rs li b { white-space: nowrap; } .chd .cd-rs li span { color: var(--muted); }
+.chd .cd-rs li.bad b, .chd .cd-rs li.bad span { color: var(--red); }
+.chd .cd-ans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 20px; }
+.chd .cd-g h4 { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+.chd .cd-g h4.good { color: var(--good); } .chd .cd-g h4.bad { color: var(--red); } .chd .cd-g h4.hi { color: var(--hi); }
+.chd .cd-chs { display: grid; gap: 6px; }
+.chd .cd-ch { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.chd .cd-ch > span { display: grid; min-width: 0; } .chd .cd-ch b { font-size: 14px; } .chd .cd-ch small { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chd .cd-g .help { margin: 0; font-size: 13px; }
+@media (max-width: 760px) { .chd .cd-ans { grid-template-columns: minmax(0, 1fr); } }
