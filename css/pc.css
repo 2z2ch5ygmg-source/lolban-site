@@ -108,6 +108,7 @@ html.pc .pill { border-radius: 999px; }
 .l5-n { font-size: 17px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .l5-s { font-size: 13px; color: var(--muted); }
 .l5-w { min-height: 18px; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--red); }
+.l5-alt { justify-self: start; align-self: start; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--hi-bg); color: var(--hi); cursor: default; } .l5-alt.wait { background: var(--bg2); color: var(--muted); }
 .l5-x { color: var(--hi); } .l5-x .ico { width: 15px; height: 15px; flex: none; }
 .l5-c { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .l5-c b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
@@ -875,7 +876,7 @@ html.pc :is(.live-pc, .enemy-pc) .rec.ban.first .hero .lab { background: var(--p
 .tv-r:first-child { border-top: 0; }
 .tv-l { font-size: 14px; } .tv-who { display: grid; gap: 4px; min-width: 0; }
 .tv-n { font-weight: 800; font-size: 16px; color: var(--text); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .tv-n small { font-weight: 500; color: var(--muted); margin-left: 2px; } .tv-n:hover { color: var(--hi); }
-.tv-alt { font-size: 12px; color: var(--muted); } .tv-t { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.tv-alt { display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: 14px; font-weight: 700; color: var(--text); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .tv-alt small { font-weight: 500; color: var(--muted); } .tv-alt i { font-style: normal; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 999px; background: var(--bg2); color: var(--muted); flex: none; } .tv-alt:hover { color: var(--hi); } .tv-t { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 .tv-pool { gap: 6px; }
 .hovercard { overflow: hidden; }
 
