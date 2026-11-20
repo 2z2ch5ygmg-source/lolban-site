@@ -1186,3 +1186,4 @@ html.pc .live-pc .lv-c { padding: 0 18px; margin: 0 -18px; }
 .iq-steps li { display: flex; align-items: center; gap: 8px; } .iq-steps li span { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: var(--panel2); color: var(--muted); flex: none; }
 .iq-steps li.on { color: var(--text); font-weight: 700; } .iq-steps li.on span { background: var(--hi, var(--gold)); color: var(--on-gold, #fff); }
 .iq-steps li.ok span { background: var(--good-bg); color: var(--good); }
+.lvb-dot.off { background: var(--red); box-shadow: 0 0 0 3px var(--red-bg); }

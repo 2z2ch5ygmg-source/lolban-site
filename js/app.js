@@ -1901,7 +1901,14 @@
   function liveMsg(raw) {
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
     if (!m || typeof m !== "object") return;
-    if (m.t === "people") { LIVE.people = Array.isArray(m.people) ? m.people : []; if (m.host !== undefined) LIVE.host = m.host; liveBarUpdate(); return; }
+    if (m.t === "people") {
+      const was = LIVE.host && LIVE.people.some((p) => p.cid === LIVE.host.cid);
+      LIVE.people = Array.isArray(m.people) ? m.people : []; if (m.host !== undefined) LIVE.host = m.host;
+      const now = LIVE.host && LIVE.people.some((p) => p.cid === LIVE.host.cid);
+      if (!isHost() && LIVE.host && was && !now) toast(`진행자(${LIVE.host.name}) 연결이 끊겼습니다 — 잠시만 기다려 주세요`);
+      else if (!isHost() && LIVE.host && !was && now && LIVE.status === "on") toast(`진행자(${LIVE.host.name})가 다시 연결됐습니다`);
+      liveBarUpdate(); return;
+    }
     if (m.t === "host") { const was = isHost(); LIVE.host = m.host; liveBarUpdate(); if (!was && isHost()) toast("이제 내가 진행합니다"); return; }
     if (m.t !== "state") return;
     LIVE.host = m.host || null; LIVE.by = m.by || "";
@@ -1932,6 +1939,8 @@
     if (LIVE.status === "retry") return `<span class="lvb wait bad"><span>팀 방 연결이 끊김 — 자동으로 다시 시도 중</span></span><button class="lvb-b primary" data-act="liveretry">다시 연결</button><button class="lvb-b" data-act="livesolo" data-v="1">혼자 하기</button>`;
     if (LIVE.status !== "on") return `<span class="lvb wait"><span>팀 방에 연결 중…</span></span>`;
     const n = new Set(LIVE.people.map((p) => p.cid)).size, h = LIVE.host, hon = h && LIVE.people.some((p) => p.cid === h.cid);
+    // 11-20 사용자 요청: 진행자 연결이 끊기면 팀원에게 잠시 기다려 달라는 안내(진행 맡기로 넘겨받을 수도 있음)
+    if (!isHost() && h && !hon) return `<span class="lvb wait bad" title="진행자 ${esc(h.name)}의 연결이 끊겼습니다"><i class="lvb-dot off" aria-hidden="true"></i><span>진행자(${esc(h.name)}) 연결이 끊겼습니다 — 잠시만 기다려 주세요</span></span><button class="lvb-b primary" data-act="livetake">진행 맡기</button>`;
     const who = isHost() ? "내가 진행" : h ? `진행 ${esc(h.name)}${hon ? "" : "(나감)"}` : "진행자 없음";
     const tip = `팀과 같이 보는 중 · ${isHost() ? "내가 진행자" : h ? `진행자 ${h.name}${hon ? "" : "(나감)"}` : "진행자 없음"} · 보는 사람: ${LIVE.people.map((p) => p.name).join(", ")}`;
     return `<span class="lvb on ${isHost() ? "me" : ""}" title="${esc(tip)}"><i class="lvb-dot" aria-hidden="true"></i><span class="sr-only">팀과 같이 보는 중 · </span><span>${who} · ${n}명</span></span>`
@@ -2448,7 +2457,7 @@
   // ---- 명단 등록 진행(11-20 사용자 요청): 등록 뒤 계정 확인·티어 받기 동안 화면 전체를 막고 진행·예상 시간 표시 ----
   //   이 작업은 이 브라우저 안에서 돈다 → 창을 닫으면 멈춤. 닫으려 하면 한 번 묻고, 다시 열면 남은 계정부터 이어서(lolban.impq.v1)
   const IMPQ_KEY = "lolban.impq.v1";
-  const IQ = { on: false, stage: 1, avg: 1800, avgP: 20000, all2: 0, done2: 0, waitUntil: 0, timer: null, pWaited: false };
+  const IQ = { on: false, server: false, stage: 1, avg: 1800, avgP: 20000, all2: 0, done2: 0, waitUntil: 0, timer: null, pWaited: false };
   const iqLoad = () => { try { return JSON.parse(localStorage.getItem(IMPQ_KEY) || "null"); } catch (e) { return null; } };
   const iqSave = (q) => { try { if (q) localStorage.setItem(IMPQ_KEY, JSON.stringify(q)); else localStorage.removeItem(IMPQ_KEY); } catch (e) { /* 이번만 */ } };
   async function startImportFetch(pairs, resumed) {
@@ -2475,13 +2484,90 @@
     } finally { iqSave(null); IQ.on = false; iqShow(); }
     toast(`명단 등록 끝 — 계정 ${q.done.length}개 티어, 최근 랭크 경기·챔프폭까지 반영했습니다${miss ? ` · ${miss}개 계정은 못 받음` : ""} (0시 수집 때 100판으로 늘어남)`);
   }
+  // ---- 명단 등록 서버 작업(11-20 사용자 결정: 창을 닫아도 서버에서 계속) — Worker ImportJob이 받고, 페이지는 진행을 보여 주고 결과를 반영 ----
+  //   서버가 옛 판이면(주소 없음) 위의 브라우저 방식(startImportFetch)으로
+  const SJ = { job: null, items: [], timer: null };
+  const SJ_KEY = "lolban.sjapplied.v1";
+  const sjMark = () => { try { return JSON.parse(localStorage.getItem(SJ_KEY) || "null") || {}; } catch (e) { return {}; } };
+  const sjMarkSave = (m) => { try { localStorage.setItem(SJ_KEY, JSON.stringify(m)); } catch (e) { /* 이번만 */ } };
+  const seasonBase = (tid, r, riot) => { const R = window.RECENT, c = R && R.season && R.season[tid] && R.season[tid][r]; return c && !c.error && !c.quick && c.riot === riot ? c : null; };
+  async function startImport(pairs) {
+    if (!SPACE || SPACE.bad || !pairs.length) return;
+    const items = [];
+    pairs.forEach(([tid, r]) => { const t = team(tid), p = t && t.players[r]; if (!t || t.solo || !p) return;
+      accountsOf(t, r).forEach(([a], i) => items.push({ team: tid, role: r, acc: a, need: i === 0 ? !seasonBase(tid, r, p.riot) : true })); });   // 0시 기록이 있는 본계정은 최근 경기를 다시 받지 않음
+    if (!items.length) return;
+    try {
+      const res = await wfetch("/import/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: items.slice(0, 150), by: liveName() }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.status !== "ok") throw new Error(d.reason || "HTTP " + res.status);
+      SJ.job = d.job; SJ.items = []; sjMarkSave({ id: d.job.id, c: [], q: [] });
+      IQ.on = true; IQ.server = true; iqShow(); sjPoll();
+    } catch (e) { startImportFetch(pairs); }   // 서버 작업을 못 쓰면 브라우저에서
+  }
+  async function sjPoll() {
+    clearTimeout(SJ.timer);
+    if (!SPACE || SPACE.bad || !WURL()) return;
+    try {
+      const res = await wfetch("/import/status"); const d = await res.json().catch(() => ({}));
+      if (res.ok && d.status === "ok") { SJ.job = d.job; SJ.items = d.items || []; sjApply(); }
+    } catch (e) { /* 다음 확인 때 */ }
+    if (SJ.job && SJ.job.state === "running") {
+      if (!IQ.on) { IQ.on = true; IQ.server = true; }
+      iqShow(); SJ.timer = setTimeout(sjPoll, 3000);
+    } else if (IQ.on && IQ.server) {
+      IQ.on = false; IQ.server = false; iqShow(); render();
+      const j = SJ.job; if (j) toast(`명단 등록 끝 — 계정 ${j.n}개 티어, 최근 랭크 경기·챔프폭까지 반영했습니다 (0시 수집 때 100판으로 늘어남)`);
+    }
+  }
+  // 서버 결과 반영(한 번 반영한 것은 다시 안 함, 작업마다 기록)
+  function sjApply() {
+    const j = SJ.job; if (!j || !SJ.items.length) return;
+    let mk = sjMark(); if (mk.id !== j.id) mk = { id: j.id, c: [], q: [] };
+    const doneC = new Set(mk.c), doneQ = new Set(mk.q), lanes = new Set();
+    SJ.items.forEach((it, i) => {
+      if (!it.c || doneC.has(i)) return;
+      const t = team(it.team), p = t && t.players[it.role]; doneC.add(i); if (!p || !it.c.exists) return;
+      const k = rkKey(it.acc), old = (p.rk || {})[k] || {}, e = { ...(it.c.solo ? { s: lowLp(it.c.solo) } : {}), ...(it.c.flex ? { f: lowLp(it.c.flex) } : {}) };
+      if (it.p && it.p.found) { const o = { ps: peakOf(it.p.s), pf: peakOf(it.p.f), ts: peakOf(it.p.s, true), tf: peakOf(it.p.f, true) }; Object.entries(o).forEach(([x, v]) => { if (v) e[x] = v; }); e.pt = it.t1 || Date.now(); e.pv = PEAK_V; }
+      else if (it.p) { e.pt = it.t1 || Date.now(); e.pv = PEAK_V; }
+      else ["ps", "pf", "ts", "tf", "pt", "pv"].forEach((y) => { if (old[y] != null) e[y] = old[y]; });
+      p.rk = { ...(p.rk || {}), [k]: e }; if (it.c.riot && rkKey(it.c.riot) !== k) p.rk[rkKey(it.c.riot)] = e;
+      lanes.add(`${it.team}|${it.role}`);
+    });
+    // 최근 경기: 그 라인에서 받아야 할 계정이 다 끝나면 본계정(또는 0시 기록) + 부계정을 합쳐 기록 자리에
+    const byLane = {}; SJ.items.forEach((it) => { (byLane[`${it.team}|${it.role}`] = byLane[`${it.team}|${it.role}`] || []).push(it); });
+    const qm = qpLoad(); let qChanged = false;
+    Object.entries(byLane).forEach(([lk, list]) => {
+      if (doneQ.has(lk)) return;
+      const need = list.filter((x) => x.need && x.c && x.c.exists);
+      if (list.some((x) => !x.c) || need.some((x) => x.pool === undefined)) return;   // 아직
+      doneQ.add(lk); if (!need.length) return;
+      const [tid, r] = lk.split("|"), t = team(tid), p = t && t.players[r]; if (!p) return;
+      const mainIt = list.find((x) => rkKey(x.acc) === rkKey(p.riot)), main = mainIt && mainIt.need ? mainIt.pool : seasonBase(tid, r, p.riot);
+      const alts = list.filter((x) => x !== mainIt && x.pool).map((x) => x.pool);
+      if (!main) return;
+      qm[lk] = { ...mergePool([main, ...alts]), riot: p.riot, quick: true, accs: qpAccs(t, r), fetchedAt: Math.max(...list.map((x) => x.t2 || x.t1 || 0), Date.now() - 1000) }; qChanged = true;
+      if (tid === S.ourTeam && alts.length) addAltChamps(t, r, alts);
+      lanes.add(lk);
+    });
+    mk.c = [...doneC]; mk.q = [...doneQ]; sjMarkSave(mk);
+    if (!lanes.size) return;
+    if (qChanged) { qpSave(qm); if (!window.RECENT) window.RECENT = { status: "ok", season: {}, players: {}, groups: {}, stacks: {} }; mergeQuick(); }
+    applyTiers(); save(); lanes.forEach((x) => { const [tid, r] = x.split("|"); shareChanged(tid, r); });
+    if (!editing && !IQ.on) render();
+  }
+  // 진행 숫자(서버 작업이면 서버 기준)
+  function iqProg() {
+    if (IQ.server && SJ.job) { const j = SJ.job, s2 = j.done1 >= j.n; return { s2, all: s2 ? j.need : j.n, done: s2 ? j.done2 : j.done1, left1: Math.max(0, j.n - j.done1), left2: Math.max(0, j.need - j.done2), wait: Math.max(0, (j.waitUntil || 0) - Date.now()) }; }
+    const s2 = IQ.stage === 2;
+    return { s2, all: s2 ? IQ.all2 : TQ.busy ? TQ.all : 0, done: s2 ? IQ.done2 : TQ.busy ? TQ.done : 0, left1: s2 ? 0 : Math.max(0, TQ.all - TQ.done), left2: s2 ? Math.max(0, IQ.all2 - IQ.done2) : Math.max(TQ.all, 1), wait: Math.max(0, IQ.waitUntil - Date.now()) };
+  }
   // 남은 시간: 1단계 남은 계정 × 계정당 시간 + 2단계(최근 경기) 남은 계정 × 계정당 시간 + 지금 한도 기다림
   //   Riot 한도 = 2분에 100번 · 티어 = 계정당 2번(많으면 2.4초보다 빠를 수 없음) · 최근 경기 = 계정당 약 34번(이어지면 약 40초)
   function iqEta() {
-    const wait = Math.max(0, IQ.waitUntil - Date.now());
-    const left1 = IQ.stage === 1 ? Math.max(0, TQ.all - TQ.done) : 0, per1 = left1 > 45 ? Math.max(IQ.avg, 2400) : IQ.avg;
-    const accs = IQ.stage === 1 ? Math.max(TQ.all, 1) : 0;   // 1단계 중엔 2단계 계정 수를 1단계 계정 수로 어림
-    const left2 = IQ.stage === 2 ? Math.max(0, IQ.all2 - IQ.done2) : accs, per2 = left2 > 2 ? Math.max(IQ.avgP, 40000) : IQ.avgP;
+    const g = iqProg(), left1 = g.left1, left2 = g.left2, wait = g.wait;
+    const per1 = left1 > 45 ? Math.max(IQ.avg, 2400) : IQ.avg, per2 = left2 > 2 ? Math.max(IQ.avgP, 40000) : IQ.avgP;
     const ms = left1 * per1 + left2 * per2 + wait;
     return ms < 60000 ? "1분 이내" : `약 ${Math.ceil(ms / 60000)}분`;
   }
@@ -2498,9 +2584,9 @@
       [...document.body.children].forEach((e) => { if (e !== el && e.id !== "toast" && !e.inert) { e.inert = true; e.setAttribute("data-iq-inert", "1"); } });   // 다른 화면은 못 누르게
       IQ.timer = setInterval(iqShow, 1000);
     }
-    const s2 = IQ.stage === 2, all = s2 ? IQ.all2 : TQ.busy ? TQ.all : 0, done = s2 ? IQ.done2 : TQ.busy ? TQ.done : 0;
+    const g = iqProg(), s2 = g.s2, all = g.all, done = g.done;
     // 전체 막대: 1단계 = 0~30%, 2단계 = 30~100%(최근 경기가 훨씬 오래 걸림)
-    const pct = Math.round(s2 ? 30 + (all ? (done / all) * 70 : 0) : all ? (done / all) * 30 : 0), wait = Math.max(0, Math.ceil((IQ.waitUntil - Date.now()) / 1000));
+    const pct = Math.round(s2 ? 30 + (all ? (done / all) * 70 : 0) : all ? (done / all) * 30 : 0), wait = Math.ceil(g.wait / 1000);
     const step = (n, t, on, ok) => `<li class="${on ? "on" : ok ? "ok" : ""}"><span>${ok ? "✓" : n}</span>${t}</li>`;
     el.innerHTML = `<div class="iq-box"><span class="iq-spin" aria-hidden="true"></span><h2 id="iqT">명단 등록 진행 중입니다</h2>
       <ol class="iq-steps">${step(1, "계정 확인·티어", !s2, s2)}${step(2, "최근 랭크 경기·챔프폭(상대 전적·예상 밴픽)", s2, false)}</ol>
@@ -2508,9 +2594,9 @@
       <div class="iq-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
       <p class="iq-eta">예상 남은 시간 <b>${all || s2 ? iqEta() : "계산 중"}</b></p>
       ${wait ? `<p class="help">Riot 조회 한도 — ${wait}초 뒤 이어서 받습니다</p>` : ""}
-      <p class="help">끝날 때까지 다른 화면은 잠시 막아 둡니다. 창을 닫으면 멈추고, 다시 열면 남은 계정부터 이어서 받습니다.</p></div>`;
+      <p class="help">${IQ.server ? `서버에서 받고 있어서 창을 닫아도 계속 진행됩니다. 다시 열면 결과가 반영됩니다.${SJ.job && SJ.job.by ? ` · 시작: ${esc(SJ.job.by)}` : ""}` : "끝날 때까지 다른 화면은 잠시 막아 둡니다. 창을 닫으면 멈추고, 다시 열면 남은 계정부터 이어서 받습니다."}</p></div>`;
   }
-  window.addEventListener("beforeunload", (ev) => { if (IQ.on) { ev.preventDefault(); ev.returnValue = ""; } });   // 닫으려 하면 브라우저가 한 번 묻게
+  window.addEventListener("beforeunload", (ev) => { if (IQ.on && !IQ.server) { ev.preventDefault(); ev.returnValue = ""; } });   // 서버 작업이면 닫아도 됨   // 닫으려 하면 브라우저가 한 번 묻게
   // Riot에서 계정별 솔랭·자랭 받기: pairs = [[팀ID, 라인]…]. 팀 공간 열쇠가 있어야 조회됨
   const TQ = { busy: false, done: 0, all: 0, miss: 0, msg: "", fails: [] };
   const lowLp = (x) => (x ? tierLine(x).replace(/^(\S+ \d) \d+LP$/, "$1") : "");
@@ -3234,7 +3320,7 @@
     if (S.enemyTeam === S.ourTeam || !S.teams.find((t) => t.id === S.enemyTeam)) S.enemyTeam = (S.teams.find((t) => t.id !== S.ourTeam && !t.solo) || S.teams[0]).id;
     save();
     res.touched.forEach(([tid, r]) => shareChanged(tid, r));   // 챔프폭·티어는 팀 공간에 공유
-    if (SPACE && !SPACE.bad && res.touched.length) setTimeout(() => startImportFetch(res.touched), 0);   // 본계정·부계정 솔랭·자랭을 Riot에서 자동으로 — 진행 화면으로 막고(11-20)
+    if (SPACE && !SPACE.bad && res.touched.length) setTimeout(() => startImport(res.touched), 0);   // 본계정·부계정 솔랭·자랭을 Riot에서 자동으로 — 진행 화면으로 막고(11-20)
     const n = P.teams.length, nNew = IMP.diff.filter((x) => x.isNew).length;
     IMP.msg = `적용했습니다 — 팀 ${n}개${nNew ? `(새 팀 ${nNew})` : ""}.${SH.url ? " 챔프폭·티어는 팀 공간에 공유됩니다." : ""}${SPACE && !SPACE.bad ? " 본계정·부계정의 솔랭·자랭 티어를 Riot에서 받는 중입니다." : " 팀 공간에 들어오면 Riot에서 솔랭·자랭 티어를 받을 수 있습니다."}`;
     IMP.done = { n, nNew, names: P.teams.map((t) => (t.our ? `${(team(S.ourTeam) || {}).name || t.name}(우리 팀)` : t.name)), no, ids: ids.length };
@@ -5126,6 +5212,8 @@
   loadMe();
   loadRoster();
   loadCollectStatus();
-  // 명단 등록 중에 창을 닫았으면 다시 열 때 남은 계정부터 이어서
+  // 서버 명단 등록 작업: 진행 중이면 진행 화면, 끝났으면 아직 반영 안 한 결과만(팀원이 시작한 작업도)
+  setTimeout(() => sjPoll(), 1200);
+  // (옛 브라우저 방식) 명단 등록 중에 창을 닫았으면 다시 열 때 남은 계정부터 이어서
   { const q = iqLoad(); if (q && SPACE && !SPACE.bad && q.sp === SPACE.id && Array.isArray(q.pairs)) setTimeout(() => startImportFetch(q.pairs.filter(([tid]) => team(tid)), true), 1500); else if (q) iqSave(null); }
 })();
