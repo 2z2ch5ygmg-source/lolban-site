@@ -2154,7 +2154,7 @@
     const snap = liveSnap(); if (snap === LIVE.last) return;
     if (isHost()) { liveSend(); return; }
     liveApply(LIVE.data, true);
-    toast(`진행자(${LIVE.host ? LIVE.host.name : "?"})만 밴픽을 넣을 수 있습니다 — 「진행 맡기」로 넘겨받기`);
+    toast(`진행자(${LIVE.host ? LIVE.host.name : "?"})만 밴픽을 넣을 수 있습니다 — ${liveOwner() ? "「진행 맡기」로 넘겨받기" : "「진행 요청」을 보내고 진행자가 수락하면 넘겨받음"}`);
   }
   async function liveConnect() {
     clearTimeout(LIVE.timer);
@@ -2178,7 +2178,14 @@
   function liveMsg(raw) {
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
     if (!m || typeof m !== "object") return;
+    if (m.t === "req") {   // 진행 요청(11-20): 진행자는 넘기기·거절, 요청한 사람은 기다림
+      const before = LIVE.req; LIVE.req = m.req || null;
+      if (m.denied === CID) toast(`진행자(${LIVE.host ? LIVE.host.name : "?"})가 진행 요청을 거절했습니다`);
+      else if (isHost() && LIVE.req && (!before || before.cid !== LIVE.req.cid)) toast(`${LIVE.req.name}님이 진행을 요청했습니다 — 위에서 「넘기기」 또는 「거절」`);
+      liveBarUpdate(); return;
+    }
     if (m.t === "people") {
+      if (m.req !== undefined) LIVE.req = m.req || null;
       const was = LIVE.host && LIVE.people.some((p) => p.cid === LIVE.host.cid);
       LIVE.people = Array.isArray(m.people) ? m.people : []; if (m.host !== undefined) LIVE.host = m.host;
       const now = LIVE.host && LIVE.people.some((p) => p.cid === LIVE.host.cid);
@@ -2186,9 +2193,9 @@
       else if (!isHost() && LIVE.host && !was && now && LIVE.status === "on") toast(`진행자(${LIVE.host.name})가 다시 연결됐습니다`);
       liveBarUpdate(); return;
     }
-    if (m.t === "host") { const was = isHost(); LIVE.host = m.host; liveBarUpdate(); if (!was && isHost()) toast("이제 내가 진행합니다"); return; }
+    if (m.t === "host") { const was = isHost(); LIVE.host = m.host; LIVE.req = null; liveBarUpdate(); if (!was && isHost()) toast("이제 내가 진행합니다"); else if (was && !isHost()) toast(`진행을 ${m.host ? m.host.name : "팀원"}님에게 넘겼습니다`); return; }
     if (m.t !== "state") return;
-    LIVE.host = m.host || null; LIVE.by = m.by || "";
+    LIVE.host = m.host || null; LIVE.by = m.by || ""; if (m.req !== undefined) LIVE.req = m.req || null;
     const first = LIVE.status !== "on";
     LIVE.status = "on";
     if (m.data) {
@@ -2199,12 +2206,17 @@
     else LIVE.data = JSON.parse(liveSnap());
     liveBarUpdate();
   }
+  // 진행 맡기(11-20 사용자): 팀장은 바로, 진행자가 없거나 나가 있으면 누구나 바로, 그 밖엔 진행자에게 요청 → 진행자가 넘기기를 눌러야 넘어감(서버가 판단)
+  const liveOwner = () => !!SPACE && (!SPACE.viaLogin || !!SPACE.isOwner);
+  const liveHostOn = () => !!(LIVE.host && LIVE.people.some((p) => p.cid === LIVE.host.cid));
   function liveTake() {
     if (!LIVE.ws || LIVE.ws.readyState !== 1 || isHost()) return;
-    const online = LIVE.host && LIVE.people.some((p) => p.cid === LIVE.host.cid);
-    if (online && !confirm(`지금 진행자는 ${LIVE.host.name}입니다. 진행을 넘겨받을까요?`)) return;
+    const online = liveHostOn();
+    if (online && liveOwner() && !confirm(`지금 진행자는 ${LIVE.host.name}입니다. 진행을 넘겨받을까요?`)) return;
     LIVE.ws.send(JSON.stringify({ t: "take" }));
+    if (online && !liveOwner()) toast(`${LIVE.host.name}님에게 진행 요청을 보냈습니다 — 수락하면 넘어옵니다`);
   }
+  function liveReply(give) { const r = LIVE.req; if (!r || !isHost() || !LIVE.ws || LIVE.ws.readyState !== 1) return; LIVE.ws.send(JSON.stringify({ t: give ? "give" : "deny", cid: r.cid })); }
   function liveSolo(on) {
     S.ui.soloDraft = !!on; save();
     if (on) { const w = LIVE.ws; LIVE.ws = null; LIVE.status = "off"; LIVE.data = null; LIVE.rev = 0; clearTimeout(LIVE.timer); if (w) try { w.close(); } catch (e) { /* 이미 닫힘 */ } liveBarUpdate(); toast("혼자 하기 — 팀 방과 연결을 끊었습니다(지금 밴픽은 이 브라우저에 남음)"); }
@@ -2217,11 +2229,16 @@
     if (LIVE.status !== "on") return `<span class="lvb wait"><span>팀 방에 연결 중…</span></span>`;
     const n = new Set(LIVE.people.map((p) => p.cid)).size, h = LIVE.host, hon = h && LIVE.people.some((p) => p.cid === h.cid);
     // 11-20 사용자 요청: 진행자 연결이 끊기면 팀원에게 잠시 기다려 달라는 안내(진행 맡기로 넘겨받을 수도 있음)
-    if (!isHost() && h && !hon) return `<span class="lvb wait bad" title="진행자 ${esc(h.name)}의 연결이 끊겼습니다"><i class="lvb-dot off" aria-hidden="true"></i><span>진행자(${esc(h.name)}) 연결이 끊겼습니다 — 잠시만 기다려 주세요</span></span><button class="lvb-b primary" data-act="livetake">진행 맡기</button>`;
+    if (!isHost() && h && !hon) return `<span class="lvb wait bad" title="진행자 ${esc(h.name)}의 연결이 끊겼습니다"><i class="lvb-dot off" aria-hidden="true"></i><span>진행자(${esc(h.name)}) 연결이 끊겼습니다 — 잠시만 기다려 주세요</span></span><button class="lvb-b primary" data-act="livetake">진행 맡기</button><button class="lvb-b" data-act="livesolo" data-v="1">혼자 하기</button>`;
+    if (!isHost() && !h) return `<span class="lvb wait"><span>진행자 없음</span></span><button class="lvb-b primary" data-act="livetake">진행 맡기</button><button class="lvb-b" data-act="livesolo" data-v="1">혼자 하기</button>`;
     const who = isHost() ? "내가 진행" : h ? `진행 ${esc(h.name)}${hon ? "" : "(나감)"}` : "진행자 없음";
     const tip = `팀과 같이 보는 중 · ${isHost() ? "내가 진행자" : h ? `진행자 ${h.name}${hon ? "" : "(나감)"}` : "진행자 없음"} · 보는 사람: ${LIVE.people.map((p) => p.name).join(", ")}`;
+    const rq = LIVE.req, mine = rq && rq.cid === CID;
+    const act = isHost() ? (rq ? `<span class="lvb req" role="status">${esc(rq.name)}님이 진행 요청</span><button class="lvb-b primary" data-act="livegive">넘기기</button><button class="lvb-b" data-act="livedeny">거절</button>` : "")
+      : mine ? `<span class="lvb req" role="status">진행 요청 보냄 · 수락 기다리는 중</span><button class="lvb-b" data-act="livecancel">요청 취소</button>`
+      : `<button class="lvb-b primary" data-act="livetake">${liveOwner() ? "진행 맡기" : "진행 요청"}</button>`;
     return `<span class="lvb on ${isHost() ? "me" : ""}" title="${esc(tip)}"><i class="lvb-dot" aria-hidden="true"></i><span class="sr-only">팀과 같이 보는 중 · </span><span>${who} · ${n}명</span></span>`
-      + (isHost() ? "" : `<button class="lvb-b primary" data-act="livetake">진행 맡기</button>`) + `<button class="lvb-b" data-act="livesolo" data-v="1">혼자 하기</button>`;
+      + act + `<button class="lvb-b" data-act="livesolo" data-v="1">혼자 하기</button>`;
   }
   function liveBarUpdate() { document.querySelectorAll(".livebar").forEach((b) => { b.innerHTML = liveBarHtml(); }); }
   // 화면을 그릴 때: 실시간 밴픽이면 자동 연결(혼자 하기가 아니면), 지금 보는 화면 기억
@@ -5005,6 +5022,9 @@
     if (LIVE_ACTS.has(a) && S.tab === "live" && liveOn() && !isHost()) { toast(`진행자(${LIVE.host ? LIVE.host.name : "?"})만 밴픽을 넣을 수 있습니다 — 「진행 맡기」로 넘겨받기`); return; }
     switch (a) {
       case "livetake": liveTake(); break;
+      case "livegive": liveReply(true); break;
+      case "livedeny": liveReply(false); break;
+      case "livecancel": if (LIVE.ws && LIVE.ws.readyState === 1) LIVE.ws.send('{"t":"cancel"}'); break;
       case "livesolo": liveSolo(el.dataset.v === "1"); break;
       case "liveretry": LIVE.retry = 0; clearTimeout(LIVE.timer); LIVE.status = "connecting"; liveBarUpdate(); liveConnect(); break;
       case "pick": choose(el.dataset.id, el.dataset.role); break;
