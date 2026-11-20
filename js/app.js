@@ -1271,9 +1271,11 @@
       <div class="cr-hr"><div class="cr-bars">${bar("숙련도", (cf / 3) * 100, LVK(cf))}${bar("조합 적합", ((sel.fitScore || 0) / maxFit) * 100, (sel.fitScore || 0) >= maxFit * 0.8 ? "좋음" : (sel.fitScore || 0) >= maxFit * 0.5 ? "보통" : "낮음")}${vs ? bar("상대 대비", vs[0], vs[2], vs[1]) : bar("상대 대비", 0, "모름")}</div>
         <div class="cr-chips">${rs.slice(0, 4).map(chip).join("")}${n ? `<span class="cr-chip">대체 픽 ${n}개</span>` : ""}</div>
         ${sel.id === selId && S.ui.scen ? `<button class="soft-b cr-btn" data-act="scen" data-k="${sel.id}">설계를 1위로 되돌리기</button>` : ""}</div></section>`;
-    const rows = list.filter((x) => x !== sel).map((sc) => { const r1 = reasons(sc).sort((a, b) => (b.c === "bad") - (a.c === "bad"))[0] || (VSW[sc.vs] ? { t: `상대 대비 ${sc.vs}`, c: VSW[sc.vs][1] } : null);
-      return `<div class="cr-row"><b class="cr-n">${rank(sc)}</b><b class="cr-t" title="${esc(sc.name)}">${esc(sc.name.replace(/ 조합$/, ""))}</b>${five(sc)}<span class="cr-sp"></span>${r1 ? chip(r1) : ""}<button class="soft-b" data-act="scen" data-k="${sc.id}">고르기</button></div>`; }).join("");
-    return `<div class="cr-top">${od ? `<span>상대 방향 <b>${esc(COMPS[od].short)}</b></span>` : ""}<span class="dim">고르면 그 조합으로 밴픽 설계 · 운영 방법은 「운영 전략」</span></div>${hero}${rows ? `<div class="cr-rows">${rows}</div>` : ""}`;
+    // 순위 그대로 한 줄씩, 고른 조합만 그 자리에서 크게(11-20 사용자: 칸을 누르면 상세가 나오고 선택 — 고르기 버튼 없이)
+    const rows = list.map((sc) => { if (sc === sel) return hero;
+      const r1 = reasons(sc).sort((a, b) => (b.c === "bad") - (a.c === "bad"))[0] || (VSW[sc.vs] ? { t: `상대 대비 ${sc.vs}`, c: VSW[sc.vs][1] } : null);
+      return `<button class="cr-row" data-act="scen" data-k="${sc.id}" aria-label="${rank(sc)}위 ${esc(sc.name)} — 누르면 자세히 보고 밴픽 설계에 씀"><b class="cr-n">${rank(sc)}</b><b class="cr-t" title="${esc(sc.name)}">${esc(sc.name.replace(/ 조합$/, ""))}</b>${five(sc)}<span class="cr-sp"></span>${r1 ? chip(r1) : ""}<svg class="cr-car" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>`; }).join("");
+    return `<div class="cr-top">${od ? `<span>상대 방향 <b>${esc(COMPS[od].short)}</b></span>` : ""}<span class="dim">줄을 누르면 자세히 보고 그 조합으로 밴픽 설계 · 운영 방법은 「운영 전략」</span></div><div class="cr-rows">${rows}</div>`;
   }
 
   // 차례가 바뀌면 강조(소리 대신, 사용자 요청 11-19): 우리 차례 보라 두 번 번쩍·점 물결·빈 칸 숨쉬기, 상대 차례 빨강 한 번. 탭 제목에도 표시

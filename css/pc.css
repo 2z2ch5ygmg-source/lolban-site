@@ -1635,3 +1635,9 @@ html.pc .l5 button.l5-c { width: fit-content; max-width: 100%; margin: -4px 0; p
 .cr-t { width: 230px; flex: none; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cr-sp { flex: 1; }
 .cr-row .cr-chip { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+/* 추천 조합: 줄 전체가 버튼(누르면 그 자리에서 크게), 고르기 버튼 없음 */
+.cr-rows { margin-top: 0; }
+button.cr-row { width: 100%; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; transition: background .12s, box-shadow .12s; }
+button.cr-row:hover { box-shadow: inset 0 0 0 1.5px var(--hi); }
+button.cr-row:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
+.cr-car { color: var(--dim); flex: none; }
