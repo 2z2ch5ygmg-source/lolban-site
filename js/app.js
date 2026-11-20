@@ -637,7 +637,7 @@
     if (!pills && r.role) { try { pills = E.cardPills(E.teamOf(S, muted ? "enemy" : "our"), r.role, r.id, r.reasons, !!muted); } catch (e) { pills = null; } }
     const kv = (pills || []).map((x) => String(x.t).match(PILL_K)).filter((m) => m && m[1] !== "자기평가").map((m) => {
       const [lv, why] = kvLevel(m[1], m[2]);
-      return { k: m[1] === "대회" ? "meta" : "rec", t: `${m[1] === "팀원과" ? "팀원과" : m[1]} ${m[2]}`, c: lv === "hot" ? (muted ? "threat" : "hot") : lv === "weak" && !muted ? "bad" : "", why: why ? `기준: ${why}` : "" };
+      return { k: m[1] === "대회" ? "meta" : "rec", t: `${m[1] === "대회" ? "프로 밴픽" : m[1]} ${m[2]}`, c: lv === "hot" ? (muted ? "threat" : "hot") : lv === "weak" && !muted ? "bad" : "", why: why ? `기준: ${why}` : "" };
     });
     const rs = (r.reasons || []).filter((x) => !REASON_SKIP.test(x.t));
     const pos = rs.filter((x) => x.v > 0).sort((a, b) => b.v - a.v).map((x) => ({ k: chipKind(x.t), t: reasonShort(x), c: "", why: x.d }));
@@ -654,8 +654,36 @@
     return out;
   }
   const CHIP_KO = { comp: "조합", ctr: "카운터", rec: "숙련도·기록", meta: "메타", bad: "주의" };
+  // 알약 한 줄 설명(11-20 사용자: 마우스를 올리면 작은 말풍선)
+  function hintOf(t, why) {
+    t = String(t || "");
+    const H = [
+      [/^프로 밴픽/, "2026 프로 대회 전체(LCK·LPL·국제대회 등, gol.gg) 밴픽 우선도 — 높을수록 프로가 자주 쓰거나 밴하는 챔프"],
+      [/^시즌 /, "이번 시즌 랭크 기록(판수·승률) — 0시 수집 기준"],
+      [/^연습 \d/, "대회 준비 시작일 이후 이 챔프로 한 기록(판수·승)"],
+      [/^연습 중/, "최근 팀원들과 연습 중인 픽입니다"],
+      [/^팀원과/, "팀원과 같이 한 경기에서 이 챔프로 한 기록"],
+      [/함께 한 경기/, "준비 기간에 팀원끼리 같이 한 경기에서 꺼낸 픽"],
+      [/^메타 (강세|픽)/, "지금 패치 한국 솔로랭크·프로 대회에서 강한 챔프"],
+      [/원챔 차단/, "상대가 거의 이 챔프만 하는 원챔 — 밴하면 크게 흔들림"],
+      [/^원챔/, "이 선수가 거의 이 챔프만 하는 원챔"],
+      [/고승률 차단/, "상대가 15판 이상·승률 60% 이상인 챔프"],
+      [/^고승률/, "15판 이상·승률 60% 이상인 챔프"],
+      [/숙련도 높음/, "판수·숙련도 점수가 높은 주력 챔프"],
+      [/상대 챔프폭/, "상대 선수 챔프폭에 있는 챔프"],
+      [/^챔프폭/, "이 선수 챔프폭에 있는 챔프"],
+      [/바텀 세트/, "이미 나온 원딜·서폿과 짝이 좋은 챔프"],
+      [/주 라인 성향/, "교차 출전 선수의 주 라인 챔프와 성향이 비슷한 이 라인 챔프"],
+      [/카운터 픽/, "지금 우리 같은 라인 챔프 상대로 강한 픽"],
+      [/(\S+) 카운터$/, (m) => `${m[1]} 상대로 라인전에서 유리한 챔프`],
+      [/조합/, "조합 방향(한타·돌진·포킹 등)에 맞는 픽"],
+    ];
+    for (const [re, v] of H) { const m = t.match(re); if (m) return typeof v === "function" ? v(m) : v; }
+    return why || "";
+  }
   const chipHtml = (x) => { const k = x.c === "bad" ? "bad" : x.k || "meta";
-    return `<span class="rc k-${k} ${x.c === "hot" || x.c === "threat" ? "rc-strong" : ""} ${x.c === "threat" ? "rc-threat" : ""}" title="${esc(CHIP_KO[k] + (x.why ? " · " + x.why : ""))}">${k === "bad" ? lbi("warn", 14) : lbi(CHIP_IC[k], 14)}<span>${esc(x.t)}</span></span>`; };
+    const hint = hintOf(x.t, x.why ? String(x.why).replace(/^기준: /, "강조 기준: ") : CHIP_KO[k]);
+    return `<span class="rc k-${k} ${x.c === "hot" || x.c === "threat" ? "rc-strong" : ""} ${x.c === "threat" ? "rc-threat" : ""}" data-hint="${esc(hint)}">${k === "bad" ? lbi("warn", 14) : lbi(CHIP_IC[k], 14)}<span>${esc(x.t)}</span></span>`; };
   // act: 카드를 누르면 할 일(실시간 밴픽 = 기록, 상대 팀 = 자세히 보기 모달)
   function recCardPC(r, type, muted, rank, fx, act) {
     const rs = (r.reasons || []).filter((x) => !REASON_SKIP.test(x.t));
@@ -663,7 +691,7 @@
     const lab = r.comp || r.label;
     const chips = recChips(r, muted, fx, lab);
     return `<button class="rec ${type} ${muted ? "muted" : ""} ${rank === 1 || r.comp ? "first" : ""} ${r.comp ? "comp" : ""}" data-act="${act || "pick"}" data-id="${r.id}" ${(act === "chdet" ? r.role || r.tgt : r.role) ? `data-role="${act === "chdet" ? r.role || r.tgt : r.role}"` : ""} aria-label="${esc(CH[r.id].ko + (act === "chdet" ? " 자세히 보기" : "") + (full ? " · " + full.replace(/\n/g, " · ") : ""))}">
-      <span class="hero">${icon(r.id, "hero").replace(/ title="[^"]*"/, "")}${rank ? `<b class="rk3" aria-label="${rank}순위">${rank}</b>` : ""}${lab ? `<span class="lab">${esc(lab)}</span>` : ""}</span>
+      <span class="hero">${icon(r.id, "hero").replace(/ title="[^"]*"/, "")}${rank ? `<b class="rk3" aria-label="${rank}순위">${rank}</b>` : ""}${lab ? `<span class="lab" data-hint="${esc(hintOf(lab, ""))}">${esc(lab)}</span>` : ""}</span>
       <span class="nm"><span class="cn">${esc(CH[r.id].ko)}</span>${r.role || r.tgt ? `<span class="pos">${ROLE_KO[r.role || r.tgt]}</span>` : ""}</span>
       ${chips.length ? `<span class="why rchips">${chips.map(chipHtml).join("")}</span>` : ""}
       ${r.answers && r.answers.length ? `<span class="ans">${lbi("counter", 15)}<span>대응: ${r.answers.slice(0, 2).map((id) => esc(CH[id].ko)).join("·")}</span></span>` : ""}</button>`;
@@ -682,7 +710,14 @@
   }
 
   let NOW_HEAD = null;   // PC: 머리 줄(차례 제목·라인 칸·조합 방향)을 따로 두려고
+  // 상대 밴 차례(상대가 우리를 밴): 상대가 우리 부계정까지 분석했는지 모르니 고르게(11-20 사용자) — 「대회 본계정만」이면 우리 팀은 본계정 기록만으로 계산
+  const ourHasAlts = () => { const t = team(S.ourTeam); return !!t && !t.solo && ROLES.some((r) => ((t.players[r] || {}).alts || []).some((a) => /#/.test(a || ""))); };
   function renderNow(split) {
+    const st = curStep(), mo = !!st && st[1] === "ban" && E.whoOfSide(S, st[0]) === "enemy" && S.ui.oppAlts === "main" && ourHasAlts();
+    if (mo) E.setMainOnly([S.ourTeam]);
+    try { return renderNowInner(split); } finally { if (mo) E.setMainOnly([]); }
+  }
+  function renderNowInner(split) {
     const st = curStep();
     if (!st) return `<div class="now-box"><div class="now-h"><span class="what">밴픽 완료</span><span class="step">아래 전략을 확인하세요</span></div></div>`;
     const [side, type] = st;
@@ -761,7 +796,8 @@
       body = `<div class="recs">${list.map((r, i) => recCard(r, type, who === "enemy", who === "our" || !MOB.matches ? i + 1 : 0, fxOf(r))).join("")}</div>`;
     }
     else body = `<div class="empty-recs">${who === "enemy" && !E.teamHasPools(t) ? "상대 챔프폭이 비어 있어 예상이 어렵습니다. 「상대팀 분석」에서 챔프폭을 넣으면 예상이 나옵니다." : "추천할 챔프가 없습니다. 아래에서 직접 고르세요."}</div>`;
-    NOW_HEAD = { step: title, tabs: roleTabs, dir: dirTxt };
+    const altSeg = who === "enemy" && type === "ban" && ourHasAlts() ? `<div class="seg alt-seg" role="group" aria-label="상대가 본 우리 기록" data-hint="상대가 우리 부계정 기록까지 분석했다고 볼지 — 대회 본계정만이면 부계정에서만 한 챔프는 덜 위험하게 봄"><span class="alt-seg-l">상대 분석</span><button data-act="oppalts" data-v="all" aria-pressed="${S.ui.oppAlts !== "main"}">부계정 포함</button><button data-act="oppalts" data-v="main" aria-pressed="${S.ui.oppAlts === "main"}">대회 본계정만</button></div>` : "";
+    NOW_HEAD = { step: title, tabs: roleTabs + altSeg, dir: dirTxt };
     if (split) return `<div class="now-box">${body}</div>`;
     return `<div class="now-box"><div class="now-h"><span class="what ${side}">${who === "our" ? "추천 순서" : "상대 예상"}</span><span class="step">${title}</span>${roleTabs}<span class="dir">${dirTxt}</span></div>${body}</div>`;
   }
@@ -1278,7 +1314,7 @@
         if (ar && ar.differs) warn = `등록 ${ROLE_KO[r]}인데 최근 ${ar.tot}판 중 ${ROLE_KO[ar.role]} ${ar.n}판`;
       }
     }
-    return `<div class="pfs">${row("부계정", alts.length ? `${alts.map(nick).join(" · ")} (${ROLE_KO[r]} 판만)` : "")}${row("티어", p.tier ? `${p.tier} · ${p.pts}점` : `${p.pts}점`)}${row("시즌", season)}${row(since, recent)}${row("주의", warn, "bad")}</div>`;
+    return `<div class="pfs">${row("부계정", alts.length ? `${alts.map(nick).join(" · ")} (${ROLE_KO[r]} 판만)` : "")}${row("티어", p.tier || "")}${row("시즌", season)}${row(since, recent)}${row("주의", warn, "bad")}</div>`;
   }
   function recentLine(t, r) {
     const R = window.RECENT;
@@ -1375,7 +1411,7 @@
         const one = async (id) => { const t0 = Date.now(); IQ.pWaited = false; const x = await poolOf(id, wait, opt.waits); if (opt.acc) opt.acc(Date.now() - t0); return x; };
         const main = base || (await one(riot)); if (!main) { fail++; if (opt.each) opt.each(`${tid}|${r}`); continue; }
         const altPools = []; for (const a of alts) { const x = await one(a); if (x) altPools.push(x); else fail++; }
-        const merged = mergePool([main, ...altPools]);
+        const merged = mergePool([main, ...altPools]); if (altPools.length) merged.mo = { n: main.n, w: main.w, roleN: main.roleN, champs: main.champs, ...(main.s ? { s: main.s } : {}), ...(main.f ? { f: main.f } : {}) };
         if (tid === S.ourTeam) added.push(...addAltChamps(t, r, altPools));
         const m = qpLoad(); m[`${tid}|${r}`] = { ...merged, riot, quick: true, accs: qpAccs(t, r), fetchedAt: Date.now() }; qpSave(m); got++;
         if (opt.each) opt.each(`${tid}|${r}`);
@@ -2109,8 +2145,8 @@
       const learn = [...new Set(study.flatMap((x) => x.learn))].slice(0, 4);
       const risky = [...new Set(study.flatMap((x) => x.risky))];
       return `<tr><td data-label="라인"><b>${ROLE_KO[r]}</b></td>
-        <td data-label="상대 선수"><a href="${opgg(p.riot)}" target="_blank" rel="noopener">${esc(nick(p.riot))}</a><div class="help">${esc(p.tier)} · ${p.pts}점${totalTxt(en, r)}</div>${recentLine(en, r)}</td>
-        <td data-label="우리 선수">${esc(nick(o.riot))}<div class="help">${esc(o.tier)} · ${o.pts}점${totalTxt(ours, r)}</div></td>
+        <td data-label="상대 선수"><a href="${opgg(p.riot)}" target="_blank" rel="noopener">${esc(nick(p.riot))}</a><div class="help">${esc(p.tier)}${totalTxt(en, r)}</div>${recentLine(en, r)}</td>
+        <td data-label="우리 선수">${esc(nick(o.riot))}<div class="help">${esc(o.tier)}${totalTxt(ours, r)}</div></td>
         <td data-label="점수 차"><span class="pill ${gap >= 15 ? "good" : gap <= -15 ? "bad" : ""}">${gap > 0 ? "+" : ""}${gap}</span></td>
         <td data-label="상대 챔프폭"><div class="row-chips">${poolChips(en, r)}</div></td>
         <td data-label="우리 대응 가능"><div class="row-chips">${have.map((id) => `<span class="chip">${icon(id, "sm")}${esc(CH[id].ko)}</span>`).join("") || `<span class="dim">-</span>`}</div></td>
@@ -2607,7 +2643,7 @@
       const mainIt = list.find((x) => rkKey(x.acc) === rkKey(p.riot)), main = mainIt && mainIt.need ? mainIt.pool : seasonBase(tid, r, p.riot);
       const alts = list.filter((x) => x !== mainIt && x.pool).map((x) => x.pool);
       if (!main) return;
-      qm[lk] = { ...mergePool([main, ...alts]), riot: p.riot, quick: true, accs: qpAccs(t, r), fetchedAt: Math.max(...list.map((x) => x.t2 || x.t1 || 0), Date.now() - 1000) }; qChanged = true;
+      qm[lk] = { ...mergePool([main, ...alts]), ...(alts.length ? { mo: { n: main.n, w: main.w, roleN: main.roleN, champs: main.champs, ...(main.s ? { s: main.s } : {}), ...(main.f ? { f: main.f } : {}) } } : {}), riot: p.riot, quick: true, accs: qpAccs(t, r), fetchedAt: Math.max(...list.map((x) => x.t2 || x.t1 || 0), Date.now() - 1000) }; qChanged = true;
       if (tid === S.ourTeam && alts.length) addAltChamps(t, r, alts);
       lanes.add(lk);
     });
@@ -3138,6 +3174,22 @@
     t.altNo = [...(t.altNo || []).filter((x) => x !== v), v].slice(-30); save(); render();
     toast(`${riot} — 부계정 아님으로 표시(팀원 모두에게 숨김)`);
   }
+  // 알약 말풍선: [data-hint]에 마우스를 올리면 화면 위에 한 줄(카드 overflow에 안 잘리게 fixed)
+  (function hintBubble() {
+    let el = null, cur = null;
+    const hide = () => { if (el) el.classList.remove("on"); cur = null; };
+    document.addEventListener("mouseover", (ev) => {
+      const t = ev.target && ev.target.closest && ev.target.closest("[data-hint]");
+      if (!t || !t.dataset.hint) { if (cur) hide(); return; }
+      if (t === cur) return; cur = t;
+      if (!el) { el = document.body.appendChild(Object.assign(document.createElement("div"), { className: "hint-bubble" })); el.setAttribute("role", "tooltip"); }
+      el.textContent = t.dataset.hint; el.classList.add("on");
+      const r = t.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+      const x = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)), y = r.top - h - 8 < 8 ? r.bottom + 8 : r.top - h - 8;
+      el.style.left = x + "px"; el.style.top = y + "px";
+    });
+    document.addEventListener("scroll", hide, true);
+  })();
   // 사이드바 사람+ 버튼(11-20 사용자): 대회마다 팀이 다른 사람이 다른 팀 초대 코드를 넣어 들어가고, 내 다른 팀으로 바로 바꿈
   const JP = { open: false, val: "", msg: "", busy: false };
   function joinCard() {
@@ -4443,7 +4495,7 @@
       const have = uniq(study.flatMap((x) => x.have)).filter((id) => CH[id]).slice(0, 2);
       const risky = uniq(study.flatMap((x) => x.risky)).filter((id) => CH[id]).slice(0, 2);
       const pr = P && P.players[r] ? P.players[r].picks.filter((x) => CH[x.id]).slice(0, 3) : [];
-      return `<article class="mv-ec"><div class="mv-ec-h"><span class="mv-r">${ROLE_KO[r]}</span><b>${esc(nick(p.riot) || "-")}</b><span class="help">${esc(p.tier || "")}${p.pts ? ` · ${p.pts}점` : ""}</span><span class="mv-ec-n">${i + 1} / 5</span></div>
+      return `<article class="mv-ec"><div class="mv-ec-h"><span class="mv-r">${ROLE_KO[r]}</span><b>${esc(nick(p.riot) || "-")}</b><span class="help">${esc(p.tier || "")}</span><span class="mv-ec-n">${i + 1} / 5</span></div>
         <div class="mv-ec-s"><span class="mv-k">주력</span>${top.length ? `<div class="mv-ec-c">${top.map(([id, e]) => `<span class="mv-cell">${icon(id).replace(/ title="[^"]*"/, "")}<span class="n">${ko(id)}</span><span class="sub">${lvKo(e)}</span></span>`).join("")}</div>` : `<span class="dim">챔프폭·전적 없음</span>`}</div>
         <div class="mv-ec-s"><span class="mv-k">연습 중</span><div class="cpills">${pr.map((x) => `<span class="cp ${x.new ? "gold" : ""}">${ko(x.id)} ${x.g}판${x.new ? " · 새 픽" : ""}</span>`).join("") || `<span class="dim">자료 없음</span>`}</div></div>
         <div class="mv-ec-s"><span class="mv-k">우리 대응</span><div class="cpills">${have.map((id) => `<span class="cp good">${ko(id)}</span>`).join("")}${risky.map((id) => `<span class="cp bad">${ko(id)} 주의</span>`).join("") || (have.length ? "" : `<span class="dim">-</span>`)}</div></div></article>`;
@@ -4661,6 +4713,7 @@
       case "susadd": suspectAdd(el.dataset.tid, el.dataset.r, el.dataset.riot); break;
       case "susno": suspectNo(el.dataset.tid, el.dataset.riot, el.dataset.id); break;
       case "altview": S.ui.altView = el.dataset.v; save(); render(); break;
+      case "oppalts": S.ui.oppAlts = el.dataset.v; save(); render(); break;
       case "altteam": S.ui.altTeam = el.dataset.v; save(); render(); break;
       case "altsel": S.ui.altSel = S.ui.altSel === el.dataset.v ? "" : el.dataset.v; save(); render(); break;
       case "jpgo": joinByCode(); break;

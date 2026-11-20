@@ -26,10 +26,14 @@ window.Engine = (function () {
     const m = queueMode(), q = m === "solo" ? x.s : m === "flex" ? x.f : null;
     return q ? { ...x, ...q } : x;
   }
+  // 대회 본계정만 보기(11-20 사용자): 실시간 밴픽에서 「상대가 우리 부계정까지는 모른다」로 고르면 그 팀은 본계정 기록(mo)만
+  let MAIN_ONLY = new Set();
+  function setMainOnly(ids) { MAIN_ONLY = new Set(ids || []); }
   function scoutOf(team, role) {
     const ok = (x) => x && !x.error && (!x.riot || x.riot === team.players[role].riot);   // 계정이 바뀌었으면 옛 기록 무시
     const R = window.RECENT;
-    const rs0 = R && R.status === "ok" && R.season && team && R.season[team.id] && R.season[team.id][role];
+    let rs0 = R && R.status === "ok" && R.season && team && R.season[team.id] && R.season[team.id][role];
+    if (rs0 && rs0.mo && MAIN_ONLY.has(team.id)) rs0 = { ...rs0, ...rs0.mo };
     if (ok(rs0)) { const rs = byQueue(rs0), flex = queueMode() === "flex" && rs0.f;
       return { riot: rs0.riot, tier: flex ? rs0.tierFlex : rs0.tier, src: "riot", total: { g: rs.n, w: rs.w }, roleN: rs.roleN, champs: rs.champs, quick: !!rs0.quick }; }
     const S = window.SCOUT;
@@ -213,7 +217,7 @@ window.Engine = (function () {
       const e = crossCap(statEntry({ ...x, g: x.g, w: x.w, mp: x.mp || 0 }, roleTotal, role, weigh(x.id, x.g, x.w, [0, 0])), x);
       if (e) { e.rg = x.g; e.rw = x.w; e.score = Math.min(e.score, 0.59); e.lv = e.score >= 0.35 ? 2 : 1; stats[x.id] = e; }   // 랭크 기록 밖 챔프는 「중」까지
     });
-    const manual = p.pool || [];
+    const manual = MAIN_ONLY.has(team.id) ? (p.pool || []).filter(([id]) => !(p.altSeen || []).includes(id)) : p.pool || [];   // 본계정만: 부계정에서 들어온 챔프는 뺌
     manual.forEach(([id, lv, one]) => {
       const st = stats[id];
       // 자기평가 우선: 점수는 본인이 정한 자신감으로, 전적은 참고 표시만
@@ -1607,7 +1611,7 @@ window.Engine = (function () {
       const e = champId ? pm[champId] : null;
       const why = [];
       let t = (p.pts || 40) / 10;
-      if ((p.pts || 0) >= 60) why.push(`${p.tier} (${p.pts}점)`);
+      if ((p.pts || 0) >= 60) why.push(p.tier);   // 11-20 사용자: 내부 점수(90점 등)는 보이지 않게
       if (e) { t += e.score * 6; if (e.g) why.push(`${ko(champId)} ${statText(e)}`); }
       else if (picked) t += 0.4 * 6; // 기록에 없는 챔프를 꺼냈어도 선수 기본 실력은 남는다
       if (e && e.one) t += 3;
@@ -1991,7 +1995,7 @@ window.Engine = (function () {
 
   return {
     champ, ko, j, poolMap, setOurTeam, scoutOf, statText, lvScore, levelOf, teamHasPools, fit, compScores, buildComp, teamComps, fearlessPlan,
-    picks, bans, taken, available, openRoles, crossOf, teamOf, guessRole, pickRole, scenarios, flexRoles, sylasRisk, pairBonus, direction, sideOf, whoOfSide,
+    picks, bans, taken, available, openRoles, crossOf, setMainOnly, teamOf, guessRole, pickRole, scenarios, flexRoles, sylasRisk, pairBonus, direction, sideOf, whoOfSide,
     facts, nowFacts, cardPills, liveComps, enemyCompSet, answerComp, goalAnchors, goalPlan, recommendBan, recommendPick, buildStrategy, laneStudy, lockedFor, pickPlan, keyThreats, metaInfo, metaText, muWr, predictRole, hoverInfo, recentOf, actualRole, stacksOf, groupsOf, duoSuggest, proDuo, practiceOf, practicePick, practiceText,
   };
 })();
