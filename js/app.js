@@ -756,7 +756,7 @@
       if (ps) {
         let card = list.find((x) => x.id === ps.id);
         if (!card) card = { id: ps.id, tgt: ps.er, reasons: [{ t: "밴픽 설계", d: ps.notes.map((x) => x.t).join(" · "), v: 1 }] };
-        list = [card].concat(list.filter((x) => x !== card)).slice(0, 6);
+        list = [card].concat(list.filter((x) => x !== card)).slice(0, recN);   // 6개로 잘라서 우리 밴 차례만 카드가 적었음(11-20 사용자) — 다른 차례와 같게
         card.comp = "밴픽 설계";
       }
     }
