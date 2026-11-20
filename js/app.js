@@ -168,7 +168,7 @@
   const rosterCan = () => !!(SPACE && !SPACE.bad && WURL() && SPACE.id !== "subin");
   function rosterOf() {
     const ok = (v) => /^[^#<>"'`\\]{1,32}#[^#<>"'`\\]{1,8}$/.test(String(v || "").trim());
-    return { teams: S.teams.filter((t) => !t.solo).slice(0, 40).map((t) => ({ id: t.id, name: String(t.name || "팀").replace(/[<>"`\\]/g, "").slice(0, 30) || "팀", our: t.id === S.ourTeam,
+    return { teams: S.teams.filter((t) => !t.solo).slice(0, 40).map((t) => ({ id: t.id, name: String(t.name || "팀").replace(/[<>"`\\]/g, "").slice(0, 30) || "팀", our: t.id === S.ourTeam, altNo: (t.altNo || []).filter(ok).slice(-30),
       players: Object.fromEntries(ROLES.map((r) => { const p = t.players[r] || {}; return [r, { riot: ok(p.riot) ? String(p.riot).trim() : "", alts: (p.alts || []).filter(ok).map((a) => String(a).trim()).slice(0, 2) }]; })) })) };
   }
   function rosterChanged() {
@@ -199,6 +199,7 @@
         if (t.name !== rt.name && rt.id !== SPACE.id) { t.name = rt.name; changed = true; }
         ROLES.forEach((r) => { const p = t.players[r] || (t.players[r] = { riot: "", alts: [], tier: "", pts: 50, pool: [] }), q = rt.players[r] || {};
           if ((p.riot || "") !== (q.riot || "") || JSON.stringify((p.alts || []).filter(Boolean)) !== JSON.stringify(q.alts || [])) { p.riot = q.riot || ""; p.alts = (q.alts || []).slice(); changed = true; } });
+        if (JSON.stringify(t.altNo || []) !== JSON.stringify(rt.altNo || [])) { t.altNo = (rt.altNo || []).slice(); changed = true; }
       });
       const before = S.teams.length;
       S.teams = S.teams.filter((t) => t.solo || ids.has(t.id) || t.id === SPACE.id);
@@ -435,7 +436,7 @@
   // ---------- 새 디자인(PC) 사이드바·머리줄 ----------
   const guest = () => !(SPACE && !SPACE.bad);
   const GUEST_TABS = ["live", "our"];   // our = 로그인·팀 만들기 화면
-  const SIDE_MENU = [["our", "home", "홈"], ["live", "draft", "실시간 밴픽"], ["vision", "vision", "공부자료"], ["notes", "note", "피드백 노트"]];
+  const SIDE_MENU = [["our", "home", "홈"], ["live", "draft", "실시간 밴픽"], ["vision", "vision", "공부자료"], ["notes", "note", "피드백 노트"], ["alts", "scout", "부계정 찾기"]];
   function renderSideNav() {
     const el = document.getElementById("side");
     if (!el) return;
@@ -459,7 +460,7 @@
     const jf = document.activeElement && document.activeElement.id === "jpCode" ? document.activeElement.selectionStart : -1;
     queueMicrotask(() => { const j = jf >= 0 && document.getElementById("jpCode"); if (j && document.activeElement !== j) { j.focus(); try { j.setSelectionRange(jf, jf); } catch (e) { /* 무시 */ } } });
     el.innerHTML = `<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">${LOGO_MARK}<span>lolban<i>.</i></span></a>
-      ${SIDE_MENU.map(([k, ic, n]) => `<button class="tab sd-mi" data-tab="${k}" aria-selected="${S.tab === k}">${lbi(ic, 22)}${n}</button>`).join("")}
+      ${SIDE_MENU.map(([k, ic, n]) => { const nb = k === "alts" ? suspectList().length : 0; return `<button class="tab sd-mi" data-tab="${k}" aria-selected="${S.tab === k}">${lbi(ic, 22)}${n}${nb ? `<span class="sd-badge" aria-label="의심 ${nb}개">${nb}</span>` : ""}</button>`; }).join("")}
       <div class="sd-sec">우리 팀</div>
       ${our ? `<div class="sd-tmw our-w"><button class="tab sd-tm our" data-tab="team" aria-current="${S.tab === "team"}">${crestOf(our, "b")}<span class="nm" title="${esc(our.name)}">${esc(our.name)}</span></button>${sp ? `<button class="sd-tm-inv" data-act="joinpop" aria-expanded="${JP.open}" aria-label="다른 팀 초대 코드 입력">${lbi("invite", 20)}</button>` : ""}</div>`
         : `<button class="sd-tm sd-new" data-act="team">${lbi("plus", 20)}<span class="nm">팀 만들기</span></button>`}
@@ -524,7 +525,7 @@
       c = `<span class="mh-t">${crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b")}<span class="tb">${esc(ourName)}</span></span><span class="mh-s">연습 기간 ${since}~${g ? ` · 함께 한 경기 ${g.length}판 ${g.filter((x) => x.win).length}승` : ""}</span>`;
     } else {
       const VS = window.VISION, nD = typeof allDrills === "function" && VS ? allDrills().length : 0, nOk = Object.values(S.ui.dScore || {}).filter(Boolean).length;
-      const T = { team: ["우리 팀", `${esc(ourName)} · 선수·챔프폭 · 팀원 초대`], vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"] }[S.tab] || ["", ""];
+      const T = { team: ["우리 팀", `${esc(ourName)} · 선수·챔프폭 · 팀원 초대`], vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자유랭크에서 같은 5명이 여러 날 모인 기록으로 찾음"] }[S.tab] || ["", ""];
       c = `<b class="mh-t">${T[0]}</b><span class="mh-s">${T[1]}</span>`;
     }
     el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}${hdMe()}</div>`;
@@ -2413,7 +2414,10 @@
         return `<div class="alt-ok"><span class="alt-n">${esc(nick(a))}<small>#${esc(String(a).split("#")[1] || "")}</small></span><span class="alt-st ${st}">${st === "in" ? "✓ 챔프폭 합침" : st === "wait" ? "챔프폭 받는 중…" : "적용됨 · 챔프폭은 기록 갱신 때"}</span><button type="button" class="sd-altdel" data-act="altdel" data-team="${t.id}" data-role="${r}" data-k="${k}" aria-label="부계정 ${esc(a)} 지우기" title="부계정 지우기"><svg class="ico-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`; }).join("");
       const add = alts.length < 2 ? `<form class="alt-new" data-alt-form="${r}"><input class="input alt-in" data-altin="${r}" value="${esc(f.v || "")}" placeholder="부계정 ${alts.length + 1} 이름#태그" aria-label="${ROLE_KO[r]} 부계정 ${alts.length + 1}" autocomplete="off"><button type="submit" class="btn sm">찾기</button></form>
         <p class="alt-res" id="altres-${r}" aria-live="polite">${f.html || ""}</p>` : `<p class="help alt-max">부계정은 라인마다 2개까지</p>`;
-      return `<div class="ed-alts2">${rows}${add}</div>`; };
+      // 부계정 찾기 결과 중 이 라인 의심 계정(11-20) — 한 번에 넣기
+      const sus = alts.length < 2 ? suspectList().filter((it) => it.t.id === t.id && it.x.role === r) : [];
+      const susH = sus.length ? `<div class="alt-sus"><small>부계정 의심</small>${sus.map((it) => `<span class="alt-sus-i"><b>${esc(nick(it.x.riot))}<small>#${esc(String(it.x.riot).split("#")[1] || "")}</small></b><span class="help">같은 5명 ${it.x.days.length}일 ${it.x.g}판</span><button type="button" class="btn sm" data-act="susadd" data-tid="${esc(t.id)}" data-r="${r}" data-riot="${esc(it.x.riot)}">넣기</button></span>`).join("")}</div>` : "";
+      return `<div class="ed-alts2">${rows}${susH}${add}</div>`; };
     const altMode = editMode === "alts" && t.id !== S.ourTeam && !t.solo;
     const who = (p) => `<span class="ed-who">${esc(nick(p.riot) || "계정 없음")}${p.riot ? `<small>#${esc(String(p.riot).split("#")[1] || "")}</small>` : ""}</span>`;
     // 챔프폭 편집 줄 머리: 본계정 + 부계정(그 부계정 기록이 챔프폭에 합쳐졌는지까지 — 11-20 사용자 지적 「미드 처음 계정 하나만 나옴」)
@@ -3036,6 +3040,62 @@
         : `<button class="n-new" data-act="lgcode">초대 코드 만들기</button>`) : `<p class="help">팀원 초대 코드는 팀장이 만듭니다</p>`}
       ${others.length ? `<p class="help">다른 팀: ${others.map((x) => `<button class="nc-a" data-act="lgswitch" data-id="${x.id}">${esc(x.name)}</button>`).join(" · ")}</p>` : ""}
       <span class="sd-btns"><button class="soft-b bad" data-act="lgleave">팀 나가기</button><button class="nc-a del" data-act="lgdel">탈퇴</button></span>${note}</div>`;
+  }
+  // ---------- 부계정 찾기(11-20 사용자 결정) ----------
+  // 0시 수집(tools/recent.py alt_suspects)이 자유랭크 「같은 5명이 2일 이상」 묶음에서 찾은 의심 계정. 이미 넣었거나 「아님」한 계정은 뺌
+  function suspectList() {
+    const R = window.RECENT; if (!R || !R.suspects || guest()) return [];
+    const key = (a) => normId(String(a || "")).toLowerCase(), out = [];
+    S.teams.filter((t) => !t.solo).forEach((t) => (R.suspects[t.id] || []).forEach((x) => {
+      const p = t.players[x.role]; if (!p) return;
+      const have = [p.riot, ...((p.alts || altsOf(t.id, x.role)) || [])].filter(Boolean).map(key);
+      const any = S.teams.some((tt) => !tt.solo && ROLES.some((r) => tt.players[r] && [tt.players[r].riot, ...(tt.players[r].alts || [])].filter(Boolean).map(key).includes(key(x.riot))));
+      if (have.includes(key(x.riot)) || any || (t.altNo || []).map(key).includes(key(x.riot))) return;
+      out.push({ t, x });
+    }));
+    return out.sort((a, b) => (a.t.id === S.ourTeam) - (b.t.id === S.ourTeam) || (a.x.grade !== "high") - (b.x.grade !== "high") || b.x.days.length - a.x.days.length);
+  }
+  function suspectCard({ t, x }, mini) {
+    const p = t.players[x.role], ev = x.ev || {}, hi = x.grade === "high";
+    const lines = [
+      `같은 5명이 <b>${x.days.length}일</b>(${x.days.map(esc).join("·")}) ${x.g}판 ${x.w}승 · 대회 계정 ${x.reg}명과 함께`,
+      ev.role ? `주로 ${ROLE_KO[x.role]}(${x.onRole}/${x.g}판)` : `${ROLE_KO[x.role]} 자리가 비어 맞춤 · 주로 ${Object.entries(x.pos || {}).sort((a, b) => b[1] - a[1]).map(([k]) => ROLE_KO[k]).slice(0, 2).join("·") || "?"}`,
+      ev.champ ? `본계정 챔프와 겹침: ${x.hit.map((id) => esc((CH[id] || {}).ko || id)).join("·")}` : `쓴 챔프: ${x.champs.map((id) => esc((CH[id] || {}).ko || id)).join("·")}`,
+      `본계정 준비 기간 ${x.mainN}판${ev.rest ? " · 거의 안 함" : ""}${x.lvl ? ` · 의심 계정 레벨 ${x.lvl}` : ""}`,
+    ];
+    return `<article class="as-card ${hi ? "hi" : ""}"><div class="as-h"><span class="as-g">${hi ? "부계정 가능성 높음" : "부계정 의심"}</span><span class="as-t">${esc(t.name)} · ${ROLE_KO[x.role]}</span></div>
+      <div class="as-who"><span class="as-main" title="${esc(p.riot)}">${esc(nick(p.riot) || "—")}</span><span class="as-ar" aria-hidden="true">→</span><a class="as-sus" href="${opgg(x.riot)}" target="_blank" rel="noopener">${esc(nick(x.riot))}<small>#${esc(String(x.riot).split("#")[1] || "")}</small></a></div>
+      ${mini ? "" : `<ul class="as-ev">${lines.map((l) => `<li>${l}</li>`).join("")}</ul><p class="help as-note">용병(아무나 구해서 낀 판)일 수도 있습니다 · 같은 시간에 본계정이 다른 게임 중이던 계정은 이미 뺐습니다</p>`}
+      <div class="as-act"><button class="btn sm primary" data-act="susadd" data-tid="${esc(t.id)}" data-r="${x.role}" data-riot="${esc(x.riot)}" ${((p.alts || []).filter(Boolean).length >= 2) ? `disabled title="부계정은 라인당 2개까지"` : ""}>부계정으로 추가</button><button class="btn sm ghost" data-act="susno" data-tid="${esc(t.id)}" data-riot="${esc(x.riot)}">아님</button></div></article>`;
+  }
+  function renderAltFind() {
+    const R = window.RECENT, list = suspectList();
+    const at = R && R.at ? `${esc(R.at)} 수집 기준` : "아직 수집 자료 없음";
+    if (!R || !R.suspects) return `<div class="as-pg"><p class="help">${at} · 다음 0시 수집부터 부계정 의심을 찾습니다.</p></div>`;
+    const groups = {}; list.forEach((it) => (groups[it.t.id] = groups[it.t.id] || []).push(it));
+    return `<div class="as-pg"><p class="help as-top">${at} · 대회 계정이 1명 이상 낀 자유랭크에서 <b>완전히 같은 5명</b>이 2일 이상 모였을 때, 그 묶음에 빠진 라인 선수의 부계정으로 의심합니다. 하루뿐인 묶음·본계정이 같은 시간에 다른 게임 중이던 계정은 뺐습니다.</p>
+      ${list.length ? Object.values(groups).map((g) => `<section class="as-sec"><h3>${esc(g[0].t.name)}${g[0].t.id === S.ourTeam ? " <small>우리 팀</small>" : ""}</h3><div class="as-grid">${g.map((it) => suspectCard(it)).join("")}</div></section>`).join("")
+        : `<div class="as-empty">${lbi("scout", 28)}<b>지금은 의심 계정이 없습니다</b><span class="help">0시 수집마다 다시 찾습니다</span></div>`}</div>`;
+  }
+  async function suspectAdd(tid, r, riot) {
+    const t = team(tid), p = t && t.players[r]; if (!p) return;
+    const alts = ((p.alts || altsOf(tid, r)) || []).filter(Boolean);
+    if (alts.length >= 2) { toast("부계정은 라인당 2개까지입니다 — 편집 창에서 하나를 빼고 다시"); return; }
+    let id = riot, val = null;
+    try { const res = await wfetch(`/riot/check?id=${encodeURIComponent(riot)}`); const d = await res.json().catch(() => ({}));
+      if (res.ok && d.status === "ok" && d.exists === false) { toast(`${riot} — Riot에 없는 계정입니다(닉네임이 바뀌었을 수 있음)`); return; }
+      if (res.ok && d.status === "ok" && d.exists) { id = d.riot || riot; val = { ...(d.solo ? { s: lowLp(d.solo) } : {}), ...(d.flex ? { f: lowLp(d.flex) } : {}) }; }
+    } catch (e) { /* 확인 못 해도 넣음 */ }
+    p.alts = [...alts, id]; if (val) { p.rk = { ...(p.rk || {}), [rkKey(id)]: val }; applyTiers(); }
+    const k = tid + "|" + r; ALTQ[k] = true;
+    save(); shareChanged(tid, r); if (editing) renderEditor(); render();
+    toast(`${t.name} ${ROLE_KO[r]} 부계정 ${id} 추가 — 챔프폭 받는 중`);
+    try { await quickPools([[tid, r]], true); } finally { delete ALTQ[k]; if (editing) renderEditor(); render(); }
+  }
+  function suspectNo(tid, riot) {
+    const t = team(tid); if (!t) return;
+    t.altNo = [...(t.altNo || []).filter((x) => x !== riot), riot].slice(-30); save(); render();
+    toast(`${riot} — 부계정 아님으로 표시(팀원 모두에게 숨김)`);
   }
   // 사이드바 사람+ 버튼(11-20 사용자): 대회마다 팀이 다른 사람이 다른 팀 초대 코드를 넣어 들어가고, 내 다른 팀으로 바로 바꿈
   const JP = { open: false, val: "", msg: "", busy: false };
@@ -4457,7 +4517,7 @@
     const keepEd = !mob && S.tab === "team" ? document.getElementById("setEd") : null;
     const keepEdF = keepEd && keepEd.contains(document.activeElement) ? keepEd : null;
     const edAE = keepEdF ? document.activeElement : null;
-    v.innerHTML = mobV ? mobV() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderStudyPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : S.tab === "team" ? (mob ? renderSettings() : renderTeamPC()) : (mob ? renderEnemy() : renderEnemyPC());
+    v.innerHTML = mobV ? mobV() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderStudyPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : S.tab === "team" ? (mob ? renderSettings() : renderTeamPC()) : S.tab === "alts" ? renderAltFind() : (mob ? renderEnemy() : renderEnemyPC());
     if (!mob && S.tab === "team") { const ph = document.getElementById("setEd"); if (ph) { if (keepEdF && keepEdF.dataset.team === setTeamPC()) { ph.replaceWith(keepEdF); if (edAE && keepEdF.contains(edAE)) { const c = edAE.selectionStart; edAE.focus(); try { edAE.setSelectionRange(c, c); } catch (e) { /* select */ } } } else renderEditor(); } }
     // 휴대폰: 챔프 고르기·「⋯」 메뉴는 화면 아래 시트로
     const ms = document.getElementById("msheet") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "msheet" }));
@@ -4557,6 +4617,8 @@
         teamAction(a); break;
       case "invite": copyInvite(); break;
       case "joinpop": joinPop(); break;
+      case "susadd": suspectAdd(el.dataset.tid, el.dataset.r, el.dataset.riot); break;
+      case "susno": suspectNo(el.dataset.tid, el.dataset.riot); break;
       case "jpgo": joinByCode(); break;
       case "pickenemy": if (el.dataset.id && team(el.dataset.id)) { S.enemyTeam = el.dataset.id; syncQueue(true); S.tab = "enemy"; MV.more = false; save(); render(); window.scrollTo(0, 0); } break;
       case "gotab": S.tab = el.dataset.k; MV.more = false; save(); render(); window.scrollTo(0, 0); break;

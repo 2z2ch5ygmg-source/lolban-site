@@ -1237,3 +1237,26 @@ html.auth-on body > :not(#authpg):not(script):not(.toast):not(#toast) { display:
 .ap-foot { text-align: center; padding: 18px 0 24px; font-size: 12px; color: var(--muted); }
 .ap-foot a { color: inherit; }
 @media (max-width: 480px) { .ap-card { padding: 28px 20px 22px; border-radius: 16px; } .ap-card h1 { font-size: 23px; } }
+
+/* 부계정 찾기(11-20) */
+.sd-badge { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--red); color: #fff; font-size: 12px; font-weight: 800; display: inline-grid; place-items: center; }
+.as-pg { display: grid; gap: 24px; max-width: 1200px; }
+.as-top { margin: 0; max-width: 820px; line-height: 1.6; }
+.as-sec { display: grid; gap: 12px; } .as-sec h3 { margin: 0; font-size: 17px; } .as-sec h3 small { font-size: 12px; color: var(--muted); font-weight: 600; margin-left: 6px; }
+.as-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 12px; }
+.as-card { display: grid; gap: 10px; padding: 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+.as-card.hi { border-color: var(--red); }
+.as-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.as-g { font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--bg2); color: var(--muted); }
+.as-card.hi .as-g { background: var(--bad-bg); color: var(--bad); }
+.as-t { font-size: 13px; color: var(--muted); font-weight: 600; }
+.as-who { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: 16px; }
+.as-main { color: var(--muted); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40%; }
+.as-ar { color: var(--muted); }
+.as-sus { font-weight: 800; color: var(--text); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .as-sus small { font-weight: 500; color: var(--muted); } .as-sus:hover { color: var(--hi); }
+.as-ev { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; line-height: 1.5; color: var(--text); }
+.as-note { margin: 0; font-size: 12px; }
+.as-act { display: flex; gap: 8px; }
+.as-empty { display: grid; justify-items: center; gap: 6px; padding: 48px 16px; color: var(--muted); text-align: center; }
+.alt-sus { display: grid; gap: 6px; padding: 10px; border-radius: 10px; background: var(--bad-bg); } .alt-sus > small { font-size: 12px; font-weight: 700; color: var(--bad); }
+.alt-sus-i { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .alt-sus-i b small { font-weight: 500; color: var(--muted); } .alt-sus-i .btn { margin-left: auto; }
