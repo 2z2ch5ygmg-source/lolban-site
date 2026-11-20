@@ -1241,7 +1241,11 @@ window.Engine = (function () {
       }
       const brp = bctxP && o.best && !o.enemyLaner ? blindRisk(bctxP, r, o.best.id) : null;
       if (brp && !safe) { u -= Math.min(2, brp.v / 4); W("risk", "받아치기 위험", `상대 ${brp.names}가 아직 남음 → ${j(bestName, "은", "는")} 상대가 그 라인을 뽑은 뒤가 안전`, [o.best.id, ...brp.hits.map((h) => h.id)], `${bestName} ← 상대 ${brp.short}`); }
-      if (!o.enemyLaner && solo && !safe) {
+      // 미드 선픽 가능(11-21 사용자): 대회에서 평균 1~2라운드에 뽑히거나 밴픽 우선도가 높은 미드(아지르·오리아나 등)는 상대 미드를 몰라도 먼저 뽑아도 됨
+      const miM = r === "M" && o.best && !o.enemyLaner ? metaInfo(o.best.id, r) : null;
+      const midBlind = !!(miM && ((miM.rp && miM.rp <= 1.8 && miM.games >= 150 && miM.prio >= 30) || miM.prio >= 45));
+      if (midBlind && !safe) W("safe", "선픽 가능 미드", `${j(bestName, "은", "는")} 대회에서 ${miM.rp ? `평균 ${miM.rp}라운드에 뽑는` : "밴픽 우선도가 높은"} 미드 → 상대 미드를 몰라도 먼저 뽑아도 됨`, [o.best.id], miM.rp ? `대회 평균 ${miM.rp}라운드 픽` : `대회 밴픽 ${Math.round(miM.prio)}%`);
+      if (!o.enemyLaner && solo && !safe && !midBlind) {
         u -= solo;
         if (o.best && (COUNTERS[o.best.id] || []).length >= 3) u -= 1;
         W("wait", "상대 보고", r === "T" ? "탑은 상대 탑을 보고 카운터로 뽑기" : "미드는 상대 미드 확인 후가 안전");
@@ -1272,16 +1276,28 @@ window.Engine = (function () {
     let order = scored.map((x) => x.r);
     const freeSlots = slots.map((s) => ({ ...s, free: s.idxs.filter((i) => !state.draft.steps[i].champ) })).filter((s) => s.free.length);
     let duo = false;
+    let duoLate = false;
     if (order.includes("A") && order.includes("S")) {
       const pair = freeSlots.filter((s) => s.free.length === 2);
-      if (pair.length) {
-        const posOf = (s) => remainingIdx.indexOf(s.free[0]);
-        const first = Math.min(order.indexOf("A"), order.indexOf("S"));
-        const target = pair.sort((a, b) => Math.abs(posOf(a) - first) - Math.abs(posOf(b) - first))[0];
-        const p = posOf(target);
-        order = order.filter((x) => x !== "A" && x !== "S");
-        order.splice(Math.min(p, order.length), 0, "A", "S");
-        duo = true;
+      // 11-21 사용자 「레드는 늘 바텀이 1·2픽」: 대회 순서에서 레드 뒤쪽 픽은 R4 → (블루 둘) → R5라 붙은 두 칸이 R1·2뿐이었음
+      //   → 붙은 두 칸들 + 「남은 마지막 두 픽」(떨어져 있어도)을 후보로 넣어 보고 점수 비교
+      //   점수 = 우선도 높은 라인이 앞일수록 큼(Σ u × 남은 칸 수) + 바텀을 마지막 두 픽에 두면 상대 바텀을 보고 고르는 값(받아치기 위험이 있으면 더 큼)
+      const n = order.length, uOf = Object.fromEntries(scored.map((x) => [x.r, x.u]));
+      const rest = order.filter((x) => x !== "A" && x !== "S");
+      const cands = pair.map((s) => ({ pos: [remainingIdx.indexOf(s.free[0]), remainingIdx.indexOf(s.free[1])], idx: s.free, together: true }));
+      if (n >= 2) { const last = [remainingIdx.length - 2, remainingIdx.length - 1]; if (!cands.some((c) => c.pos[0] === last[0] && c.pos[1] === last[1])) cands.push({ pos: last, idx: [remainingIdx[last[0]], remainingIdx[last[1]]], together: false }); }
+      if (cands.length) {
+        // 받아치기 위험 배지 수(원딜·서폿 합) — 많을수록 상대 바텀을 보고 고르는 값이 큼
+        const riskN = ["A", "S"].reduce((a, r) => a + scored.find((x) => x.r === r).tags.filter((t) => t.k === "risk").length, 0);
+        const maxPos = Math.max(...cands.map((c) => c.pos[0]));
+        const oppAfter = (c) => ORDER.some(([sd, t], i) => i > c.idx[1] && t === "pick" && sd !== side && !state.draft.steps[i].champ);
+        const build = (c) => { const o2 = new Array(n); o2[c.pos[0]] = "A"; o2[c.pos[1]] = "S"; let k2 = 0; for (let i = 0; i < n; i++) if (!o2[i]) o2[i] = rest[k2++]; return o2; };
+        const val = (c) => { const o2 = build(c); let v = o2.reduce((a, r, i) => a + (uOf[r] || 0) * (n - i), 0);
+          if (c.pos[0] === maxPos && cands.length > 1 && !oppAfter(c)) v += 8 + 5 * Math.min(4, riskN);   // 상대 바텀을 보고 고름
+          if (!c.together) v -= 2;   // 원딜·서폿이 떨어진 차례면 세트 맞추기가 조금 어려움
+          return { v, o2 }; };
+        const best = cands.map((c) => ({ c, ...val(c) })).sort((a, b) => b.v - a.v)[0];
+        order = best.o2; duo = best.c.together; duoLate = best.c.pos[0] === maxPos && cands.length > 1 && !oppAfter(best.c);
       }
     }
     // 두 칸 차례(B2·B3 등) 첫 칸에서 바텀 한 명을 뽑았으면 둘째 칸은 그 짝 — 계획대로 뽑았는데 계획이 바뀌지 않게(사용자 지적 11-19)
@@ -1330,8 +1346,9 @@ window.Engine = (function () {
       // 바텀 두 칸 뒤에 상대 픽이 남아 있으면 상대가 우리 바텀을 보고 받아칠 수 있음(예전 문구 「대응하지 못하게」는 레드 R1·R2에서 틀렸음)
       const botIdx = plan.flatMap((p) => p.items).filter((x) => !x.done && (x.role === "A" || x.role === "S")).map((x) => x.i);
       const oppAfter = botIdx.length && ORDER.some(([sd, t], i) => i > Math.max(...botIdx) && t === "pick" && sd !== side && !state.draft.steps[i].champ);
-      summary.push(oppAfter ? "원딜·서폿은 연속 두 칸에서 세트로 — 라인전 시너지는 맞지만 뒤에 상대 바텀 픽이 남아 받아치기 주의" : "원딜·서폿은 연속 두 칸에서 세트로 — 라인전 시너지를 맞추고 상대가 우리 바텀을 보고 받아치기 어려움");
+      summary.push(oppAfter ? "원딜·서폿은 연속 두 칸에서 세트로 — 라인전 시너지는 맞지만 뒤에 상대 바텀 픽이 남아 받아치기 주의" : duoLate ? "원딜·서폿은 마지막 두 칸에서 세트로 — 상대 바텀을 보고 고르고, 상대는 우리 바텀을 보고 받아칠 수 없음" : "원딜·서폿은 연속 두 칸에서 세트로 — 라인전 시너지를 맞추고 상대가 우리 바텀을 보고 받아치기 어려움");
     }
+    if (!duo && duoLate) summary.push("원딜·서폿은 마지막 두 픽에 — 상대 바텀을 보고 고르고, 앞 픽은 정글·미드 등 다른 라인으로");
     const cut = ROLES.filter((r) => outlook[r].mains.some((m) => m.st !== "가능"));
     if (cut.length) summary.push(`주력이 잘린 라인: ${cut.map((r) => `${ROLE_KO[r]}(${outlook[r].mains.filter((m) => m.st !== "가능").map((m) => ko(m.id)).join("·")})`).join(", ")}`);
     return { side, plan, summary, outlook, nextRole: nextRoles[0] ? nextRoles[0].role : null, order };
