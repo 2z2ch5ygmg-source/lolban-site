@@ -2484,6 +2484,7 @@
       const was = CS.state;
       if (res.ok && d.status === "ok" && d.data) Object.assign(CS, d.data);
       if (was === "running" && CS.state !== "running") loadRecent();   // 수집이 끝나면 기록 다시 읽기
+      if (S.tab === "alts" && was !== CS.state) render();   // 부계정 찾기 화면의 「찾는 중」 안내
       clearTimeout(CS.timer);
       if (CS.state === "running") CS.timer = setTimeout(loadCollectStatus, 60000);
       if (["our", "enemy", "team", "live"].includes(S.tab)) render();
@@ -2552,7 +2553,7 @@
     if (!SPACE || SPACE.bad || !pairs.length) return;
     const items = [];
     pairs.forEach(([tid, r]) => { const t = team(tid), p = t && t.players[r]; if (!t || t.solo || !p) return;
-      accountsOf(t, r).forEach(([a], i) => items.push({ team: tid, role: r, acc: a, need: i === 0 ? !seasonBase(tid, r, p.riot) : true })); });   // 0시 기록이 있는 본계정은 최근 경기를 다시 받지 않음
+      accountsOf(t, r).forEach(([a], i) => items.push({ team: tid, role: r, acc: a, need: i === 0 ? !seasonBase(tid, r, p.riot) : true, ...(i ? { alt: true } : {}) })); });   // 0시 기록이 있는 본계정은 최근 경기를 다시 받지 않음
     if (!items.length) return;
     try {
       const res = await wfetch("/import/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: items.slice(0, 150), by: liveName() }) });
@@ -2574,7 +2575,9 @@
       iqShow(); SJ.timer = setTimeout(sjPoll, 3000);
     } else if (IQ.on && IQ.server) {
       IQ.on = false; IQ.server = false; iqShow(); render();
-      const j = SJ.job; if (j) toast(`명단 등록 끝 — 계정 ${j.n}개 티어, 최근 랭크 경기·챔프폭까지 반영했습니다 (0시 수집 때 200판으로 늘어남)`);
+      const j = SJ.job, nSus = j && j.alt ? Object.values(j.alt).reduce((n, a) => n + (a.n || 0), 0) : 0;
+      if (j) toast(`명단 등록 끝 — 계정 ${j.n}개 티어, 최근 랭크 경기·챔프폭까지 반영했습니다${j.alt ? ` · 부계정 의심 ${nSus}개${nSus ? "(사이드바 「부계정 찾기」)" : ""}` : ""}`);
+      if (j && j.alt) loadRecent();
     }
   }
   // 서버 결과 반영(한 번 반영한 것은 다시 안 함, 작업마다 기록)
@@ -2616,7 +2619,9 @@
   }
   // 진행 숫자(서버 작업이면 서버 기준)
   function iqProg() {
-    if (IQ.server && SJ.job) { const j = SJ.job, s2 = j.done1 >= j.n; return { s2, all: s2 ? j.need : j.n, done: s2 ? j.done2 : j.done1, left1: Math.max(0, j.n - j.done1), left2: Math.max(0, j.need - j.done2), wait: Math.max(0, (j.waitUntil || 0) - Date.now()) }; }
+    if (IQ.server && SJ.job) { const j = SJ.job, s2 = j.done1 >= j.n, s3 = s2 && j.done2 >= j.need && !!j.space;
+      const nT = new Set((SJ.items || []).map((x) => x.team)).size || 1, dT = Object.values(j.alt || {}).filter((a) => a.done).length;
+      return { s2, s3, nT, dT, all: s3 ? nT : s2 ? j.need : j.n, done: s3 ? dT : s2 ? j.done2 : j.done1, left1: Math.max(0, j.n - j.done1), left2: Math.max(0, j.need - j.done2), left3: s3 ? nT - dT : nT, wait: Math.max(0, (j.waitUntil || 0) - Date.now()) }; }
     const s2 = IQ.stage === 2;
     return { s2, all: s2 ? IQ.all2 : TQ.busy ? TQ.all : 0, done: s2 ? IQ.done2 : TQ.busy ? TQ.done : 0, left1: s2 ? 0 : Math.max(0, TQ.all - TQ.done), left2: s2 ? Math.max(0, IQ.all2 - IQ.done2) : Math.max(TQ.all, 1), wait: Math.max(0, IQ.waitUntil - Date.now()) };
   }
@@ -2625,7 +2630,7 @@
   function iqEta() {
     const g = iqProg(), left1 = g.left1, left2 = g.left2, wait = g.wait;
     const per1 = left1 > 45 ? Math.max(IQ.avg, 2400) : IQ.avg, per2 = left2 > 2 ? Math.max(IQ.avgP, 40000) : IQ.avgP;
-    const ms = left1 * per1 + left2 * per2 + wait;
+    const ms = left1 * per1 + left2 * per2 + (g.left3 || 0) * 45000 + wait;   // 부계정 찾기: 팀마다 약 45초(계정 5 + 목록 5 + 경기 30번)
     return ms < 60000 ? "1분 이내" : `약 ${Math.ceil(ms / 60000)}분`;
   }
   function iqShow() {
@@ -2643,11 +2648,11 @@
     }
     const g = iqProg(), s2 = g.s2, all = g.all, done = g.done;
     // 전체 막대: 1단계 = 0~30%, 2단계 = 30~100%(최근 경기가 훨씬 오래 걸림)
-    const pct = Math.round(s2 ? 30 + (all ? (done / all) * 70 : 0) : all ? (done / all) * 30 : 0), wait = Math.ceil(g.wait / 1000);
+    const s3 = !!g.s3, pct = Math.round(s3 ? 90 + (all ? (done / all) * 10 : 0) : s2 ? 30 + (all ? (done / all) * 60 : 0) : all ? (done / all) * 30 : 0), wait = Math.ceil(g.wait / 1000);
     const step = (n, t, on, ok) => `<li class="${on ? "on" : ok ? "ok" : ""}"><span>${ok ? "✓" : n}</span>${t}</li>`;
     el.innerHTML = `<div class="iq-box"><span class="iq-spin" aria-hidden="true"></span><h2 id="iqT">명단 등록 진행 중입니다</h2>
-      <ol class="iq-steps">${step(1, "계정 확인·티어", !s2, s2)}${step(2, "최근 랭크 경기·챔프폭(상대 전적·예상 밴픽)", s2, false)}</ol>
-      <p>${all ? `${s2 ? "최근 경기 받는 중" : "계정 확인 중"} <b>${done} / ${all}</b>${s2 ? " 계정" : ""}` : "준비 중…"}</p>
+      <ol class="iq-steps">${step(1, "계정 확인·티어", !s2, s2)}${step(2, "최근 랭크 경기·챔프폭(상대 전적·예상 밴픽)", s2 && !s3, s3)}${IQ.server && SJ.job && SJ.job.space ? step(3, "부계정 찾기(자유랭크 같은 5명)", s3, false) : ""}</ol>
+      <p>${all ? `${s3 ? "부계정 찾는 중" : s2 ? "최근 경기 받는 중" : "계정 확인 중"} <b>${done} / ${all}</b>${s3 ? " 팀" : s2 ? " 계정" : ""}` : "준비 중…"}</p>
       <div class="iq-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
       <p class="iq-eta">예상 남은 시간 <b>${all || s2 ? iqEta() : "계산 중"}</b></p>
       ${wait ? `<p class="help">Riot 조회 한도 — ${wait}초 뒤 이어서 받습니다</p>` : ""}
@@ -3068,12 +3073,21 @@
       ${mini ? "" : `<ul class="as-ev">${lines.map((l) => `<li>${l}</li>`).join("")}</ul><p class="help as-note">용병(아무나 구해서 낀 판)일 수도 있습니다 · 같은 시간에 본계정이 다른 게임 중이던 계정은 이미 뺐습니다</p>`}
       <div class="as-act"><button class="btn sm primary" data-act="susadd" data-tid="${esc(t.id)}" data-r="${x.role}" data-riot="${esc(x.riot)}" ${((p.alts || []).filter(Boolean).length >= 2) ? `disabled title="부계정은 라인당 2개까지"` : ""}>부계정으로 추가</button><button class="btn sm ghost" data-act="susno" data-tid="${esc(t.id)}" data-riot="${esc(x.riot)}">아님</button></div></article>`;
   }
+  // 찾는 중 안내(11-20 사용자): 명단 등록 작업이 도는 중이면 그 남은 시간, 0시 수집이 도는 중이면 시작 시각 + 약 1시간
+  function altFindWait() {
+    if (SJ.job && SJ.job.state === "running" && SJ.job.space) return `명단 등록과 함께 부계정을 찾는 중입니다 — <b>${iqEta()}</b> 뒤 다시 보세요`;
+    if (CS.state === "running") { const st = CS.startAt ? new Date(String(CS.startAt).replace(" ", "T") + ":00+09:00").getTime() : Date.now(), eta = new Date(Math.max(Date.now() + 5 * 60e3, st + 70 * 60e3));
+      return `기록 수집과 함께 부계정을 찾는 중입니다 — <b>${String(eta.getHours()).padStart(2, "0")}:${String(eta.getMinutes()).padStart(2, "0")}쯤</b> 이후 다시 보세요`; }
+    return "";
+  }
   function renderAltFind() {
-    const R = window.RECENT, list = suspectList();
+    const R = window.RECENT, list = suspectList(), wait = altFindWait();
     const at = R && R.at ? `${esc(R.at)} 수집 기준` : "아직 수집 자료 없음";
-    if (!R || !R.suspects) return `<div class="as-pg"><p class="help">${at} · 다음 0시 수집부터 부계정 의심을 찾습니다.</p></div>`;
+    const waitH = wait ? `<div class="as-wait" role="status"><span class="iq-spin" aria-hidden="true"></span><span>${wait}</span></div>` : "";
+    const notYet = R && R.suspects ? S.teams.filter((t) => !t.solo && !(t.id in R.suspects) && ROLES.some((r) => /#/.test((t.players[r] || {}).riot || ""))) : [];
+    if (!R || !R.suspects) return `<div class="as-pg">${waitH}<p class="help">${at} · ${wait ? "끝나면 여기에 팀별로 나옵니다." : "다음 0시 수집(또는 명단 등록) 때부터 부계정 의심을 찾습니다."}</p></div>`;
     const groups = {}; list.forEach((it) => (groups[it.t.id] = groups[it.t.id] || []).push(it));
-    return `<div class="as-pg"><p class="help as-top">${at} · 대회 계정이 1명 이상 낀 자유랭크에서 <b>완전히 같은 5명</b>이 2일 이상 모였을 때, 그 묶음에 빠진 라인 선수의 부계정으로 의심합니다. 하루뿐인 묶음·본계정이 같은 시간에 다른 게임 중이던 계정은 뺐습니다.</p>
+    return `<div class="as-pg">${waitH}${notYet.length ? `<p class="help as-top">아직 안 찾은 팀: ${notYet.map((t) => esc(t.name)).join(", ")} — ${wait ? "찾는 중" : "다음 0시 수집 때 찾습니다"}</p>` : ""}<p class="help as-top">${at} · 대회 계정이 1명 이상 낀 자유랭크에서 <b>완전히 같은 5명</b>이 2일 이상 모였을 때, 그 묶음에 빠진 라인 선수의 부계정으로 의심합니다. 하루뿐인 묶음·본계정이 같은 시간에 다른 게임 중이던 계정은 뺐습니다.</p>
       ${list.length ? Object.values(groups).map((g) => `<section class="as-sec"><h3>${esc(g[0].t.name)}${g[0].t.id === S.ourTeam ? " <small>우리 팀</small>" : ""}</h3><div class="as-grid">${g.map((it) => suspectCard(it)).join("")}</div></section>`).join("")
         : `<div class="as-empty">${lbi("scout", 28)}<b>지금은 의심 계정이 없습니다</b><span class="help">0시 수집마다 다시 찾습니다</span></div>`}</div>`;
   }
