@@ -1764,7 +1764,7 @@
       const filled = ROLES.map((r) => c.slots[r]).filter(Boolean);
       const first = filled.filter((x) => !x.suggest).sort((a, b) => b.lv - a.lv)[0];
       return `<div class="hc"><span class="hc-h"><b>${i + 1}세트</b><span>${esc(C.name)}</span></span>
-        <span class="hc-5">${ROLES.map((r) => { const x = c.slots[r]; return `<span class="hc-s"><span>${ROLE_KO[r]}</span>${x ? icon(x.id, "md") : `<span class="ic md"></span>`}<small>${x ? esc(CH[x.id].ko) : "—"}</small></span>`; }).join("")}</span>
+        <span class="hc-5">${ROLES.map((r) => { const x = c.slots[r]; return `<span class="hc-s"><span>${ROLE_KO[r]}</span>${x ? icon(x.id, "md") : `<span class="ic md"></span>`}<small title="${x ? esc(CH[x.id].ko) : ""}">${x ? esc(CH[x.id].ko) : "—"}</small></span>`; }).join("")}</span>
         <span class="hc-w">${esc(C.win)}</span>
         <details class="hc-d"><summary>운영 보기</summary><dl><dt>초반</dt><dd>${esc(C.early)}</dd><dt>중반</dt><dd>${esc(C.mid)}</dd><dt>후반</dt><dd>${esc(C.late)}</dd>${first ? `<dt>밴픽 순서</dt><dd>먼저 가져갈 챔프: ${esc(CH[first.id].ko)}</dd>` : ""}<dt class="bad">주의</dt><dd>${esc(C.risk)}</dd></dl></details></div>`;
     }).join("")}</div></section>`;
@@ -2083,7 +2083,7 @@
     return r;
   }
   const EC_TAG = { main: "tr", alt: "tr2", ban: "nu", comfort: "nu", prac: "hi", next: "nu", other: "nu" };
-  const ec5 = (c, sz) => `<span class="hc-5">${ROLES.map((r) => { const y = c.slots[r]; return `<span class="hc-s"><span>${ROLE_KO[r]}</span>${y ? icon(y.id, sz || "md") : `<span class="ic ${sz || "md"}"></span>`}<small>${y ? esc(CH[y.id].ko) : "—"}</small></span>`; }).join("")}</span>`;
+  const ec5 = (c, sz) => `<span class="hc-5">${ROLES.map((r) => { const y = c.slots[r]; return `<span class="hc-s"><span>${ROLE_KO[r]}</span>${y ? icon(y.id, sz || "md") : `<span class="ic ${sz || "md"}"></span>`}<small title="${y ? esc(CH[y.id].ko) : ""}">${y ? esc(CH[y.id].ko) : "—"}</small></span>`; }).join("")}</span>`;
   const ecLike = (x) => `<span class="ec-lk ${x.level === "높음" ? "hi" : x.level === "보통" ? "mid" : "lo"}" title="주력 대비 ${x.pct}%"><small>가능성</small><b>${x.level}</b><i style="--w:${x.pct}%"></i></span>`;
   const ecAnsBody = (a) => a ? `<span class="ec-ah"><b>우리 대응</b><span class="vsb ${a.vs === "유리" ? "good" : a.vs === "불리" ? "bad" : ""}">${a.vs}</span><span>${esc(COMPS[a.comp.key].name)}</span></span>${ec5(a.comp, "sm")}<span class="hc-w">${esc(COMPS[a.comp.key].win)}</span>` : `<span class="help">우리 대응 조합을 만들 챔프폭이 부족합니다.</span>`;
   function ecCard(x) {
