@@ -1115,3 +1115,7 @@ html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc.rc-threat { background: 
 html.pc :is(.live-pc, .enemy-pc) .rec:is(.first, .comp) .why.rchips > .rc:not(.rc-strong) { background: color-mix(in srgb, var(--k, var(--muted)) 16%, var(--panel)); }
 /* 자세히 보기 모달의 이유 줄도 같은 색 */
 .chd .cd-rs li[class*="k-"] b { color: var(--k); }
+
+/* 11-20: 계정 추천 창 — 지금 쓰는 칸 바로 아래(위치는 app.js edSuggest가 칸에 맞춤), ↑↓로 고른 줄 표시 */
+.sd-acc .ed-sug { max-height: 300px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12); }
+.ed-s.cur { background: var(--panel2); }

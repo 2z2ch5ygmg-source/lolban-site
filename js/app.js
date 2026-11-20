@@ -1343,7 +1343,7 @@
   // pairs = [[팀, 라인]]: 0시 수집 기록(본계정)이 있으면 부계정만 받아 더하고, 없으면 본계정까지
   async function quickPools(pairs, quiet) {
     if (!SPACE || SPACE.bad || !pairs.length) return;
-    let got = 0, fail = 0, k = 0;
+    let got = 0, fail = 0, k = 0; const added = [];
     const say = (m) => { if (!quiet) toast(m); };
     say(`챔프폭 받는 중… (${pairs.length}명)`);
     for (const [tid, r] of pairs) {
@@ -1357,12 +1357,28 @@
         const main = base || (await poolOf(riot, wait)); if (!main) { fail++; continue; }
         const altPools = []; for (const a of alts) { const x = await poolOf(a, wait); if (x) altPools.push(x); else fail++; }
         const merged = mergePool([main, ...altPools]);
+        if (tid === S.ourTeam) added.push(...addAltChamps(t, r, altPools));
         const m = qpLoad(); m[`${tid}|${r}`] = { ...merged, riot, quick: true, accs: qpAccs(t, r), fetchedAt: Date.now() }; qpSave(m); got++;
       } catch (e) { /* 다음 계정 */ }
     }
     if (got && !window.RECENT) window.RECENT = { status: "ok", season: {}, players: {}, groups: {}, stacks: {} };
     if (got) { mergeQuick(); render(); }
-    if (!quiet || fail) toast(got ? `${got}명 챔프폭 반영(부계정 포함 · 최근 랭크 30판 · 0시 수집 때 100판으로)${fail ? ` · ${fail}개 계정은 못 받음` : ""}` : "챔프폭을 받지 못했습니다 — 잠시 뒤 「기록 갱신」을 다시 눌러 주세요");
+    if (!quiet || fail || added.length) toast(got ? `${got}명 챔프폭 반영(부계정 포함 · 최근 랭크 30판 · 0시 수집 때 100판으로)${added.length ? ` · 부계정 챔프를 챔프폭에 넣음: ${added.join("·")}` : ""}${fail ? ` · ${fail}개 계정은 못 받음` : ""}` : "챔프폭을 받지 못했습니다 — 잠시 뒤 「기록 갱신」을 다시 눌러 주세요");
+  }
+  // 우리 팀 부계정 챔프를 챔프폭(자기평가 목록)에 넣기(11-20 사용자 요청: 부계정 등록 즉시 밴픽·우리 팀 자료에 반영)
+  //   우리 팀은 자기평가 목록만 밴픽에 쓰므로, 기록만 합치면 목록 밖 챔프는 반영이 안 됐음.
+  //   그 라인에서 2판 이상 한 챔프, 판수 순 5개까지 · 15판↑ 상 · 5판↑ 중 · 그 밑 하 · 한 번 넣었다가 뺀 챔프(altSeen)·기록에서 뺀 챔프(hide)는 다시 안 넣음
+  function addAltChamps(t, r, altPools) {
+    const p = t.players[r]; if (!p || !altPools.length) return [];
+    const have = new Set((p.pool || []).map((e) => e[0])), seen = new Set(p.altSeen || []), hide = new Set(p.hide || []);
+    const g = {}; altPools.forEach((x) => (x.champs || []).forEach((c) => { const n = c.rr && c.rr[r] ? c.rr[r][0] : (x.roleN && Object.keys(x.roleN).length ? 0 : c.g || 0); if (CH[c.id]) g[c.id] = (g[c.id] || 0) + n; }));
+    const add = Object.entries(g).filter(([id, n]) => n >= 2 && !have.has(id) && !seen.has(id) && !hide.has(id)).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    if (!add.length) return [];
+    p.pool = (p.pool || []).concat(add.map(([id, n]) => [id, n >= 15 ? 3 : n >= 5 ? 2 : 1]));
+    p.altSeen = [...seen, ...add.map(([id]) => id)].slice(-60);
+    save(); shareChanged(t.id, r);
+    const box = document.querySelector(`#setEd .ed-role[data-r="${r}"] .sd-pool .row-chips`); if (box) box.innerHTML = poolChips(t, r, { edit: true });
+    return add.map(([id]) => `${ROLE_KO[r]} ${CH[id].ko}`);
   }
   // 부계정이 있는데 아직 바로 받은 기록에 안 들어간 라인
   function lanesNeedingAlts(teams) {
@@ -2082,9 +2098,37 @@
     if (!box) return;
     const list = suggestIds(el.value, null);
     const fk = el.dataset.f === "riot" ? "riot" : "alt" + el.dataset.alt;
-    box.innerHTML = list.map((x) => `<button type="button" class="ed-s" data-act="edsug" data-role="${r}" data-k="${fk}" data-v="${esc(x.id)}"><b>${esc(x.id.split("#")[0])}</b><span>#${esc(x.id.split("#")[1])}</span><small>${esc(x.where)}</small></button>`).join("");
-    box.hidden = !list.length; box.dataset.for = fk;
+    box.innerHTML = list.map((x, i) => `<button type="button" class="ed-s" role="option" id="edsug-${r}-${i}" tabindex="-1" data-act="edsug" data-role="${r}" data-k="${fk}" data-v="${esc(x.id)}"><b>${esc(x.id.split("#")[0])}</b><span>#${esc(x.id.split("#")[1])}</span><small>${esc(x.where)}</small></button>`).join("");
+    box.hidden = !list.length; box.dataset.for = fk; delete box.dataset.cur;
+    el.setAttribute("aria-expanded", String(!!list.length)); el.setAttribute("aria-controls", box.id); el.removeAttribute("aria-activedescendant");
+    // 11-20 사용자 요청: 추천 창은 지금 쓰는 칸 바로 아래에 붙인다(부계정 칸이어도 본계정 아래에 뜨던 것)
+    const host = box.offsetParent;
+    if (list.length && host) { const hr = host.getBoundingClientRect(), er = el.getBoundingClientRect();
+      Object.assign(box.style, { top: `${Math.round(er.bottom - hr.top + 4)}px`, left: `${Math.round(er.left - hr.left)}px`, width: `${Math.round(er.width)}px`, right: "auto" }); }
   }
+  // 추천 창 닫기(고르기·Esc·칸 밖으로 나감)
+  function edSugClose(r) {
+    document.querySelectorAll(r ? `#edsug-${r}` : ".ed-sug").forEach((b) => { b.hidden = true; b.innerHTML = ""; delete b.dataset.cur; });
+    document.querySelectorAll(".ed-acc[aria-expanded]").forEach((i) => { if (!r || i.dataset.role === r) { i.setAttribute("aria-expanded", "false"); i.removeAttribute("aria-activedescendant"); } });
+  }
+  // 추천 고르기: 누르는 순간 칸 초점이 빠져 창이 먼저 닫히지 않게(mousedown 기본 동작 막음)
+  document.addEventListener("mousedown", (ev) => { if (ev.target.closest && ev.target.closest(".ed-s")) ev.preventDefault(); });
+  // 칸 밖을 누르거나 초점이 다른 데로 가면 닫음
+  document.addEventListener("focusout", (ev) => { const t = ev.target; if (!(t.classList && t.classList.contains("ed-acc"))) return;
+    setTimeout(() => { const a = document.activeElement; if (!(a && (a === t || (a.closest && a.closest(".ed-sug"))))) edSugClose(t.dataset.role); }, 0); });
+  document.addEventListener("click", (ev) => { if (ev.target.closest && !ev.target.closest(".ed-sug, .ed-acc")) { if (document.querySelector(".ed-sug:not([hidden])")) edSugClose(); } }, true);
+  // ↑↓ 로 옮기고 Enter 로 고름, Esc 로 닫음
+  document.addEventListener("keydown", (ev) => {
+    const t = ev.target; if (!(t.classList && t.classList.contains("ed-acc"))) return;
+    const box = document.getElementById(`edsug-${t.dataset.role}`); if (!box || box.hidden) return;
+    const opts = [...box.querySelectorAll(".ed-s")]; if (!opts.length) return;
+    let cur = box.dataset.cur != null ? Number(box.dataset.cur) : -1;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { ev.preventDefault(); cur = ev.key === "ArrowDown" ? (cur + 1) % opts.length : (cur <= 0 ? opts.length - 1 : cur - 1);
+      box.dataset.cur = cur; opts.forEach((o, k) => o.classList.toggle("cur", k === cur)); t.setAttribute("aria-activedescendant", opts[cur].id); opts[cur].scrollIntoView({ block: "nearest" }); }
+    else if (ev.key === "Enter" && cur >= 0) { ev.preventDefault(); ev.stopPropagation(); const o = opts[cur]; edSet(o.dataset.role, o.dataset.k, o.dataset.v); }
+    else if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); edSugClose(t.dataset.role); }
+  }, true);
+
   function edCheckSoon(el) {
     const k = fieldKey(el); clearTimeout(chkTimers[k]);
     chkTimers[k] = setTimeout(() => edCheck(el, k), 700);
@@ -2108,9 +2152,11 @@
       if ((inl || el.dataset.alt != null) && editing && team(editing)) {   // 우리 팀 편집 칸·상대 부계정: 받은 솔랭·자랭을 바로 넣음(고르는 칸 없음)
         const tt = team(editing), p = tt.players[r], val = { ...(d.solo ? { s: lowLp(d.solo) } : {}), ...(d.flex ? { f: lowLp(d.flex) } : {}) };
         p.rk = { ...(p.rk || {}), [rkKey(v)]: val, [rkKey(d.riot)]: val }; applyTiers(); save();
+        shareChanged(tt.id, r);   // 11-20: 바로 공유 저장소에 올림 — 안 올리면 몇 초 뒤 서버의 옛 값이 덮어 「아직 티어를 못 받음」으로 돌아감
         const slot = el.dataset.f === "riot" ? "m" : el.dataset.alt, box = document.getElementById(`edrk-${r}-${slot}`); if (box) box.outerHTML = rkView(tt, r, v, slot);
         const eff = document.getElementById(`edeff-${r}`); if (eff) eff.innerHTML = effLine(tt, r);
-        if (!inl && el.dataset.alt != null) { clearTimeout(QA_T[r]); QA_T[r] = setTimeout(() => quickPools([[tt.id, r]]), 800); }
+        // 부계정(설정 화면 포함)은 입력하자마자 챔프폭도 받아 기록에 합침(11-20 사용자 요청: 등록 즉시 밴픽·우리 팀 자료에 반영)
+        if (el.dataset.alt != null && (qpLoad()[`${tt.id}|${r}`] || {}).accs !== qpAccs(tt, r)) { clearTimeout(QA_T[r]); QA_T[r] = setTimeout(() => quickPools([[tt.id, r]]), 800); }
         show(`<span class="ed-ok">✓ ${esc(d.riot)}</span>${inl ? "" : `<span class="help">${esc(tiers)} · 다음 수집부터 기록에 합칩니다</span>`}` + (!same ? `<button type="button" class="btn sm" data-act="eduse" data-role="${r}" data-k="${field}" data-v="${esc(d.riot)}">이걸로</button>` : ""));
         rememberId(d.riot); return;
       }
@@ -2123,10 +2169,14 @@
   }
   // 칸에 값 넣기(추천 고르기·「이걸로」): 입력 이벤트로 저장 경로를 그대로 탄다
   function edSet(r, k, v) {
-    const el = document.querySelector(k === "riot" ? `#modal [data-f="riot"][data-role="${r}"]` : `#modal [data-alt="${k.slice(3)}"][data-role="${r}"]`);
+    // 설정 화면의 편집 칸은 #setEd 안(11-20: #modal만 찾아서 「이걸로」·추천 고르기가 아무 일도 안 했음)
+    const el = document.querySelector(k === "riot" ? `:is(#setEd, #modal) [data-f="riot"][data-role="${r}"]` : `:is(#setEd, #modal) [data-alt="${k.slice(3)}"][data-role="${r}"]`);
+    edSugClose(r);
     if (!el) return;
     el.value = v; el.dispatchEvent(new Event("input", { bubbles: true }));
-    const box = document.getElementById(`edsug-${r}`); if (box) box.hidden = true;
+    edSugClose(r);   // 입력 이벤트가 추천을 다시 열지 않게
+    clearTimeout(chkTimers[fieldKey(el)]);
+    el.focus();
     edCheck(el, fieldKey(el));
   }
 
@@ -4023,10 +4073,11 @@
         const now = team(S.ourTeam);
         TE.on = false; TE.snap = null; editing = null;
         if (S.ui.altOpen) ROLES.forEach((r) => delete S.ui.altOpen[t.id + "|" + r]);   // 비워 둔 부계정 칸은 닫음
+        if (el.dataset.act === "tsave") ROLES.forEach((r) => { const p = now.players[r]; if (p && Array.isArray(p.alts)) p.alts = p.alts.filter((a) => /#/.test(a || "")); });   // 덜 친 부계정(이름#태그 아님)은 저장하지 않음
         applyTiers(); save(); rosterChanged(); ROLES.forEach((r) => shareChanged(now.id, r));
         // 저장: 계정이 바뀐 라인만 Riot에서 솔랭·자랭 다시 받기
         const accSig = (x, r) => JSON.stringify([((x.players[r] || {}).riot || ""), ((x.players[r] || {}).alts || [])]);
-        if (el.dataset.act === "tsave" && before) { const nw = ROLES.filter((r) => (now.players[r] || {}).riot && accSig(before, r) !== accSig(now, r)); if (nw.length) { toast("바뀐 계정 챔프폭 받는 중…"); quickPools(nw.map((r) => [now.id, r])); }
+        if (el.dataset.act === "tsave" && before) { const nw = ROLES.filter((r) => (now.players[r] || {}).riot && accSig(before, r) !== accSig(now, r) && (qpLoad()[`${now.id}|${r}`] || {}).accs !== qpAccs(now, r)); if (nw.length) { toast("바뀐 계정 챔프폭 받는 중…"); quickPools(nw.map((r) => [now.id, r])); }
           const ch = ROLES.filter((r) => accSig(before, r) !== accSig(now, r) || accountsOf(now, r).some(([a]) => !(now.players[r].rk || {})[rkKey(a)])); if (ch.length && SPACE && !SPACE.bad) fetchTiers(ch.map((r) => [now.id, r])); }
         toast(el.dataset.act === "tsave" ? "저장했습니다" : "수정을 취소했습니다"); render(); break; }
       case "delteam": { const t = team(el.dataset.id); if (!t || t.solo || t.id === S.ourTeam) break;
