@@ -1530,3 +1530,10 @@ button.tc-n { cursor: pointer; } button.tc-n:hover { text-decoration: underline;
 .livereq { display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px 4px 12px; border-radius: 999px; background: var(--hi-bg); font-size: 12.5px; }
 .livereq[hidden] { display: none; }
 .lvq-t { display: inline-flex; align-items: center; gap: 6px; color: var(--text); } .lvq-t b { color: var(--hi); }
+/* 점수 기준표(11-20 사용자: 화면을 너무 넓게 씀): 좌우 여백 · 두 카드를 가운데로 · 점수 칸 가운데 */
+html.pc .pt-pg { grid-template-columns: minmax(0, 560px) minmax(0, 440px); justify-content: center; max-width: 1040px; margin: 0 auto; width: 100%; }
+html.pc .pt-tbl th:nth-child(n+2), html.pc .pt-tbl td { text-align: center; }
+html.pc .pt-tbl thead th:first-child { padding-left: 8px; }
+html.pc .pt-in { text-align: center; width: 96px; }
+html.pc .pt-act { justify-content: center; } html.pc .pt-note { text-align: center; }
+@media (max-width: 1100px) { html.pc .pt-pg { grid-template-columns: minmax(0, 600px); } }
