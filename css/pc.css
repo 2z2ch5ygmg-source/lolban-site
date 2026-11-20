@@ -1214,3 +1214,25 @@ html.pc :is(.live-pc, .enemy-pc) .rec .hero .lab { bottom: -14px; }
 html.pc :is(.live-pc, .enemy-pc) .rec .nm { margin-top: 16px; }
 /* 11-20: 실시간 밴픽을 화면 아래까지 조금 더(남던 44px 중 12px, 페이지 스크롤 없이) — 격자 줄은 app.js fitGrid가 줄 단위로 */
 @media (max-width: 1599px) { html.pc .live-pc { height: calc(100vh - 96px - 52px); } }   /* 노트북 크기만(아래 여백 32px) — 큰 화면은 여백 40px라 그대로 */
+
+/* 따로 된 로그인 페이지(11-20) — 앱 화면을 가리고 가운데 카드 하나 */
+html.auth-on body > :not(#authpg):not(script):not(.toast):not(#toast) { display: none !important; }
+#authpg { grid-column: 1 / -1; width: 100%; min-height: 100vh; background: var(--bg); color: var(--text); }
+.ap { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; padding: 0 16px; }
+.ap-top { display: flex; align-items: center; justify-content: space-between; max-width: 1080px; width: 100%; margin: 0 auto; padding: 20px 0; }
+.ap-logo { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; padding: 0; cursor: pointer; font: inherit; font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+.ap-logo i { color: var(--hi); font-style: normal; }
+.ap-logo svg { width: 28px; height: 28px; }
+.ap-card { align-self: center; justify-self: center; width: min(420px, 100%); display: grid; gap: 14px; padding: 36px 32px 28px; margin: 24px 0 48px; background: var(--panel); border-radius: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 40px rgba(0,0,0,.08); }
+.ap-card h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; text-align: center; }
+.ap-sub { margin: -6px 0 10px; text-align: center; color: var(--muted); font-size: 14px; }
+.ap-card .lg-foot { font-size: 12px; text-align: center; }
+.ap-card .lg-msg { text-align: center; }
+.ap-card .lg-two { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.ap-card .lg-two section { display: grid; gap: 8px; padding: 14px; border-radius: 14px; background: var(--bg2); }
+.ap-card .lg-who { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; font-size: 14px; color: var(--muted); }
+.ap-skip { justify-self: center; border: 0; background: none; padding: 8px 4px; font: inherit; font-size: 14px; color: var(--muted); cursor: pointer; }
+.ap-skip:hover, .ap-skip:focus-visible { color: var(--hi); }
+.ap-foot { text-align: center; padding: 18px 0 24px; font-size: 12px; color: var(--muted); }
+.ap-foot a { color: inherit; }
+@media (max-width: 480px) { .ap-card { padding: 28px 20px 22px; border-radius: 16px; } .ap-card h1 { font-size: 23px; } }

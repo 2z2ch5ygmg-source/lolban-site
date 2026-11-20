@@ -1748,7 +1748,8 @@
       { k: "opp", n: "상대 팀 등록", d: "엑셀 또는 직접", done: legacy || (!!sp && opp) },
     ];
   }
-  const needOnboard = () => guest() || (!S.ui.flowHide && !nuSteps().every((x) => x.done));
+  // 11-20 사용자: 위쪽 단계 표시(wizard)는 필요 없음 — 로그인·팀은 따로 된 페이지(authPage), 팀이 생기면 바로 홈
+  const needOnboard = () => guest();
   function newUserPC() {
     const st = nuSteps(), curI = st.findIndex((x) => !x.done);
     // 직접 고른 단계는 그때의 진행 상태에서만 보여 줌 — 단계를 끝내면(진행이 바뀌면) 다음 할 단계로 넘어감
@@ -2869,7 +2870,9 @@
     const legacy = ourId === "subin";
     return [
       { k: "team", n: "팀 만들기", d: "팀 이름 + 본인 라이엇 계정 확인", done: !!ourId, act: `data-act="team"`, cta: "팀 만들기" },
-      { k: "invite", n: "팀원 초대", d: "초대 링크를 팀 단톡방에 공유", done: legacy || (!!ourId && invitedDone()), act: `data-act="invite"`, cta: "초대 링크 복사" },
+      // 11-20: 시작 단계 화면(wizard)을 없애며 「우리 선수 5명」을 여기로
+      { k: "five", n: "우리 선수 5명", d: "라인마다 라이엇 ID", done: legacy || (!!ourId && !!team(ourId) && ROLES.every((r) => /#/.test((team(ourId).players[r] || {}).riot || ""))), act: `data-act="gotab" data-k="team"`, cta: "선수 넣기" },
+      { k: "invite", n: "팀원 초대", d: SPACE && SPACE.viaLogin ? "초대 코드를 팀 단톡방에 공유" : "초대 링크를 팀 단톡방에 공유", done: legacy || (!!ourId && invitedDone()), act: `data-act="invite"`, cta: SPACE && SPACE.viaLogin ? "초대 코드 복사" : "초대 링크 복사" },
       { k: "opp", n: "상대 팀 등록", d: "엑셀로 상대 팀 명단·챔프폭 넣기", done: legacy || hasOpp, act: `data-act="import"`, cta: "상대 팀 등록" },
     ];
   }
@@ -4384,11 +4387,28 @@
   // 공부자료 탭을 나갔다 오면 처음 화면(이론 학습 · 운영 · 전체)부터(사용자 지시 11-19). 새로고침해도 처음부터
   let lastTab = null;
   function resetStudyUi() { if (!S.ui) return; S.ui.stOpen = ""; S.ui.stPlay = ""; S.ui.stMode = "theory"; S.ui.stCat = ""; S.ui.stTopic = ""; S.ui.stQi = {}; S.ui.tut = {}; }
+  // 로그인·팀 만들기는 앱 화면 안이 아니라 따로 된 한 페이지로(11-20 사용자: 탭 안 로그인·단계 표시 필요 없음)
+  //   사이드바·머리줄·본문을 가리고 가운데 카드 하나. 입력 중 다시 그려도 칸이 비지 않게 내용이 바뀔 때만 새로 그림
+  function authPage() {
+    const on = guest() && S.tab === "our";
+    document.documentElement.classList.toggle("auth-on", on);
+    let el = document.getElementById("authpg");
+    if (!on) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement("div"); el.id = "authpg"; document.body.appendChild(el); }
+    const h = `<div class="ap"><div class="ap-top"><button class="ap-logo" data-act="gotab" data-k="live" aria-label="lolban 실시간 밴픽으로">${LOGO_MARK}<span>lolban<i>.</i></span></button>${themeBtn()}</div>
+      <section class="ap-card" aria-label="로그인"><h1>${SESS ? "팀 만들기 · 들어가기" : "로그인"}</h1>
+        <p class="ap-sub">${SESS ? "팀장은 팀을 만들고, 팀원은 초대 코드로 들어갑니다" : "구글·네이버 계정으로 시작합니다"}</p>
+        ${SPACE && SPACE.bad ? `<p class="warn">이 브라우저의 팀 공간 열쇠가 바뀌었습니다. 팀장에게 새 초대 코드를 받아 주세요.</p>` : ""}
+        ${loginBody()}
+        <button class="ap-skip" data-act="gotab" data-k="live">팀 없이 실시간 밴픽만 쓰기 <span aria-hidden="true">→</span></button></section>
+      <div class="ap-foot"><a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a> · <a href="mailto:wonseo151@naver.com">문의</a></div></div>`;
+    if (el.__h !== h) { el.innerHTML = h; el.__h = h; }
+  }
   function render() {
     if (lastTab !== S.tab) { if (lastTab === "vision" || (lastTab === null && S.tab === "vision")) resetStudyUi(); lastTab = S.tab; }
     if (RENDERING) { RENDER_AGAIN = true; return; }
     RENDERING = true;
-    try { renderInner(); } finally { RENDERING = false; }
+    try { renderInner(); authPage(); } finally { RENDERING = false; }
     if (RENDER_AGAIN) { RENDER_AGAIN = false; render(); }
   }
   function renderInner() {
