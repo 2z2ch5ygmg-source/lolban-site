@@ -1641,3 +1641,12 @@ button.cr-row { width: 100%; border: 0; font: inherit; color: inherit; text-alig
 button.cr-row:hover { box-shadow: inset 0 0 0 1.5px var(--hi); }
 button.cr-row:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
 .cr-car { color: var(--dim); flex: none; }
+/* 상대 예상 조합 「우리 밴」 직접 넣기(11-20 사용자) */
+.ec-banin { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ec-ban { display: inline-flex; align-items: center; gap: 5px; padding: 3px 4px 3px 4px; border-radius: 999px; background: var(--red-bg); font-size: 12.5px; font-weight: 700; }
+.ec-ban .ic.xs { width: 22px; height: 22px; border-radius: 50%; filter: grayscale(.5); }
+.ec-ban button { border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; padding: 0; } .ec-ban button:hover { background: var(--panel); color: var(--text); } .ec-ban button svg { width: 12px; height: 12px; }
+.ec-find { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--dim); width: 170px; }
+.ec-find:focus-within { border-color: var(--hi); } .ec-find .input { border: 0; background: transparent; padding: 0; height: 100%; flex: 1; min-width: 0; outline: none; font-size: 13px; }
+.ec-find .input:focus, .ec-find .input:focus-visible { outline: none; box-shadow: none; }
+.ec-find .ec-sug { left: 0; right: auto; width: 260px; top: calc(100% + 6px); bottom: auto; }

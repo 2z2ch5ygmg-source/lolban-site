@@ -2082,8 +2082,38 @@
     else if (ev.key === "Enter") { ev.preventDefault(); ev.stopPropagation(); if (n) pkAdd(PKF.ids[PKF.i]); }
     else if (ev.key === "Escape") { ev.target.value = ""; pkSug(); }
   }, true);
-  document.addEventListener("mousedown", (ev) => { const b = ev.target.closest && ev.target.closest(".pk-sg"); if (!b) return; ev.preventDefault(); if (b.getAttribute("aria-disabled") !== "true") pkAdd(b.dataset.id); });
+  document.addEventListener("mousedown", (ev) => { const b = ev.target.closest && ev.target.closest(".pk-sg:not(.ec-sg)"); if (!b) return; ev.preventDefault(); if (b.getAttribute("aria-disabled") !== "true") pkAdd(b.dataset.id); });
   document.addEventListener("focusout", (ev) => { if (ev.target && ev.target.id === "pkFind") setTimeout(() => { const box = document.getElementById("pkSug"); if (box && document.activeElement !== ev.target) { box.hidden = true; ev.target.setAttribute("aria-expanded", "false"); } }, 0); });
+  // 상대 예상 조합 「우리 밴」 직접 넣기(11-20 사용자): 초상화+이름 목록, 누르거나 Enter
+  const ECB = { i: 0, ids: [] };
+  const ecBans = () => (S.ui.ecf && Array.isArray(S.ui.ecf.bans) ? S.ui.ecf.bans : []);
+  function ecSug(keepI) {
+    const inp = document.getElementById("ecBanIn"), box = document.getElementById("ecBanSug"); if (!inp || !box) return;
+    const q = inp.value.trim(), have = new Set(ecBans());
+    if (!q) { box.hidden = true; inp.setAttribute("aria-expanded", "false"); ECB.ids = []; return; }
+    const nq = q.toLowerCase().replace(/\s+/g, "");
+    const list = window.CHAMPIONS.filter((c) => matches(c, q) && !have.has(c.id)).sort((a, b) => (b.ko.replace(/\s+/g, "").startsWith(nq) - a.ko.replace(/\s+/g, "").startsWith(nq)) || a.ko.localeCompare(b.ko, "ko")).slice(0, 8);
+    ECB.ids = list.map((c) => c.id); if (!keepI) ECB.i = 0; ECB.i = Math.min(ECB.i, Math.max(0, ECB.ids.length - 1));
+    box.innerHTML = list.length ? list.map((c, k) => `<button type="button" class="pk-sg ec-sg" role="option" id="ecSg${k}" data-id="${c.id}" aria-selected="${k === ECB.i}">${icon(c.id, "sm")}<b>${esc(c.ko)}</b><small>밴에 넣기</small></button>`).join("") : `<p class="pk-sg-none">「${esc(q)}」 챔피언이 없습니다</p>`;
+    box.hidden = false; inp.setAttribute("aria-expanded", "true"); inp.setAttribute("aria-activedescendant", list.length ? `ecSg${ECB.i}` : "");
+  }
+  function ecAdd(id) {
+    if (!id || !CH[id]) return; const f = { ...(S.ui.ecf || {}) }, b = ecBans().filter((x) => x !== id);
+    if (b.length >= 5) { toast("밴은 5개까지 넣을 수 있습니다"); return; }
+    f.bans = b.concat([id]); S.ui.ecf = f; save(); render();
+    const inp = document.getElementById("ecBanIn"); if (inp) inp.focus();
+  }
+  document.addEventListener("input", (ev) => { if (ev.target && ev.target.id === "ecBanIn") ecSug(); });
+  document.addEventListener("keydown", (ev) => {
+    if (!ev.target || ev.target.id !== "ecBanIn" || ev.isComposing) return;
+    const n = ECB.ids.length;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { if (!n) return; ev.preventDefault(); ECB.i = (ECB.i + (ev.key === "ArrowDown" ? 1 : n - 1)) % n; ecSug(true); }
+    else if (ev.key === "Enter") { ev.preventDefault(); ev.stopPropagation(); if (n) ecAdd(ECB.ids[ECB.i]); }
+    else if (ev.key === "Escape") { ev.target.value = ""; ecSug(); }
+    else if (ev.key === "Backspace" && !ev.target.value && ecBans().length) { const f = { ...(S.ui.ecf || {}) }; f.bans = ecBans().slice(0, -1); S.ui.ecf = f; save(); render(); const i = document.getElementById("ecBanIn"); if (i) i.focus(); }
+  }, true);
+  document.addEventListener("mousedown", (ev) => { const b = ev.target.closest && ev.target.closest(".ec-sg"); if (!b) return; ev.preventDefault(); ev.stopPropagation(); ecAdd(b.dataset.id); }, true);
+  document.addEventListener("focusout", (ev) => { if (ev.target && ev.target.id === "ecBanIn") setTimeout(() => { const box = document.getElementById("ecBanSug"); if (box && document.activeElement !== ev.target) box.hidden = true; }, 0); });
   // 끌어 놓기: 칸(원챔·상·중·하) ↔ 기록 줄
   function poolDrop(id, v) {
     const t = team(S.ourTeam), r = poolLane(t); if (!t || !id) return;
@@ -2112,11 +2142,12 @@
     const f = (detail && S.ui.ecf) || {};
     const mode = f.mode || S.series.mode || "off";
     const game = mode === "off" ? 1 : Math.max(1, Math.min(3, f.game || S.series.game || 1));
-    return { mode, game, ban: !!f.ban };
+    // 우리 밴(11-20 사용자): 자동 추천 3개 대신 직접 넣은 밴(최대 5개)
+    return { mode, game, ban: false, bans: detail && Array.isArray(f.bans) ? f.bans.filter((id) => CH[id]).slice(0, 5) : [] };
   }
   function ecomps(ours, en, o) {
-    let bans = [];
-    if (o.ban) {
+    let bans = (o.bans || []).slice();
+    if (o.ban && !bans.length) {
       const virtual = Object.assign({}, S, { enemyTeam: en.id, draft: { ourSide: "B", steps: emptySteps(), idx: 0 }, series: { game: 1, mode: "off", locked: [] } });
       bans = E.recommendBan(virtual, "our", 3).map((x) => x.id);
     }
@@ -2141,7 +2172,7 @@
     const bar = `<div class="n-bar ec-bar"><button class="ec-back" data-act="ecback">${ico("left")}상대 분석</button>
       <span class="ec-fl"><small>피어리스</small>${seg("mode", o.mode === "soft" ? "hard" : o.mode, [["hard", "하드 피어리스"], ["off", "끔"]], "피어리스")}</span>
       <span class="ec-fl"><small>세트</small>${seg("game", o.game, [[1, "1세트"], [2, "2세트"], [3, "3세트"]], "세트", o.mode === "off")}</span>
-      <span class="ec-fl"><small>우리 밴</small>${seg("ban", o.ban ? 1 : 0, [[0, "반영 안 함"], [1, "먼저 밴 3개 반영"]], "우리 밴")}${r.bans.length ? `<span class="ec-bans">${r.bans.map((id) => `<span title="${esc(CH[id].ko)} 밴">${icon(id, "xs")}</span>`).join("")}</span>` : ""}</span></div>`;
+      <span class="ec-fl"><small>우리 밴</small><span class="ec-banin">${o.bans.map((id) => `<span class="ec-ban">${icon(id, "xs")}<b>${esc(CH[id].ko)}</b><button data-act="ecbandel" data-id="${id}" aria-label="${esc(CH[id].ko)} 밴 빼기">${ico("x")}</button></span>`).join("")}${o.bans.length < 5 ? `<span class="ec-find">${lbi("scout", 15)}<input class="input" id="ecBanIn" autocomplete="off" spellcheck="false" placeholder="${o.bans.length ? "밴 더 넣기" : "밴할 챔프 넣기"}" aria-label="우리 밴 챔프 넣기" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ecBanSug"><div class="pk-sug ec-sug" id="ecBanSug" role="listbox" aria-label="찾은 챔피언" hidden></div></span>` : ""}${o.bans.length ? `<button class="nc-a" data-act="ecbanclr">비우기</button>` : ""}</span></span></div>`;
     const flow = o.mode !== "off" && r.flow.length ? `<section class="ec-flow" aria-label="세트 흐름"><small>세트 흐름 · 상대가 세트마다 가장 유력한 조합을 쓴다고 볼 때</small><span class="ec-fs">${r.flow.map((f) => `<span class="ec-f ${f.game === o.game ? "now" : f.game < o.game ? "past" : ""}"><b>${f.game}세트</b><span>${esc(COMPS[f.comp.identity].name)}</span><span class="ec-fi">${ROLES.map((x) => f.comp.slots[x] ? icon(f.comp.slots[x].id, "xs") : "").join("")}</span></span>`).join(`<span class="dim">→</span>`)}</span></section>` : "";
     const now = r.list.filter((x) => x.kind !== "ban" && x.kind !== "next").sort((a, b) => b.like - a.like);
     const ifs = r.list.filter((x) => x.kind === "ban" || x.kind === "next");
@@ -5105,6 +5136,8 @@
     // 실시간 밴픽 같이 보기: 진행자가 아니면 밴픽을 바꾸는 버튼은 막음
     if (LIVE_ACTS.has(a) && liveLocked()) { toast(liveLockMsg()); return; }
     switch (a) {
+      case "ecbandel": { const f = { ...(S.ui.ecf || {}) }; f.bans = ecBans().filter((x) => x !== el.dataset.id); S.ui.ecf = f; save(); render(); break; }
+      case "ecbanclr": { const f = { ...(S.ui.ecf || {}) }; f.bans = []; S.ui.ecf = f; save(); render(); break; }
       case "liveroom": LIVE.popOpen = !LIVE.popOpen; liveBarUpdate(); break;
       case "livetake": LIVE.popOpen = false; liveTake(); liveBarUpdate(); break;
       case "livegive": LIVE.popOpen = false; liveReply(true); liveBarUpdate(); break;
