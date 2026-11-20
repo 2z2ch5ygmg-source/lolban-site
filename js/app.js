@@ -1332,33 +1332,41 @@
   }
   const QA_T = {};
   // Riot 한도(2분 100회)가 차면 1분씩 기다렸다 최대 3번 더(11-20: 갱신 버튼이 다른 조회와 겹쳐 부계정이 조용히 빠짐)
-  async function poolOf(id, onWait) {
-    for (let tries = 0; tries < 4; tries++) {
+  async function poolOf(id, onWait, waits) {
+    const max = waits == null ? 3 : waits;   // 명단 등록은 한도가 풀릴 때까지 더 오래 기다림
+    for (let tries = 0; tries <= max; tries++) {
       const res = await wfetch(`/riot/pool?id=${encodeURIComponent(id)}`); const d = await res.json().catch(() => ({}));
-      if (res.status === 429 && tries < 3) { if (onWait) onWait(); await new Promise((ok) => setTimeout(ok, 61000)); continue; }
+      if (res.status === 429 && tries < max) { if (onWait) onWait(); await new Promise((ok) => setTimeout(ok, 61000)); continue; }
       return res.ok && d.status === "ok" ? d.data : null;
     }
     return null;
   }
   // pairs = [[팀, 라인]]: 0시 수집 기록(본계정)이 있으면 부계정만 받아 더하고, 없으면 본계정까지
-  async function quickPools(pairs, quiet) {
+  async function quickPools(pairs, quiet, opt) {
+    opt = opt || {};
     if (!SPACE || SPACE.bad || !pairs.length) return;
     let got = 0, fail = 0, k = 0; const added = [];
     const say = (m) => { if (!quiet) toast(m); };
     say(`챔프폭 받는 중… (${pairs.length}명)`);
+    if (opt.plan) opt.plan(pairs.reduce((n, [tid, r]) => { const t = team(tid), p = t && t.players[r]; if (!p || !/#/.test(p.riot || "") || (opt.skip && opt.skip.has(`${tid}|${r}`))) return n;
+      const R0 = window.RECENT, c0 = R0 && R0.season && R0.season[tid] && R0.season[tid][r], hasBase = c0 && !c0.error && !c0.quick && c0.riot === p.riot;
+      return n + (hasBase ? 0 : 1) + ((p.alts || altsOf(tid, r)) || []).filter((x) => /#/.test(x || "")).length; }, 0));
     for (const [tid, r] of pairs) {
       k++;
-      const t = team(tid), p = t && t.players[r], riot = p && p.riot; if (!riot || !/#/.test(riot)) continue;
+      if (opt.skip && opt.skip.has(`${tid}|${r}`)) continue;
+      const t = team(tid), p = t && t.players[r], riot = p && p.riot; if (!riot || !/#/.test(riot)) { if (opt.each) opt.each(`${tid}|${r}`); continue; }
       const alts = ((p.alts || altsOf(tid, r)) || []).filter((x) => /#/.test(x || ""));
       const R = window.RECENT, cur = R && R.season && R.season[tid] && R.season[tid][r];
       const base = cur && !cur.error && !cur.quick && cur.riot === riot ? cur : null;
       try {
-        const wait = () => say(`Riot 조회 한도 — 1분 뒤 이어서 받습니다 (${k}/${pairs.length})`);
-        const main = base || (await poolOf(riot, wait)); if (!main) { fail++; continue; }
-        const altPools = []; for (const a of alts) { const x = await poolOf(a, wait); if (x) altPools.push(x); else fail++; }
+        const wait = () => { if (opt.wait) opt.wait(); else say(`Riot 조회 한도 — 1분 뒤 이어서 받습니다 (${k}/${pairs.length})`); };
+        const one = async (id) => { const t0 = Date.now(); IQ.pWaited = false; const x = await poolOf(id, wait, opt.waits); if (opt.acc) opt.acc(Date.now() - t0); return x; };
+        const main = base || (await one(riot)); if (!main) { fail++; if (opt.each) opt.each(`${tid}|${r}`); continue; }
+        const altPools = []; for (const a of alts) { const x = await one(a); if (x) altPools.push(x); else fail++; }
         const merged = mergePool([main, ...altPools]);
         if (tid === S.ourTeam) added.push(...addAltChamps(t, r, altPools));
         const m = qpLoad(); m[`${tid}|${r}`] = { ...merged, riot, quick: true, accs: qpAccs(t, r), fetchedAt: Date.now() }; qpSave(m); got++;
+        if (opt.each) opt.each(`${tid}|${r}`);
       } catch (e) { /* 다음 계정 */ }
     }
     if (got && !window.RECENT) window.RECENT = { status: "ok", season: {}, players: {}, groups: {}, stacks: {} };
@@ -1921,7 +1929,8 @@
   function liveBarHtml() {
     if (!liveCan()) return "";
     if (S.ui.soloDraft) return `<span class="lvb off">${ico("users")}<span>혼자 하는 중</span></span><button class="lvb-b" data-act="livesolo" data-v="0">팀과 같이 보기</button>`;
-    if (LIVE.status !== "on") return `<span class="lvb wait"><span>${LIVE.status === "retry" ? "팀 방 연결이 끊김 — 다시 연결 중…" : "팀 방에 연결 중…"}</span></span>`;
+    if (LIVE.status === "retry") return `<span class="lvb wait bad"><span>팀 방 연결이 끊김 — 자동으로 다시 시도 중</span></span><button class="lvb-b primary" data-act="liveretry">다시 연결</button><button class="lvb-b" data-act="livesolo" data-v="1">혼자 하기</button>`;
+    if (LIVE.status !== "on") return `<span class="lvb wait"><span>팀 방에 연결 중…</span></span>`;
     const n = new Set(LIVE.people.map((p) => p.cid)).size, h = LIVE.host, hon = h && LIVE.people.some((p) => p.cid === h.cid);
     const who = isHost() ? "내가 진행" : h ? `진행 ${esc(h.name)}${hon ? "" : "(나감)"}` : "진행자 없음";
     const tip = `팀과 같이 보는 중 · ${isHost() ? "내가 진행자" : h ? `진행자 ${h.name}${hon ? "" : "(나감)"}` : "진행자 없음"} · 보는 사람: ${LIVE.people.map((p) => p.name).join(", ")}`;
@@ -1935,6 +1944,9 @@
     if (S.tab === "live" && LIVE.seenTab !== "live" && liveOn()) { LIVE.seenTab = "live"; liveApply(LIVE.data); return; }
     LIVE.seenTab = S.tab;
   }
+  // 연결 유지(11-20): 25초마다 확인 신호(가만히 있어도 중간 장치가 끊지 않게), 다른 탭에 있다 돌아오면 끊긴 연결을 바로 다시
+  setInterval(() => { if (LIVE.ws && LIVE.ws.readyState === 1) try { LIVE.ws.send('{"t":"ping"}'); } catch (e) { /* 닫히면 onclose가 처리 */ } }, 25000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !LIVE.ws && !S.ui.soloDraft && liveCan() && (S.tab === "live" || LIVE.status !== "off")) { LIVE.retry = 0; liveConnect(); } });
   const LIVE_ACTS = new Set(["pick", "skip", "undo", "resetGame", "nextGame", "endGame", "resetSeries", "side", "mode"]);
 
   // ---------- 상대 챔프 자세히 보기 모달(11-20 사용자 요청: 상대 팀 화면의 사전 밴 후보·라인별 상대 챔프를 누르면) ----------
@@ -2433,23 +2445,90 @@
     if (CS.state === "running") return `<div class="cs-band run" role="status"><span class="cs-dot"></span><b>Riot 기록을 모으는 중입니다</b><span>${CS.startAt ? `${hm(CS.startAt)} 시작 · ` : ""}${miss.map((t) => esc(t.name)).join(" · ")} 시즌 기록·챔프폭·함께 한 경기 — 끝나면 자동으로 채워집니다(보통 10~20분)</span></div>${rangeNote()}`;
     return `<div class="cs-band" role="status"><b>아직 기록이 없습니다</b><span>${miss.map((t) => esc(t.name)).join(" · ")} — 등록은 끝났고, Riot 기록은 다음 수집(매일 0시) 때 채워집니다${CS.state === "failed" ? " · 지난 수집이 실패해 다시 시도합니다" : ""}</span></div>${rangeNote()}`;
   }
+  // ---- 명단 등록 진행(11-20 사용자 요청): 등록 뒤 계정 확인·티어 받기 동안 화면 전체를 막고 진행·예상 시간 표시 ----
+  //   이 작업은 이 브라우저 안에서 돈다 → 창을 닫으면 멈춤. 닫으려 하면 한 번 묻고, 다시 열면 남은 계정부터 이어서(lolban.impq.v1)
+  const IMPQ_KEY = "lolban.impq.v1";
+  const IQ = { on: false, stage: 1, avg: 1800, avgP: 20000, all2: 0, done2: 0, waitUntil: 0, timer: null, pWaited: false };
+  const iqLoad = () => { try { return JSON.parse(localStorage.getItem(IMPQ_KEY) || "null"); } catch (e) { return null; } };
+  const iqSave = (q) => { try { if (q) localStorage.setItem(IMPQ_KEY, JSON.stringify(q)); else localStorage.removeItem(IMPQ_KEY); } catch (e) { /* 이번만 */ } };
+  async function startImportFetch(pairs, resumed) {
+    if (!SPACE || SPACE.bad || !pairs.length || IQ.on) return;
+    const old = resumed ? iqLoad() : null;
+    const q = old && old.sp === SPACE.id ? old : { sp: SPACE.id, pairs, done: [], doneP: [], stage: 1, at: Date.now() };
+    q.doneP = q.doneP || []; q.stage = q.stage || 1;
+    iqSave(q); IQ.on = true; IQ.waitUntil = 0; IQ.stage = q.stage; IQ.all2 = 0; IQ.done2 = 0; iqShow();
+    let miss = 0;
+    try {
+      // 1단계: 계정 확인·티어(2년 내 최고 포함)
+      if (q.stage === 1) {
+        while (TQ.busy) await new Promise((ok) => setTimeout(ok, 1000));   // 다른 티어 받기가 돌고 있으면 끝난 뒤에
+        await fetchTiers(q.pairs, true, { skip: new Set(q.done), each: (k) => { q.done.push(k); iqSave(q); } });
+        miss = TQ.miss; q.stage = 2; iqSave(q);
+      }
+      // 2단계(11-20 사용자 요청: 상대 전적·예상 밴픽이 제일 중요): 계정마다 최근 랭크 30판·숙련도 → 챔프폭·전적. 0시 수집을 기다리지 않음
+      IQ.stage = 2; iqShow();
+      await quickPools(q.pairs, true, { skip: new Set(q.doneP), waits: 12,
+        plan: (n) => { IQ.all2 = n; IQ.done2 = 0; iqShow(); },
+        acc: (ms) => { IQ.done2++; if (!IQ.pWaited) IQ.avgP = IQ.avgP * 0.6 + ms * 0.4; iqShow(); },
+        wait: () => { IQ.pWaited = true; IQ.waitUntil = Date.now() + 61000; iqShow(); setTimeout(() => { IQ.waitUntil = 0; }, 61000); },
+        each: (k) => { q.doneP.push(k); iqSave(q); } });
+    } finally { iqSave(null); IQ.on = false; iqShow(); }
+    toast(`명단 등록 끝 — 계정 ${q.done.length}개 티어, 최근 랭크 경기·챔프폭까지 반영했습니다${miss ? ` · ${miss}개 계정은 못 받음` : ""} (0시 수집 때 100판으로 늘어남)`);
+  }
+  // 남은 시간: 1단계 남은 계정 × 계정당 시간 + 2단계(최근 경기) 남은 계정 × 계정당 시간 + 지금 한도 기다림
+  //   Riot 한도 = 2분에 100번 · 티어 = 계정당 2번(많으면 2.4초보다 빠를 수 없음) · 최근 경기 = 계정당 약 34번(이어지면 약 40초)
+  function iqEta() {
+    const wait = Math.max(0, IQ.waitUntil - Date.now());
+    const left1 = IQ.stage === 1 ? Math.max(0, TQ.all - TQ.done) : 0, per1 = left1 > 45 ? Math.max(IQ.avg, 2400) : IQ.avg;
+    const accs = IQ.stage === 1 ? Math.max(TQ.all, 1) : 0;   // 1단계 중엔 2단계 계정 수를 1단계 계정 수로 어림
+    const left2 = IQ.stage === 2 ? Math.max(0, IQ.all2 - IQ.done2) : accs, per2 = left2 > 2 ? Math.max(IQ.avgP, 40000) : IQ.avgP;
+    const ms = left1 * per1 + left2 * per2 + wait;
+    return ms < 60000 ? "1분 이내" : `약 ${Math.ceil(ms / 60000)}분`;
+  }
+  function iqShow() {
+    let el = document.getElementById("impBusy");
+    if (!IQ.on) {
+      if (el) el.remove();
+      document.querySelectorAll("[data-iq-inert]").forEach((e) => { e.inert = false; e.removeAttribute("data-iq-inert"); });
+      clearInterval(IQ.timer); IQ.timer = null; return;
+    }
+    if (!el) {
+      el = document.body.appendChild(Object.assign(document.createElement("div"), { id: "impBusy", className: "iq" }));
+      el.setAttribute("role", "alertdialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "iqT");
+      [...document.body.children].forEach((e) => { if (e !== el && e.id !== "toast" && !e.inert) { e.inert = true; e.setAttribute("data-iq-inert", "1"); } });   // 다른 화면은 못 누르게
+      IQ.timer = setInterval(iqShow, 1000);
+    }
+    const s2 = IQ.stage === 2, all = s2 ? IQ.all2 : TQ.busy ? TQ.all : 0, done = s2 ? IQ.done2 : TQ.busy ? TQ.done : 0;
+    // 전체 막대: 1단계 = 0~30%, 2단계 = 30~100%(최근 경기가 훨씬 오래 걸림)
+    const pct = Math.round(s2 ? 30 + (all ? (done / all) * 70 : 0) : all ? (done / all) * 30 : 0), wait = Math.max(0, Math.ceil((IQ.waitUntil - Date.now()) / 1000));
+    const step = (n, t, on, ok) => `<li class="${on ? "on" : ok ? "ok" : ""}"><span>${ok ? "✓" : n}</span>${t}</li>`;
+    el.innerHTML = `<div class="iq-box"><span class="iq-spin" aria-hidden="true"></span><h2 id="iqT">명단 등록 진행 중입니다</h2>
+      <ol class="iq-steps">${step(1, "계정 확인·티어", !s2, s2)}${step(2, "최근 랭크 경기·챔프폭(상대 전적·예상 밴픽)", s2, false)}</ol>
+      <p>${all ? `${s2 ? "최근 경기 받는 중" : "계정 확인 중"} <b>${done} / ${all}</b>${s2 ? " 계정" : ""}` : "준비 중…"}</p>
+      <div class="iq-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
+      <p class="iq-eta">예상 남은 시간 <b>${all || s2 ? iqEta() : "계산 중"}</b></p>
+      ${wait ? `<p class="help">Riot 조회 한도 — ${wait}초 뒤 이어서 받습니다</p>` : ""}
+      <p class="help">끝날 때까지 다른 화면은 잠시 막아 둡니다. 창을 닫으면 멈추고, 다시 열면 남은 계정부터 이어서 받습니다.</p></div>`;
+  }
+  window.addEventListener("beforeunload", (ev) => { if (IQ.on) { ev.preventDefault(); ev.returnValue = ""; } });   // 닫으려 하면 브라우저가 한 번 묻게
   // Riot에서 계정별 솔랭·자랭 받기: pairs = [[팀ID, 라인]…]. 팀 공간 열쇠가 있어야 조회됨
   const TQ = { busy: false, done: 0, all: 0, miss: 0, msg: "", fails: [] };
   const lowLp = (x) => (x ? tierLine(x).replace(/^(\S+ \d) \d+LP$/, "$1") : "");
-  async function fetchTiers(pairs, quiet) {
+  async function fetchTiers(pairs, quiet, opt) {
+    opt = opt || {};
     if (!SPACE || SPACE.bad) { TQ.msg = "팀 공간에 들어오면 Riot에서 티어를 받습니다"; render(); return; }
     if (TQ.busy) return;
     const jobs = [];
     const seen = new Set();
-    pairs.forEach(([tid, r]) => { const t = team(tid); if (t && !t.solo && t.players[r]) accountsOf(t, r).forEach(([a]) => { const k = `${tid}|${r}|${rkKey(a)}`; if (!seen.has(k)) { seen.add(k); jobs.push([tid, r, a]); } }); });
+    pairs.forEach(([tid, r]) => { const t = team(tid); if (t && !t.solo && t.players[r]) accountsOf(t, r).forEach(([a]) => { const k = `${tid}|${r}|${rkKey(a)}`; if (!seen.has(k)) { seen.add(k); if (!(opt.skip && opt.skip.has(k))) jobs.push([tid, r, a]); } }); });
     Object.assign(TQ, { busy: true, done: 0, all: jobs.length, miss: 0, msg: "", fails: [] }); render();
     for (const [tid, r, a] of jobs) {
-      let d = null, why = "확인 못 함";
+      let d = null, why = "확인 못 함", t0 = Date.now(), waited = false;
       for (let tries = 0; tries < 8; tries++) {
         try {
           const res = await wfetch(`/riot/check?id=${encodeURIComponent(a)}`);
           const j = await res.json().catch(() => ({}));
-          if (res.status === 429) { TQ.msg = "Riot 조회 한도 — 1분 뒤 이어서 받습니다"; render(); await new Promise((ok) => setTimeout(ok, 61000)); continue; }
+          if (res.status === 429) { TQ.msg = "Riot 조회 한도 — 1분 뒤 이어서 받습니다"; IQ.waitUntil = Date.now() + 61000; waited = true; render(); iqShow(); await new Promise((ok) => setTimeout(ok, 61000)); IQ.waitUntil = 0; continue; }
           if (res.ok && j.status === "ok") d = j; else why = j.reason || `응답 ${res.status}`;
         } catch (e) { why = "연결 실패"; }
         break;
@@ -2463,6 +2542,9 @@
         applyTiers(); shareChanged(tid, r);
       } else { TQ.miss++; const tm = team(tid); TQ.fails.push({ team: tm ? tm.name : "", r, a, why: d && !d.exists ? "Riot에 없는 계정(이름·태그 확인)" : why }); }
       TQ.done++; TQ.msg = `Riot에서 티어 받는 중 ${TQ.done} / ${TQ.all}`;
+      if (!waited) IQ.avg = IQ.avg * 0.7 + (Date.now() - t0) * 0.3;   // 계정 하나 걸리는 시간(한도 기다림 빼고)
+      if (opt.each) opt.each(`${tid}|${r}|${rkKey(a)}`);
+      iqShow();
       if (TQ.done % 5 === 0 || TQ.done === TQ.all) { save(); render(); }
     }
     TQ.busy = false; TQ.msg = `티어 받기 끝 — 계정 ${TQ.all}개${TQ.miss ? ` 중 ${TQ.miss}개는 못 받음(아래 목록)` : ""}`;
@@ -3152,7 +3234,7 @@
     if (S.enemyTeam === S.ourTeam || !S.teams.find((t) => t.id === S.enemyTeam)) S.enemyTeam = (S.teams.find((t) => t.id !== S.ourTeam && !t.solo) || S.teams[0]).id;
     save();
     res.touched.forEach(([tid, r]) => shareChanged(tid, r));   // 챔프폭·티어는 팀 공간에 공유
-    if (SPACE && !SPACE.bad && res.touched.length) setTimeout(() => fetchTiers(res.touched), 0);   // 본계정·부계정 솔랭·자랭을 Riot에서 자동으로
+    if (SPACE && !SPACE.bad && res.touched.length) setTimeout(() => startImportFetch(res.touched), 0);   // 본계정·부계정 솔랭·자랭을 Riot에서 자동으로 — 진행 화면으로 막고(11-20)
     const n = P.teams.length, nNew = IMP.diff.filter((x) => x.isNew).length;
     IMP.msg = `적용했습니다 — 팀 ${n}개${nNew ? `(새 팀 ${nNew})` : ""}.${SH.url ? " 챔프폭·티어는 팀 공간에 공유됩니다." : ""}${SPACE && !SPACE.bad ? " 본계정·부계정의 솔랭·자랭 티어를 Riot에서 받는 중입니다." : " 팀 공간에 들어오면 Riot에서 솔랭·자랭 티어를 받을 수 있습니다."}`;
     IMP.done = { n, nNew, names: P.teams.map((t) => (t.our ? `${(team(S.ourTeam) || {}).name || t.name}(우리 팀)` : t.name)), no, ids: ids.length };
@@ -4202,6 +4284,7 @@
     switch (a) {
       case "livetake": liveTake(); break;
       case "livesolo": liveSolo(el.dataset.v === "1"); break;
+      case "liveretry": LIVE.retry = 0; clearTimeout(LIVE.timer); LIVE.status = "connecting"; liveBarUpdate(); liveConnect(); break;
       case "pick": choose(el.dataset.id, el.dataset.role); break;
       case "chdet": openChampDetail(el.dataset.id, el.dataset.role, el); break;
       case "chdclose": closeChampDetail(); break;
@@ -5043,4 +5126,6 @@
   loadMe();
   loadRoster();
   loadCollectStatus();
+  // 명단 등록 중에 창을 닫았으면 다시 열 때 남은 계정부터 이어서
+  { const q = iqLoad(); if (q && SPACE && !SPACE.bad && q.sp === SPACE.id && Array.isArray(q.pairs)) setTimeout(() => startImportFetch(q.pairs.filter(([tid]) => team(tid)), true), 1500); else if (q) iqSave(null); }
 })();
