@@ -1592,3 +1592,14 @@ html.pc #mhead .vs-btn > span { white-space: nowrap; }
 .pk-tray .pk-ch { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; } .pk-tray .pk-ch b { font-size: 14px; }
 .pk-sug { bottom: auto; top: calc(100% + 6px); }
 .pk-find { border-color: var(--hi); background: var(--panel); } .pk-find .lbi { color: var(--hi); }
+/* 픽 순서 띠: 칸 모양에 맞춰 잘리던 초상화 → 칸 가운데 동그란 초상화(11-20 사용자) */
+html.pc .tl { gap: 4px; }
+html.pc .tl-c { height: 46px; border-radius: 10px; }
+html.pc .tl-c img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+html.pc .tl-c.pick.b.filled img { box-shadow: 0 0 0 2px var(--blue); } html.pc .tl-c.pick.r.filled img { box-shadow: 0 0 0 2px var(--red); }
+html.pc .tl-c.pick.b.filled, html.pc .tl-c.pick.r.filled { box-shadow: none; }
+html.pc .tl-c.pick.b { background: var(--blue-bg); } html.pc .tl-c.pick.r { background: var(--red-bg); }
+html.pc .tl-c.open.pick { background: transparent; border: 1.5px dashed var(--line); }
+html.pc .tl-c.open.pick.b span { color: var(--blue); } html.pc .tl-c.open.pick.r span { color: var(--red); }
+html.pc .tl-c.now { outline: 2px solid var(--hi); outline-offset: 1px; }
+html.pc .tl-key .k.ban { background: var(--bg2); } html.pc .tl-key .k.now { outline-color: var(--hi); }
