@@ -462,7 +462,7 @@
     el.innerHTML = `<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">${LOGO_MARK}<span>lolban<i>.</i></span></a>
       ${SIDE_MENU.map(([k, ic, n]) => { const nb = k === "alts" ? suspectList().length : 0; return `<button class="tab sd-mi" data-tab="${k}" aria-selected="${S.tab === k}">${lbi(ic, 22)}${n}${nb ? `<span class="sd-badge" aria-label="의심 ${nb}개">${nb}</span>` : ""}</button>`; }).join("")}
       <div class="sd-sec">우리 팀</div>
-      ${our ? `<div class="sd-tmw our-w"><button class="tab sd-tm our" data-tab="team" aria-current="${S.tab === "team"}">${crestOf(our, "b")}<span class="nm" title="${esc(our.name)}">${esc(our.name)}</span></button>${sp ? `<button class="sd-tm-inv" data-act="joinpop" aria-expanded="${JP.open}" aria-label="다른 팀 초대 코드 입력">${lbi("invite", 20)}</button>` : ""}</div>`
+      ${our ? `<div class="sd-tmw our-w"><button class="tab sd-tm our" data-tab="team" aria-current="${S.tab === "team" || S.tab === "pool"}">${crestOf(our, "b")}<span class="nm" title="${esc(our.name)}">${esc(our.name)}</span></button>${sp ? `<button class="sd-tm-inv" data-act="joinpop" aria-expanded="${JP.open}" aria-label="다른 팀 초대 코드 입력">${lbi("invite", 20)}</button>` : ""}</div>`
         : `<button class="sd-tm sd-new" data-act="team">${lbi("plus", 20)}<span class="nm">팀 만들기</span></button>`}
       ${joinCard()}
       <div class="sd-sec">상대 팀 <button data-act="import" aria-label="상대 팀 등록(엑셀)" title="상대 팀 등록(엑셀)">${lbi("plus", 18)}</button></div>
@@ -525,7 +525,7 @@
       c = `<span class="mh-t">${crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b")}<span class="tb">${esc(ourName)}</span></span><span class="mh-s">연습 기간 ${since}~${g ? ` · 함께 한 경기 ${g.length}판 ${g.filter((x) => x.win).length}승` : ""}</span>`;
     } else {
       const VS = window.VISION, nD = typeof allDrills === "function" && VS ? allDrills().length : 0, nOk = Object.values(S.ui.dScore || {}).filter(Boolean).length;
-      const T = { team: ["우리 팀", `${esc(ourName)} · 선수·챔프폭 · 팀원 초대`], vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자유랭크에서 같은 5명이 여러 날 모인 기록으로 찾음"], pts: ["점수 기준표", "티어별 선수 점수 · 대회 규정에 맞게 팀장이 고침"] }[S.tab] || ["", ""];
+      const T = { team: ["우리 팀", `${esc(ourName)} · 로스터·최적 조합·함께 한 경기 · 팀원 초대`], pool: ["선수·챔프폭", `${esc(ourName)} · 칸으로 끌어 숙련도 정하기 · 누르면 한 단계씩`], vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자유랭크에서 같은 5명이 여러 날 모인 기록으로 찾음"], pts: ["점수 기준표", "티어별 선수 점수 · 대회 규정에 맞게 팀장이 고침"] }[S.tab] || ["", ""];
       c = `<b class="mh-t">${T[0]}</b><span class="mh-s">${T[1]}</span>`;
     }
     el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}${hdMe()}</div>`;
@@ -1526,7 +1526,8 @@
   async function loadPrep() {
     if (!window.RECENT_LIVE_URL) return;
     try { const d = await (await fetch(`${WURL()}/config${SPACE ? "?" + spaceQ() : ""}`, { cache: "no-store" })).json(); if (d.status === "ok") { PREP.since = d.since; PREP.def = d.default; if (SPACE && d.queue) CFG.queue = d.queue; if (SPACE && MODE_TXT[d.tierMode] && CFG.tierMode !== d.tierMode) { CFG.tierMode = d.tierMode; applyTiers(); save(); render(); }
-      if (SPACE && JSON.stringify(d.pts || null) !== JSON.stringify(CFG.pts || null)) { CFG.pts = d.pts || null; applyTiers(); save(); render(); } if (S.tab === "live" || S.tab === "enemy") render(); } } catch (e) { /* 그대로 */ }
+      if (SPACE && JSON.stringify(d.pts || null) !== JSON.stringify(CFG.pts || null)) { CFG.pts = d.pts || null; applyTiers(); save(); render(); }
+      if (SPACE && JSON.stringify(d.next || null) !== JSON.stringify(CFG.next || null)) { CFG.next = d.next || null; if (S.tab === "our") render(); } if (S.tab === "live" || S.tab === "enemy") render(); } } catch (e) { /* 그대로 */ }
   }
   async function savePrep(v) {
     if (!SPACE) { PREP.msg = "팀 공간에 들어와야 바꿀 수 있습니다(「팀 공간」)."; render(); return; }
@@ -1747,7 +1748,7 @@
       const pm = E.poolMap(t, r), list = Object.entries(pm).sort((a, b) => E.lvScore(b[1]) - E.lvScore(a[1])).slice(0, 5);
       return `<div class="l5"><span class="l5-r">${ROLE_KO[r]}</span><b class="l5-n" title="${esc(p.riot)}">${esc(nick(p.riot) || "—")}</b><span class="l5-s">${tierLineHtml(p, x)}</span>
         ${altLine(t, r)}<span class="l5-w">${ar && ar.differs ? `${lbi("warn", 16)}최근 ${ROLE_KO[ar.role]} ${ar.n}판` : ""}</span>${crossLine(t, r)}
-        ${list.length ? list.map(([id, e], j) => `<span class="l5-c ${j ? "" : "first"}" title="${esc(CH[id] ? CH[id].ko : id)}${e.g ? ` · ${e.g}판` : ""}">${icon(id, j ? "md" : "lg")}<b>${esc(CH[id] ? CH[id].ko : id)}</b>${lvTag({ lv: e.lv, one: e.one })}</span>`).join("") : `<span class="help">챔프폭 없음 · 팀 설정에서</span>`}</div>`;
+        ${list.length ? list.map(([id, e], j) => `<span class="l5-c ${j ? "" : "first"}" title="${esc(CH[id] ? CH[id].ko : id)}${e.g ? ` · ${e.g}판` : ""}">${icon(id, j ? "md" : "lg")}<b>${esc(CH[id] ? CH[id].ko : id)}</b>${lvTag({ lv: e.lv, one: e.one })}</span>`).join("") : `<span class="help">챔프폭 없음 · 「챔프폭 입력」에서</span>`}</div>`;
     }).join("")}</div></section>`;
   }
   function homeCompsPC(t) {
@@ -1848,11 +1849,185 @@
     }
     return `<div class="home nu-pc">${rolePickCard()}${collectBanner()}${bar}<section class="nu-body">${body}</section></div>`;
   }
+  // ---------- 홈(11-20 사용자 결정: 시안 C 위 + B 아래) ----------
+  // 위 = 다음 상대 띠(팀장·코치가 정함 · 서버 /config next), 아래 = 상대 팀마다 「최근 소식」 카드 + 우리 팀 할 일.
+  // 예전 홈(로스터·최적 조합·함께 한 경기·보강)은 「우리 팀」 화면으로 옮김
+  const NX = { open: false, tid: "", date: "", time: "", busy: false, msg: "" };
+  const canSetNext = () => !!SPACE && !SPACE.bad && (!SPACE.viaLogin || !!SPACE.isOwner || SPACE.myRole === "coach");
+  const NX_GRACE = 2 * 3600e3;   // 경기 시작 2시간 뒤부터는 「다음 상대를 정해 주세요」
+  const nxTime = (at) => (at ? Date.parse(`${at}:00+09:00`) : NaN);
+  function nextOpp() {
+    const n = CFG.next; if (!n || !n.tid) return null;
+    const t = team(n.tid); if (!t || t.solo || t.id === S.ourTeam) return null;
+    const ms = nxTime(n.at); if (Number.isFinite(ms) && Date.now() > ms + NX_GRACE) return null;
+    return { t, at: n.at || "", ms };
+  }
+  const WK = ["일", "월", "화", "수", "목", "금", "토"];
+  function nxWhen(at, ms) {
+    if (!at || !Number.isFinite(ms)) return "";
+    const d = new Date(ms + 9 * 3600e3), day = `${d.getUTCMonth() + 1}-${String(d.getUTCDate()).padStart(2, "0")} (${WK[d.getUTCDay()]}) ${at.slice(11, 16)}`;
+    const k = (x) => Math.floor((x + 9 * 3600e3) / 86400e3), left = k(ms) - k(Date.now());
+    const tag = Date.now() > ms ? "경기 중" : left <= 0 ? "오늘" : left === 1 ? "내일" : `${left}일 남음`;
+    return `<span class="nx-when">${NX_CAL}${esc(day)}<b>${tag}</b></span>`;
+  }
+  const NX_CAL = `<svg class="lbi" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>`;
+  // 상대 팀 「최근 소식」 — 새로 연습하는 챔프 · 부계정 의심 · 교차 출전 · 라인 바꿈 · 함께 한 경기
+  function teamNews(t) {
+    const out = [], P = E.practiceOf(t);
+    if (P) ROLES.forEach((r) => { const pl = P.players[r]; (pl && pl.picks || []).filter((x) => x.new && CH[x.id]).slice(0, 1).forEach((x) => out.push({ k: "new", r, id: x.id, t: `${CH[x.id].ko} 새로 연습 ${x.g}판`, tag: "새 픽" })); });
+    suspectList().filter((it) => it.t.id === t.id).slice(0, 2).forEach((it) => out.push({ k: "alt", r: it.x.role, t: `부계정 의심 · ${SUS_GRADE[it.x.grade] || "의심"}`, tag: "부계정" }));
+    ROLES.forEach((r) => { const cx = E.crossOf && E.crossOf(t, r); if (cx) out.push({ k: "cross", r, t: `교차 출전 · 주 라인 ${ROLE_KO[cx.main]}`, tag: "주의" }); });
+    if (P) (P.swaps || []).slice(0, 1).forEach((s) => out.push({ k: "swap", r: s.r, t: `${ROLE_KO[s.r]} 라인 바꿔서 연습`, tag: "라인" }));
+    const g = E.groupsOf(t), wk = Date.now() - 7 * 86400e3;
+    const recent = (g || []).filter((x) => { const ms = Date.parse(String(x.date).replace(" ", "T") + ":00+09:00"); return !Number.isFinite(ms) || ms >= wk; });
+    if (recent.length) out.push({ k: "games", t: `함께 한 경기 ${recent.length}판 ${recent.filter((x) => x.win).length}승 (7일)`, tag: "팀 경기" });
+    return out;
+  }
+  const NEWS_TAG = { new: "new", alt: "", cross: "red", swap: "", games: "" };
+  const newsLine = (x) => `<span class="nw-l">${x.r ? `<span class="nw-r" title="${ROLE_KO[x.r]}">${laneIco(x.r, 15)}</span>` : `<span class="nw-r">${lbi("comp", 15)}</span>`}${x.id ? icon(x.id, "xs") : ""}<span class="nw-t">${esc(x.t)}</span></span>`;
+  function nextHero(ours) {
+    const nx = nextOpp(), can = canSetNext(), opp = S.teams.filter((t) => !t.solo && t.id !== ours.id);
+    const pop = NX.open && can ? nxPop(opp) : "";
+    if (!nx) {
+      return `<section class="nx nx-empty"><span class="nx-k">다음 상대</span><h2>${can ? "다음 상대를 정해 주세요" : "팀장이 아직 다음 상대를 정하지 않았어요"}</h2>
+        ${can ? (opp.length ? `<div class="nx-chips">${opp.map((t) => `<button class="nx-chip" data-act="nxquick" data-id="${esc(t.id)}">${crestOf(t, "r")}<span>${esc(t.name)}</span></button>`).join("")}</div>` : `<p class="nx-sub">먼저 상대 팀을 등록하세요 · 사이드바 「상대 팀 +」</p>`) : ""}${pop}</section>`;
+    }
+    const en = nx.t;
+    // 티어 구성: 반영 티어 엠블럼 × 명수
+    const cnt = {}; ROLES.forEach((r) => { const e = effTier(en, r); if (e && !e.none) { const k = parseTier(e.tier).t; if (k) cnt[k] = (cnt[k] || 0) + 1; } });
+    const comp = TIERS.slice().reverse().filter((k) => cnt[k]).map((k) => `<span class="nx-tc" title="${k} ${cnt[k]}명">${tierImg(k, 24)}×${cnt[k]}</span>`).join("");
+    const g = E.groupsOf(en);
+    const virtual = Object.assign({}, S, { enemyTeam: en.id, draft: { ourSide: "B", steps: emptySteps(), idx: 0 }, series: { game: 1, mode: "off", locked: [] } });
+    let bans = []; try { bans = E.teamHasPools(en) ? E.recommendBan(virtual, "our", 3) : []; } catch (e) { bans = []; }
+    const why = (b) => { const x = (b.reasons || []).slice().sort((a, c) => (c.v || 0) - (a.v || 0))[0]; return x && x.t ? x.t : b.tgt ? ROLE_KO[b.tgt] : ""; };
+    const news = teamNews(en).slice(0, 3);
+    return `<section class="nx"><div class="nx-a"><span class="nx-k">다음 상대</span>
+        <h2><button class="nx-name" data-act="pickenemy" data-id="${esc(en.id)}" title="상대 분석 열기">${esc(en.name)}</button>${can ? `<button class="nx-pick" data-act="nxopen" aria-expanded="${NX.open}">${ico("swap")}바꾸기</button>` : ""}</h2>
+        ${nxWhen(nx.at, nx.ms)}
+        <span class="nx-comp">${comp}${g ? `<span class="nx-sub">함께 한 경기 ${g.length}판</span>` : ""}</span>
+        <span class="nx-btns"><button class="n-new" data-act="nxlive" data-id="${esc(en.id)}">${lbi("draft", 18)}실시간 밴픽 준비</button><button class="nx-soft" data-act="pickenemy" data-id="${esc(en.id)}">상대 분석</button></span></div>
+      <div class="nx-b"><span class="nx-k">먼저 밴할 3개</span>${bans.length ? `<div class="nx-bans">${bans.map((b) => `<span class="nx-ban">${icon(b.id, "lg")}<b>${esc(CH[b.id].ko)}</b><small>${esc(why(b))}</small></span>`).join("")}</div>` : `<p class="nx-sub">상대 챔프폭이 들어오면 나옵니다</p>`}</div>
+      <div class="nx-c"><span class="nx-k">새로 생긴 것</span>${news.length ? `<div class="nx-news">${news.map((x) => `<span class="nx-nl">${newsLine(x)}<span class="nx-tg ${NEWS_TAG[x.k]}">${x.tag}</span></span>`).join("")}</div>` : `<p class="nx-sub">최근 바뀐 것 없음</p>`}</div>${pop}</section>`;
+  }
+  function nxPop(opp) {
+    const n = CFG.next || {}, sel = NX.tid || n.tid || (opp[0] || {}).id || "";
+    return `<div class="nx-pop" role="dialog" aria-label="다음 상대 정하기"><small>상대 팀</small>
+      <div class="nx-list" role="listbox" aria-label="상대 팀">${opp.map((t) => `<button role="option" class="nx-it" data-act="nxsel" data-id="${esc(t.id)}" aria-selected="${t.id === sel}">${crestOf(t, "r")}<span>${esc(t.name)}</span>${t.id === sel ? lbi("check", 16) : ""}</button>`).join("")}</div>
+      <small>경기 날짜 (비워도 됨)</small>
+      <span class="nx-fld"><input class="input" type="date" id="nxDate" value="${esc(NX.date)}" aria-label="경기 날짜"><input class="input" type="time" id="nxTime" value="${esc(NX.time)}" aria-label="경기 시간"></span>
+      ${NX.msg ? `<p class="help" role="status">${esc(NX.msg)}</p>` : ""}
+      <span class="nx-pb">${n.tid ? `<button class="soft-b" data-act="nxclear" ${NX.busy ? "disabled" : ""}>지우기</button>` : ""}<span class="n-sp"></span><button class="soft-b" data-act="nxcancel">취소</button><button class="n-new" data-act="nxsave" ${NX.busy ? "disabled" : ""}>${NX.busy ? "저장 중…" : "정하기"}</button></span></div>`;
+  }
+  async function nxSave(next) {
+    if (!canSetNext()) { toast("다음 상대는 팀장·코치만 정할 수 있습니다"); return; }
+    NX.busy = true; NX.msg = ""; render();
+    try {
+      const res = await wfetch(`/config`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ next }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.status !== "ok") { NX.msg = d.reason || "저장하지 못했습니다 — 잠시 뒤 다시"; return; }
+      CFG.next = d.next || null; NX.open = false; save();
+    } catch (e) { NX.msg = "저장하지 못했습니다 — 인터넷 연결을 확인하세요"; } finally { NX.busy = false; render(); }
+  }
+  function nxOpenPop() {
+    const n = CFG.next || {}; NX.open = !NX.open; NX.msg = ""; NX.tid = n.tid || "";
+    NX.date = n.at ? n.at.slice(0, 10) : ""; NX.time = n.at ? n.at.slice(11, 16) : ""; render();
+  }
+  function nxSubmit() {
+    const d = (document.getElementById("nxDate") || {}).value || "", tm = (document.getElementById("nxTime") || {}).value || "";
+    const tid = NX.tid || ((CFG.next || {}).tid) || ((S.teams.find((t) => !t.solo && t.id !== S.ourTeam)) || {}).id;
+    if (!tid) return;
+    if (tm && !d) { NX.msg = "시간을 넣으려면 날짜도 넣으세요"; render(); return; }
+    nxSave({ tid, at: d ? `${d}T${tm || "20:00"}` : "" });
+  }
+  function homeTeamCards(ours) {
+    const opp = S.teams.filter((t) => !t.solo && t.id !== ours.id && (!nextOpp() || t.id !== nextOpp().t.id));
+    const cards = opp.map((t) => { const nw = teamNews(t), top = nw[0];
+      return `<article class="tcard"><span class="tc-h">${crestOf(t, "r")}<button class="tc-n" data-act="pickenemy" data-id="${esc(t.id)}">${esc(t.name)}</button>${top ? `<span class="tag ${NEWS_TAG[top.k]}">${top.tag}</span>` : `<span class="tag">조용함</span>`}</span>
+        ${nw.length ? nw.slice(0, 3).map(newsLine).join("") : `<span class="help">최근 바뀐 것 없음</span>`}</article>`; });
+    return cards.join("") + homeTodo(ours);
+  }
+  function homeTodo(t) {
+    const noPool = ROLES.filter((r) => t.players[r] && /#/.test(t.players[r].riot || "") && !(t.players[r].pool || []).length);
+    const noAcc = ROLES.filter((r) => !t.players[r] || !/#/.test(t.players[r].riot || ""));
+    const sus = canConfirmAlt() ? suspectList().filter((it) => it.t.id === t.id).length : 0;
+    const row = (lanes, text, act, btn) => `<span class="td-l">${lanes.length ? `<span class="td-r">${lanes.map((r) => `<span title="${ROLE_KO[r]}">${laneIco(r, 15)}</span>`).join("")}</span>` : ""}<b>${text}</b>${act ? `<button class="td-b" ${act}>${btn}</button>` : ""}</span>`;
+    const items = [
+      noAcc.length ? row(noAcc, `계정 안 넣은 라인 ${noAcc.length}개`, `data-act="gotab" data-k="team"`, "넣기") : "",
+      noPool.length ? row(noPool, `챔프폭 안 넣은 선수 ${noPool.length}명`, `data-act="poolgo" data-r="${noPool[0]}"`, "입력하기") : "",
+      sus ? row([], `우리 팀 부계정 의심 ${sus}개 확인`, `data-act="gotab" data-k="alts"`, "보기") : "",
+    ].filter(Boolean);
+    return `<article class="tcard tc-our"><span class="tc-h">${crestOf(t, "b")}<b class="tc-n">우리 팀 할 일</b></span>${items.length ? items.join("") : `<span class="help">할 일 없음 · 챔프폭과 계정이 모두 들어 있습니다</span>`}</article>`;
+  }
+
+  // ---------- 선수·챔프폭(11-20 사용자 결정: 시안 편집 3 — 숙련도 칸에 끌어 놓기) ----------
+  // 위 라인 탭 → 고른 선수 머리(이름·솔랭/자랭 티어·부계정) → 원챔·상·중·하 네 칸(끌어 옮기기, 누르면 한 단계씩) → 기록에만 있는 챔프(끌어 오면 넣기) · 찾기
+  function poolLane(t) {
+    const my = SPACE && SPACE.viaLogin ? SPACE.myRole : "";
+    if (!ROLES.includes(S.ui.seLane)) S.ui.seLane = ROLES.includes(my) ? my : "T";
+    return S.ui.seLane;
+  }
+  // 계정 하나의 큐별 티어(설정의 반영 방식: 2년 내 최고·이번 시즌 최고면 현재와 그 최고 중 높은 쪽)
+  function accTier(p, acc, q) { const e = (p.rk || {})[rkKey(acc)] || {}, cv = e[q], pv = MODE_KEY[CFG.tierMode] ? e[MODE_KEY[CFG.tierMode] + q] : ""; return tierNum(pv) > tierNum(cv) ? pv : cv || ""; }
+  function tierPill(v, q, use) {
+    const x = parseTier(v); if (!x.t) return "";
+    const n = HIGH(x.t) ? (x.lp ? `${x.lp}LP` : "") : x.d;
+    return `<span class="pk-tr ${use ? "use" : ""}" title="${Q_KO[q]} ${esc(v)}${use ? " · 점수에 쓰는 티어" : ""}"><small>${Q_KO[q]}</small>${tierImg(x.t, 22)}<b>${esc(n)}</b></span>`;
+  }
+  function renderPoolPC() {
+    const t = team(S.ourTeam);
+    if (!t || t.solo) return `<p class="help">우리 팀이 없습니다 — 「우리 팀」에서 팀을 만들거나 초대 코드로 들어오세요.</p>`;
+    editing = t.id;
+    const r = poolLane(t), p = t.players[r] || {}, can = canEditLane(t.id, r), my = SPACE && SPACE.viaLogin ? SPACE.myRole : "";
+    const tabs = `<div class="pk-tabs" role="tablist" aria-label="라인">${ROLES.map((x) => { const q = t.players[x] || {};
+      return `<button class="pk-tab" role="tab" data-act="selane" data-r="${x}" aria-selected="${x === r}">${laneIco(x, 20)}<b>${esc(nick(q.riot) || "계정 없음")}</b>${my === x ? `<span class="se-me">나</span>` : ""}${canEditLane(t.id, x) ? "" : `<span class="pk-lock" title="보기만">${lbi("lock", 14)}</span>`}</button>`; }).join("")}</div>`;
+    const eff = effTier(t, r), main = p.riot || "";
+    const tiers = /#/.test(main) ? ["s", "f"].map((q) => tierPill(accTier(p, main, q), q, !eff.none && eff.acc === "본계정" && eff.q === q)).join("") : "";
+    const alts = ((p.alts || altsOf(t.id, r)) || []).filter(Boolean);
+    const altChip = (a, i) => { const lab = `부계정 ${i + 1}`, use = !eff.none && eff.acc === lab, tv = use ? accTier(p, a, eff.q) : "";
+      return `<span class="pk-alt ${use ? "use" : ""}" title="${esc(a)}${use ? " · 이 계정 티어를 점수에 씀" : ""}">${esc(nick(a))}<small>#${esc(String(a).split("#")[1] || "")}</small>${use ? tierPill(tv, eff.q, true) : ""}</span>`; };
+    const head = `<div class="pk-head"><span class="pk-nm"><b>${esc(nick(main) || "계정 없음")}</b>${main ? `<small>#${esc(String(main).split("#")[1] || "")}</small>` : ""}<button class="pk-ib" data-act="poolacc" aria-label="계정·부계정 고치기" title="계정·부계정 고치기">${ico("pencil")}</button></span>
+      <span class="pk-trs">${tiers}</span><span class="n-sp"></span><span class="pk-alts">${alts.map(altChip).join("")}<button class="pk-addalt" data-act="poolacc">${lbi("plus", 16)}부계정</button></span></div>`;
+    const stats = E.poolMap({ ...t, players: { ...t.players, [r]: { ...p, pool: [], hide: [] } } }, r);
+    const pool = p.pool || [];
+    const lvOf = (x) => (x[2] ? "one" : String(x[1]));
+    const tile = ([id], drag) => { const st = stats[id];
+      return `<span class="pk-t" ${drag && can ? `draggable="true"` : ""} data-id="${id}" title="${esc(CH[id] ? CH[id].ko : id)}${st && st.g ? ` · ${st.g}판 ${Math.round(st.wr)}%` : ""}">
+        ${can ? `<button class="pk-tb" data-act="cycle" data-team="${t.id}" data-role="${r}" data-id="${id}" aria-label="${esc(CH[id] ? CH[id].ko : id)} 숙련도 한 단계 바꾸기">${icon(id, "lg")}</button>` : icon(id, "lg")}
+        <b>${esc(CH[id] ? CH[id].ko : id)}</b><small>${st && st.g ? `${st.g}판` : "기록 없음"}</small>
+        ${can ? `<button class="pk-x" data-act="del" data-team="${t.id}" data-role="${r}" data-id="${id}" aria-label="${esc(CH[id] ? CH[id].ko : id)} 빼기">${ico("x")}</button>` : ""}</span>`; };
+    const COLS = [["one", "원챔", 4], ["3", "상", 3], ["2", "중", 2], ["1", "하", 1]];
+    const cols = `<div class="pk-cols">${COLS.map(([v, n, k]) => { const list = pool.filter((x) => lvOf(x) === v).sort((a, b) => ((stats[b[0]] || {}).g || 0) - ((stats[a[0]] || {}).g || 0));
+      return `<section class="pk-col" data-v="${v}" aria-label="숙련도 ${n} ${list.length}개"><span class="pk-ch">${LV_ICON(k)}<span class="sr-only">${n}</span><small>${list.length}</small></span><div class="pk-tl">${list.map((x) => tile(x, true)).join("")}${!list.length && can ? `<span class="pk-drop">여기로 끌어 놓기</span>` : ""}</div></section>`; }).join("")}</div>`;
+    const mine = new Set(pool.map((x) => x[0])), hidden = new Set(p.hide || []);
+    const rec = Object.entries(stats).filter(([id, e]) => !mine.has(id) && !hidden.has(id) && CH[id] && (e.g || e.rg)).sort((a, b) => E.lvScore(b[1]) - E.lvScore(a[1])).slice(0, 12);
+    const recT = ([id, e]) => `<span class="pk-t ghost" ${can ? `draggable="true"` : ""} data-id="${id}" data-lv="${e.lv}" data-one="${e.one ? 1 : ""}">${can ? `<button class="pk-tb" data-act="pinrec" data-team="${t.id}" data-role="${r}" data-id="${id}" data-lv="${e.lv}" data-one="${e.one ? 1 : ""}" aria-label="${esc(CH[id].ko)} 넣기">${icon(id, "lg")}</button>` : icon(id, "lg")}<b>${esc(CH[id].ko)}</b><small>${e.g || e.rg}판</small></span>`;
+    const tray = `<section class="pk-tray pk-col" data-v="out" aria-label="기록에만 있는 챔프"><span class="pk-ch"><b>기록에만 있음</b>${can ? `<small>끌어 올리면 넣기 · 칸에서 여기로 끌면 빼기</small>` : ""}</span><div class="pk-tl">${rec.map(recT).join("") || `<span class="help">기록에만 있는 챔프 없음</span>`}</div>
+      ${can ? `<span class="pk-find">${lbi("scout", 16)}<input class="input" list="champList" data-add="${r}" placeholder="다른 챔피언 찾기 (Enter = 중)" aria-label="챔피언 찾아 넣기"><input type="hidden" data-addlv="${r}" value="2"></span>` : ""}</section>`;
+    const lock = can ? "" : `<p class="pk-lockmsg">${lbi("lock", 16)}${esc(laneLockMsg(r))}</p>`;
+    return `<div class="pool-pc">${tabs}${head}${lock}${cols}${tray}</div>`;
+  }
+  const LV_ICON = (k) => k === 4 ? `<svg class="pk-crown" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>`
+    : `<span class="pk-bars" aria-hidden="true">${[1, 2, 3].map((i) => `<i class="${i <= k ? "f" : ""}"></i>`).join("")}</span>`;
+  // 끌어 놓기: 칸(원챔·상·중·하) ↔ 기록 줄
+  function poolDrop(id, v) {
+    const t = team(S.ourTeam), r = poolLane(t); if (!t || !id) return;
+    if (!canEditLane(t.id, r)) { toast(laneLockMsg(r)); return; }
+    const p = t.players[r]; p.pool = p.pool || [];
+    const i = p.pool.findIndex((x) => x[0] === id);
+    if (v === "out") { if (i < 0) return; p.pool.splice(i, 1); }
+    else { const e = v === "one" ? [id, 3, true] : [id, +v]; if (i < 0) p.pool.push(e); else p.pool[i] = e; }
+    save(); shareChanged(t.id, r); render();
+  }
+  let PK_DRAG = "";
+  document.addEventListener("dragstart", (ev) => { const el = ev.target.closest && ev.target.closest(".pool-pc .pk-t[draggable]"); if (!el) return; PK_DRAG = el.dataset.id; ev.dataTransfer.effectAllowed = "move"; try { ev.dataTransfer.setData("text/plain", PK_DRAG); } catch (e) { /* 무시 */ } el.classList.add("dragging"); });
+  document.addEventListener("dragend", () => { PK_DRAG = ""; document.querySelectorAll(".pool-pc .dragging, .pool-pc .over").forEach((x) => x.classList.remove("dragging", "over")); });
+  document.addEventListener("dragover", (ev) => { if (!PK_DRAG) return; const c = ev.target.closest && ev.target.closest(".pool-pc .pk-col"); if (!c) return; ev.preventDefault(); document.querySelectorAll(".pool-pc .pk-col.over").forEach((x) => x !== c && x.classList.remove("over")); c.classList.add("over"); });
+  document.addEventListener("drop", (ev) => { if (!PK_DRAG) return; const c = ev.target.closest && ev.target.closest(".pool-pc .pk-col"); if (!c) return; ev.preventDefault(); const id = PK_DRAG; PK_DRAG = ""; poolDrop(id, c.dataset.v); });
   function renderOurPC() {
     if (needOnboard()) return newUserPC();
     const t = team(S.ourTeam);
     if (!t || t.solo) return flowCard() + noTeamHtml();
-    return `<div class="home">${rolePickCard()}${collectBanner()}${flowCard()}${homeRosterPC(t)}${homeCompsPC(t)}${homeGamesPC(t)}${homeBoostPC(t)}</div>`;
+    return `<div class="home home-new">${rolePickCard()}${collectBanner()}${flowCard()}${nextHero(t)}<div class="tcards">${homeTeamCards(t)}</div></div>`;
   }
 
   // ---------- 상대 예상 조합 ----------
@@ -2446,7 +2621,7 @@
       inl.innerHTML = edInlineHtml(ok); return;
     }
     const root = document.getElementById("modal");
-    if (!editing) { root.innerHTML = ""; return; }
+    if (!editing || (S.tab === "pool" && !MOB.matches)) { root.innerHTML = ""; return; }
     const t = team(editing);
     // 상대 부계정(11-20 사용자 요청): 상대 챔프폭 편집 창에서 라인마다 부계정 2개까지 — 넣으면 Riot 확인, 다음 수집부터 기록에 합침
     // 부계정 입력(11-20 사용자 요청: 즉시 저장은 「됐는지 모르겠다」) — 이름#태그 넣고 「찾기」 → Riot 확인 → 「적용」을 눌러야 저장 + 그 계정 챔프폭 받기
@@ -2887,10 +3062,10 @@
     const fails = TQ.fails.length && !TQ.busy ? `<details class="tq-fails"><summary>티어를 못 받은 계정 ${TQ.fails.length}개</summary><ul>${TQ.fails.map((f) => `<li><b>${esc(f.team)}</b> ${ROLE_KO[f.r]} · ${esc(f.a)} <span class="dim">${esc(f.why)}</span></li>`).join("")}</ul></details>` : "";
     const bar = edit
       ? `<span class="dim sd-help">챔프 알약을 누르면 숙련도가 바뀝니다</span><span class="n-sp"></span><button class="soft-b" data-act="tcancel">취소</button><button class="n-new" data-act="tsave">저장</button>`
-      : `<span class="n-sp"></span>${t ? `<button class="n-new" data-act="tedit">${lbi("settings", 16)}수정</button>` : ""}`;
-    const left = `<section class="sd-main-c"><div class="n-bar sd-bar"><h3 class="h-h">선수·챔프폭</h3>${bar}</div>
+      : `<span class="n-sp"></span>${t ? `<button class="soft-b" data-act="tedit">${lbi("settings", 16)}계정 수정</button>` : ""}`;
+    const left = `<section class="sd-main-c"><div class="n-bar sd-bar"><h3 class="h-h">${edit ? "계정 수정" : esc(t ? t.name : "우리 팀")}</h3>${bar}</div>
       ${TQ.busy ? `<p class="help" role="status">Riot에서 티어 받는 중 ${TQ.done} / ${TQ.all}</p>` : ""}${fails}
-      ${!t ? `<p class="help">우리 팀이 없습니다 — 오른쪽에서 팀을 만들거나 초대 코드로 들어오세요.</p>` : edit ? `<div id="setEd" class="sd-ed" data-team=""></div>` : teamViewPC(t)}</section>`;
+      ${!t ? `<p class="help">우리 팀이 없습니다 — 오른쪽에서 팀을 만들거나 초대 코드로 들어오세요.</p>` : edit ? `<div id="setEd" class="sd-ed" data-team=""></div>` : `<div class="home team-home">${homeRosterPC(t)}${homeCompsPC(t)}${homeGamesPC(t)}${homeBoostPC(t)}</div>`}</section>`;
     const inv = (SESS || !SPACE) ? loginBody() : SPACE && !SPACE.bad ? `<span class="sd-team">${crestOf(ours && !ours.solo ? ours : { name: SPACE.name || "팀" }, "b")}<b>${esc(SPACE.name || "팀 공간")}</b>${SPACE.owner ? `<small>팀장 인증 ${esc(SPACE.owner)}</small>` : ""}</span>
         <span class="sd-link" title="초대 링크(열쇠는 가림)">${esc(location.origin + location.pathname)}#join=${esc(SPACE.id)}.●●●●●●●●</span>
         <button class="n-new" data-act="tcopy">${lbi("invite", 18)}초대 링크 복사</button>
@@ -2899,7 +3074,7 @@
         <span class="sd-btns"><button class="soft-b" data-act="trotate">${lbi("refresh", 16)}링크 새로 만들기</button><button class="soft-b bad" data-act="tleave">이 브라우저 열쇠 지우기</button></span>`
       : `<div class="sd-tb">${teamBody()}</div>`;
     const right = `<aside class="sd-side"><section class="sd-card"><h3>우리 팀·초대</h3>${inv}</section>${membersCard()}</aside>`;
-    return `<div class="home settings-pc">${collectBanner() ? `<div class="cs-wrap">${collectBanner()}</div>` : ""}${left}${right}</div>`;
+    return `<div class="home settings-pc ${edit || !t ? "" : "team-wide"}">${collectBanner() ? `<div class="cs-wrap">${collectBanner()}</div>` : ""}${left}${right}</div>`;
   }
   // 설정(PC): 분석 기준 · 이 브라우저 · 계정
   function renderSettingsPC() {
@@ -4762,7 +4937,8 @@
     const keepEd = !mob && S.tab === "team" ? document.getElementById("setEd") : null;
     const keepEdF = keepEd && keepEd.contains(document.activeElement) ? keepEd : null;
     const edAE = keepEdF ? document.activeElement : null;
-    v.innerHTML = mobV ? mobV() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderStudyPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : S.tab === "team" ? (mob ? renderSettings() : renderTeamPC()) : S.tab === "alts" ? renderAltFind() : S.tab === "pts" ? renderPtsPage() : (mob ? renderEnemy() : renderEnemyPC());
+    if (S.tab === "pool" && mob) S.tab = "our";
+    v.innerHTML = mobV ? mobV() : S.tab === "pool" ? renderPoolPC() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderStudyPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : S.tab === "team" ? (mob ? renderSettings() : renderTeamPC()) : S.tab === "alts" ? renderAltFind() : S.tab === "pts" ? renderPtsPage() : (mob ? renderEnemy() : renderEnemyPC());
     if (!mob && S.tab === "team") { const ph = document.getElementById("setEd"); if (ph) { if (keepEdF && keepEdF.dataset.team === setTeamPC()) { ph.replaceWith(keepEdF); if (edAE && keepEdF.contains(edAE)) { const c = edAE.selectionStart; edAE.focus(); try { edAE.setSelectionRange(c, c); } catch (e) { /* select */ } } } else renderEditor(); } }
     // 휴대폰: 챔프 고르기·「⋯」 메뉴는 화면 아래 시트로
     const ms = document.getElementById("msheet") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "msheet" }));
@@ -5000,7 +5176,9 @@
         // 휴대폰: 시트의 라인 칩은 지금 차례 화면에서 고른 라인으로 시작
         if (S.ui.sheet && MOB.matches) { const st = curStep(); S.ui.q = ""; S.ui.role = (st && E.whoOfSide(S, st[0]) === "enemy" ? S.ui.predRole : S.ui.ourRole) || ""; }
         render(); if (S.ui.sheet) { const q = document.getElementById("q"); if (q && matchMedia("(min-width: 761px)").matches) q.focus(); } break;
-      case "edit": { const wasOpen = !!TSM.open; TSM.open = ""; editing = el.dataset.team; editMode = el.dataset.mode === "alts" ? "alts" : "pool"; if (wasOpen || document.querySelector(".tsm-pop")) render(); renderEditor(); pullShared(); break; }
+      case "edit": { const wasOpen = !!TSM.open; TSM.open = "";
+        if (!MOB.matches && el.dataset.team === S.ourTeam && el.dataset.mode !== "alts") { S.tab = "pool"; save(); render(); window.scrollTo(0, 0); pullShared(); break; }
+        editing = el.dataset.team; editMode = el.dataset.mode === "alts" ? "alts" : "pool"; if (wasOpen || document.querySelector(".tsm-pop")) render(); renderEditor(); pullShared(); break; }
       case "close": editing = null; renderEditor(); break;
       case "edlane": edLane = el.dataset.r; renderEditor(); break;
       case "add": addChamp(el.dataset.role); break;
@@ -5021,7 +5199,16 @@
       case "setlv": { const p = team(el.dataset.team).players[el.dataset.role]; const i = (p.pool || []).findIndex((x) => x[0] === el.dataset.id); if (i < 0) break;
         p.pool[i] = el.dataset.v === "one" ? [el.dataset.id, 3, true] : [el.dataset.id, +el.dataset.v];
         save(); shareChanged(el.dataset.team, el.dataset.role); renderEditor(); render(); break; }
-      case "selane": S.ui.seLane = el.dataset.r; renderEditor(); break;
+      case "selane": S.ui.seLane = el.dataset.r; if (S.tab === "pool") render(); else renderEditor(); break;
+      case "poolgo": if (ROLES.includes(el.dataset.r)) S.ui.seLane = el.dataset.r; S.tab = "pool"; MV.more = false; save(); render(); window.scrollTo(0, 0); pullShared(); break;
+      case "poolacc": { const t = team(S.ourTeam); if (!t) break; S.tab = "team"; TE.on = true; TE.snap = JSON.stringify(t); save(); render(); window.scrollTo(0, 0); break; }
+      case "nxopen": nxOpenPop(); break;
+      case "nxcancel": NX.open = false; NX.msg = ""; render(); break;
+      case "nxsel": NX.tid = el.dataset.id; NX.date = (document.getElementById("nxDate") || {}).value || NX.date; NX.time = (document.getElementById("nxTime") || {}).value || NX.time; render(); break;
+      case "nxsave": nxSubmit(); break;
+      case "nxclear": nxSave(null); break;
+      case "nxquick": nxSave({ tid: el.dataset.id, at: "" }); break;
+      case "nxlive": if (el.dataset.id && team(el.dataset.id)) { S.enemyTeam = el.dataset.id; syncQueue(true); S.tab = "live"; save(); render(); window.scrollTo(0, 0); } break;
       case "obnick": obSaveNick(); break;
       case "obrole": AUTH.msg = ""; setMemberRole(el.dataset.v).then(() => { S.tab = "our"; save(); render(); }); break;
       case "obrolelater": S.ui.roleLater = true; save(); render(); break;
