@@ -3438,7 +3438,7 @@
         ${teams.map((t) => `<tr><td class="as-tn">${esc(t.name)}${t.id === S.ourTeam ? "<small>우리</small>" : ""}</td>${ROLES.map((r) => `<td>${cell(t, r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
         ${selIt ? suspectCard(selIt) : `<p class="help">칸의 계정을 누르면 근거와 「부계정으로 추가」·「아님」이 아래에 나옵니다</p>`}`;
     }
-    return `<div class="as-pg">${waitH}${body}<div class="as-foot">${notYetH}${desc}</div></div>`;
+    return `<div class="as-pg">${waitH}${body}<div class="as-foot">${notYetH}</div></div>`;
   }
   // 부계정 찾기 화면을 딱 화면 높이로(설명은 맨 아래, 스크롤 없이): 실제 남는 높이를 재서 채움 — 화면 폭에 따라 꼬리말 줄 수가 달라서
   function fitAltPage() {
