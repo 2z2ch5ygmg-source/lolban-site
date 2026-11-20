@@ -3074,7 +3074,7 @@
         <span class="sd-btns"><button class="soft-b" data-act="trotate">${lbi("refresh", 16)}링크 새로 만들기</button><button class="soft-b bad" data-act="tleave">이 브라우저 열쇠 지우기</button></span>`
       : `<div class="sd-tb">${teamBody()}</div>`;
     const right = `<aside class="sd-side"><section class="sd-card"><h3>우리 팀·초대</h3>${inv}</section>${membersCard()}</aside>`;
-    return `<div class="home settings-pc ${edit || !t ? "" : "team-wide"}">${collectBanner() ? `<div class="cs-wrap">${collectBanner()}</div>` : ""}${left}${right}</div>`;
+    return `<div class="home settings-pc">${collectBanner() ? `<div class="cs-wrap">${collectBanner()}</div>` : ""}${left}${right}</div>`;
   }
   // 설정(PC): 분석 기준 · 이 브라우저 · 계정
   function renderSettingsPC() {

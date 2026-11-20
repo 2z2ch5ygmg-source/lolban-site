@@ -1507,6 +1507,3 @@ button.tc-n { cursor: pointer; } button.tc-n:hover { text-decoration: underline;
 .pk-find { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--dim); width: 270px; }
 .pk-find .input { border: 0; background: transparent; padding: 0; height: 100%; flex: 1; min-width: 0; outline: none; }
 .pk-find:focus-within { border-color: var(--hi); }
-/* 우리 팀(보기): 로스터가 좁아지지 않게 한 줄 전체 · 초대·팀원 카드는 아래로 나란히 */
-html.pc .settings-pc.team-wide { grid-template-columns: minmax(0, 1fr); }
-html.pc .settings-pc.team-wide .sd-side { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
