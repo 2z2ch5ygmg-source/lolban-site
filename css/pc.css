@@ -1133,3 +1133,16 @@ html.pc .l5-s { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; m
 .l5-t b { color: var(--text); font-weight: 700; }
 .l5-q { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--panel2); color: var(--muted); }
 .l5-dot { color: var(--dim); }
+
+/* 11-20: 실시간 밴픽 같이 보기 — 진행 줄 가운데(PC)·머리 아래(휴대폰): 상태 점 + 진행자·보는 사람 + 진행 맡기·혼자 하기 */
+.livebar { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; font-size: 12px; }
+.lvb { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lvb > span { overflow: hidden; text-overflow: ellipsis; }
+.lvb .ico { width: 15px; height: 15px; flex: none; }
+.lvb.on { color: var(--text); font-weight: 600; }
+.lvb-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--good); box-shadow: 0 0 0 3px var(--good-bg); }
+.lvb.me .lvb-dot { background: var(--hi, var(--gold)); box-shadow: 0 0 0 3px var(--hi-bg, var(--gold-bg)); }
+.lvb-b { flex: none; border: 0; border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12px; font-weight: 700; background: var(--panel2); color: var(--text); cursor: pointer; white-space: nowrap; }
+.lvb-b.primary { background: var(--hi, var(--gold)); color: var(--on-gold, #fff); }
+.lvb-b:focus-visible { outline: 2px solid var(--hi, var(--gold)); outline-offset: 2px; }
+.mv-livebar { justify-content: flex-start; flex-wrap: wrap; padding: 6px 2px; }

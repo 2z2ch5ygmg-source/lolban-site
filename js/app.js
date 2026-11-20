@@ -161,7 +161,7 @@
   S.ui.ans = {};   // 새로 열면 문제는 처음부터 다시 푼다(맞힌 기록 dScore는 진행률로 남김)
   if (S.ui.tut && S.ui.tut.step === "quiz") S.ui.tut = { ...S.ui.tut, k: 0 };   // 새로 열면 장면은 마지막 모습으로(다시 보기로 재생)
   if (S.ui.tut && S.ui.tut.u && !(window.VISION && window.VISION.units.some((u) => u.id === S.ui.tut.u && u.scenes))) S.ui.tut = {};
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 무시 */ } rosterChanged(); }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 무시 */ } rosterChanged(); if (typeof liveAfterSave === "function") liveAfterSave(); }
 
   // ---------- 팀 명단 서버 동기화(11-19): 팀 이름·우리팀·계정·부계정을 팀 공간에 하나로 — 팀원끼리 같고, 0시 수집기가 이 명단으로 기록을 모음 ----
   const RS = { last: "", timer: null, loaded: false, msg: "", sp: "" };   // sp = 이 브라우저가 명단을 받아 온 팀 공간(다른 공간에 올리지 않게)
@@ -1150,7 +1150,7 @@
   function liveCtrlPC() {
     NOW_HEAD = null;
     const now = renderNow(true), H = NOW_HEAD || {}, G = goalLinePC(), st = curStep();
-    const acts = `<span class="lc-c"></span>`;   // 되돌리기·밴 넘기기는 제목 줄로 옮김(11-19)
+    const acts = `<span class="lc-c livebar" aria-live="polite">${liveBarHtml()}</span>`;   // 되돌리기·밴 넘기기는 제목 줄로 옮김(11-19) · 가운데 = 팀과 같이 보기(11-20)
     const row = `<div class="lv-ctrl"><span class="lc-l">${H.step ? `<span class="step">${H.step}</span>` : ""}${H.tabs || ""}</span>${acts}<span class="lc-r">${G.goal}</span></div>`;
     const plan = G.plan || H.dir ? `<div class="gline">${G.plan || ""}${H.dir ? `<span class="dir">${H.dir}</span>` : ""}</div>` : "";
     return row + plan + now;
@@ -1823,6 +1823,119 @@
       <section class="h-sec"><h3 class="h-h">${o.mode === "off" ? "" : `${o.game}세트 `}가능성 순<small>숙련도를 가장 무겁게, 연습 픽·팀 경기에서 해 본 조합을 더해 매김 · 주력 = 100</small></h3><div class="ecl">${now.map(row).join("") || `<p class="help">조합을 만들 챔프폭이 부족합니다.</p>`}</div></section>
       ${ifs.length ? `<section class="h-sec"><h3 class="h-h">상황이 바뀌면<small>밴 싸움에서 핵심이 막히거나, 피어리스로 다음 세트에 갈 때</small></h3><div class="ecl">${ifs.map(row).join("")}</div></section>` : ""}</div>`;
   }
+
+  // ---------- 실시간 밴픽 같이 보기(11-20 사용자 결정: 진행자 한 명만 넣고 팀원은 실시간으로 봄, 팀 공간이면 기본으로 연결) ----------
+  //   Worker /draft/ticket → WebSocket /draft/ws(팀 공간마다 방 하나). 같이 보는 것: 밴픽 진행·진영·세트·피어리스 잠금, 그리고 실시간 밴픽 화면에서 고른 상대 팀
+  //   진행자가 아닌 사람이 바꾸면(저장 지점에서 알아챔) 방의 상태로 되돌리고 알림. 다른 화면에서 상대 팀을 둘러보는 것은 자유(실시간 밴픽으로 돌아오면 방의 상대로)
+  var LIVE = { ws: null, status: "off", host: null, people: [], rev: 0, by: "", data: null, last: "", retry: 0, timer: null, applying: false, seenTab: null };
+  const CID = (() => { try { let c = localStorage.getItem("lolban.cid.v1"); if (!/^[a-z0-9]{8,24}$/.test(c || "")) { c = (Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4)).replace(/[^a-z0-9]/g, "0"); localStorage.setItem("lolban.cid.v1", c); } return c; }
+    catch (e) { return "t" + Math.random().toString(36).slice(2, 12).replace(/[^a-z0-9]/g, "0"); } })();
+  const liveName = () => String((AUTH.user && AUTH.user.nick) || "팀원 " + CID.slice(-3)).slice(0, 20);
+  const isHost = () => !!(LIVE.host && LIVE.host.cid === CID);
+  const liveOn = () => LIVE.status === "on" && !!LIVE.data;
+  const liveCan = () => !!(SPACE && !SPACE.bad && WURL() && typeof WebSocket !== "undefined");
+  function liveSnap() {
+    const sr = S.series;
+    return JSON.stringify({ draft: { ourSide: S.draft.ourSide, steps: S.draft.steps, idx: S.draft.idx }, series: { game: sr.game, mode: sr.mode, locked: sr.locked || [], games: sr.games || [] },
+      enemyTeam: S.tab === "live" || !LIVE.data ? S.enemyTeam : LIVE.data.enemyTeam });
+  }
+  function liveSend() {
+    if (!LIVE.ws || LIVE.ws.readyState !== 1 || !isHost()) return;
+    const snap = liveSnap(); LIVE.last = snap; LIVE.data = JSON.parse(snap);
+    LIVE.ws.send(JSON.stringify({ t: "state", data: LIVE.data }));
+  }
+  // 방의 상태를 이 화면에 넣기(quiet: 이미 그리는 중이면 다시 그리지 않음)
+  function liveApply(d, quiet) {
+    if (!d || !d.draft || !Array.isArray(d.draft.steps)) return;
+    LIVE.applying = true;
+    try {
+      if (S.tab === "live" && d.enemyTeam && team(d.enemyTeam) && d.enemyTeam !== S.ourTeam) S.enemyTeam = d.enemyTeam;
+      S.draft.ourSide = d.draft.ourSide === "R" ? "R" : "B";
+      window.KB.useOrder(isSolo(S.enemyTeam) ? "ranked" : "tournament", S.draft.ourSide);
+      S.draft.steps = emptySteps().map((e, i) => { const x = d.draft.steps[i] || {}; return { champ: CH[x.champ] ? x.champ : null, role: x.role || null, skip: !!x.skip, ...(Array.isArray(x.cands) ? { cands: x.cands } : {}) }; });
+      S.draft.idx = Math.max(0, Math.min(S.draft.steps.length, d.draft.idx | 0));
+      const sr = d.series || {};
+      S.series.game = sr.game || 1; S.series.mode = sr.mode === "off" ? "off" : "hard";
+      S.series.locked = (sr.locked || []).filter((x) => CH[x.id]); S.series.games = sr.games || [];
+      LIVE.last = liveSnap();
+      save();
+    } finally { LIVE.applying = false; }
+    if (!quiet) render();
+  }
+  // 저장할 때마다: 진행자면 보내고, 아니면 방 상태로 되돌림
+  function liveAfterSave() {
+    if (!LIVE || LIVE.applying || !liveOn()) return;   // LIVE는 var — 처음 불러오는 중(이 줄 위의 save)엔 아직 없음
+    if (S.tab === "live" && LIVE.seenTab !== "live") { LIVE.seenTab = "live"; liveApply(LIVE.data, true); return; }   // 실시간 밴픽으로 막 돌아옴 → 방의 상태부터
+    const snap = liveSnap(); if (snap === LIVE.last) return;
+    if (isHost()) { liveSend(); return; }
+    liveApply(LIVE.data, true);
+    toast(`진행자(${LIVE.host ? LIVE.host.name : "?"})만 밴픽을 넣을 수 있습니다 — 「진행 맡기」로 넘겨받기`);
+  }
+  async function liveConnect() {
+    clearTimeout(LIVE.timer);
+    if (LIVE.ws || !liveCan() || S.ui.soloDraft) return;
+    LIVE.status = LIVE.status === "on" ? "on" : "connecting"; liveBarUpdate();
+    try {
+      const res = await wfetch("/draft/ticket", { method: "POST" }); const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.status !== "ok") throw new Error(d.reason || "HTTP " + res.status);
+      const ws = new WebSocket(`${WURL().replace(/^http/, "ws")}/draft/ws?space=${encodeURIComponent(SPACE.id)}&t=${encodeURIComponent(d.ticket)}`);
+      LIVE.ws = ws;
+      ws.onopen = () => { LIVE.retry = 0; ws.send(JSON.stringify({ t: "hello", cid: CID, name: liveName() })); };
+      ws.onmessage = (ev) => liveMsg(ev.data);
+      ws.onclose = () => { if (LIVE.ws === ws) LIVE.ws = null; liveRetry(); };
+    } catch (e) { LIVE.ws = null; liveRetry(); }
+  }
+  function liveRetry() {
+    if (S.ui.soloDraft || !liveCan()) { LIVE.status = "off"; liveBarUpdate(); return; }
+    LIVE.status = "retry"; LIVE.retry++; liveBarUpdate();
+    clearTimeout(LIVE.timer); LIVE.timer = setTimeout(liveConnect, Math.min(30000, 1500 * 2 ** Math.min(4, LIVE.retry - 1)));
+  }
+  function liveMsg(raw) {
+    let m; try { m = JSON.parse(raw); } catch (e) { return; }
+    if (!m || typeof m !== "object") return;
+    if (m.t === "people") { LIVE.people = Array.isArray(m.people) ? m.people : []; if (m.host !== undefined) LIVE.host = m.host; liveBarUpdate(); return; }
+    if (m.t === "host") { const was = isHost(); LIVE.host = m.host; liveBarUpdate(); if (!was && isHost()) toast("이제 내가 진행합니다"); return; }
+    if (m.t !== "state") return;
+    LIVE.host = m.host || null; LIVE.by = m.by || "";
+    const first = LIVE.status !== "on";
+    LIVE.status = "on";
+    if (m.data) {
+      // 처음 들어올 때(혼자 하다 돌아온 때 포함)는 이 화면을 무조건 방의 상태로, 그 뒤엔 바뀐 것만
+      if (first || m.deny || m.rev > LIVE.rev) { LIVE.rev = m.rev; LIVE.data = m.data; if (first || m.deny || JSON.stringify(m.data) !== liveSnap()) liveApply(m.data); }
+      if (m.deny) toast(`진행자(${m.host ? m.host.name : "?"})만 밴픽을 넣을 수 있습니다`);
+    } else if (isHost()) { LIVE.data = JSON.parse(liveSnap()); liveSend(); }   // 방이 비어 있으면 진행자의 지금 밴픽으로 시작
+    else LIVE.data = JSON.parse(liveSnap());
+    liveBarUpdate();
+  }
+  function liveTake() {
+    if (!LIVE.ws || LIVE.ws.readyState !== 1 || isHost()) return;
+    const online = LIVE.host && LIVE.people.some((p) => p.cid === LIVE.host.cid);
+    if (online && !confirm(`지금 진행자는 ${LIVE.host.name}입니다. 진행을 넘겨받을까요?`)) return;
+    LIVE.ws.send(JSON.stringify({ t: "take" }));
+  }
+  function liveSolo(on) {
+    S.ui.soloDraft = !!on; save();
+    if (on) { const w = LIVE.ws; LIVE.ws = null; LIVE.status = "off"; LIVE.data = null; LIVE.rev = 0; clearTimeout(LIVE.timer); if (w) try { w.close(); } catch (e) { /* 이미 닫힘 */ } liveBarUpdate(); toast("혼자 하기 — 팀 방과 연결을 끊었습니다(지금 밴픽은 이 브라우저에 남음)"); }
+    else { if (!confirm("팀과 같이 보기로 돌아갈까요? 이 화면의 밴픽은 팀 방의 밴픽으로 바뀝니다.")) { S.ui.soloDraft = true; save(); return; } LIVE.retry = 0; liveConnect(); }
+  }
+  function liveBarHtml() {
+    if (!liveCan()) return "";
+    if (S.ui.soloDraft) return `<span class="lvb off">${ico("users")}<span>혼자 하는 중</span></span><button class="lvb-b" data-act="livesolo" data-v="0">팀과 같이 보기</button>`;
+    if (LIVE.status !== "on") return `<span class="lvb wait"><span>${LIVE.status === "retry" ? "팀 방 연결이 끊김 — 다시 연결 중…" : "팀 방에 연결 중…"}</span></span>`;
+    const n = new Set(LIVE.people.map((p) => p.cid)).size, h = LIVE.host, hon = h && LIVE.people.some((p) => p.cid === h.cid);
+    const who = isHost() ? "내가 진행" : h ? `진행 ${esc(h.name)}${hon ? "" : "(나감)"}` : "진행자 없음";
+    const tip = `팀과 같이 보는 중 · ${isHost() ? "내가 진행자" : h ? `진행자 ${h.name}${hon ? "" : "(나감)"}` : "진행자 없음"} · 보는 사람: ${LIVE.people.map((p) => p.name).join(", ")}`;
+    return `<span class="lvb on ${isHost() ? "me" : ""}" title="${esc(tip)}"><i class="lvb-dot" aria-hidden="true"></i><span class="sr-only">팀과 같이 보는 중 · </span><span>${who} · ${n}명</span></span>`
+      + (isHost() ? "" : `<button class="lvb-b primary" data-act="livetake">진행 맡기</button>`) + `<button class="lvb-b" data-act="livesolo" data-v="1">혼자 하기</button>`;
+  }
+  function liveBarUpdate() { document.querySelectorAll(".livebar").forEach((b) => { b.innerHTML = liveBarHtml(); }); }
+  // 화면을 그릴 때: 실시간 밴픽이면 자동 연결(혼자 하기가 아니면), 지금 보는 화면 기억
+  function liveTick() {
+    if (S.tab === "live" && !S.ui.soloDraft && !LIVE.ws && LIVE.status !== "retry" && liveCan()) liveConnect();
+    if (S.tab === "live" && LIVE.seenTab !== "live" && liveOn()) { LIVE.seenTab = "live"; liveApply(LIVE.data); return; }
+    LIVE.seenTab = S.tab;
+  }
+  const LIVE_ACTS = new Set(["pick", "skip", "undo", "resetGame", "nextGame", "endGame", "resetSeries", "side", "mode"]);
 
   // ---------- 상대 챔프 자세히 보기 모달(11-20 사용자 요청: 상대 팀 화면의 사전 밴 후보·라인별 상대 챔프를 누르면) ----------
   //   기록(강조 기준은 카드와 같음) · 밴 이유 전부 · 우리 대응(라인 연습 포인트와 같은 계산 laneStudy)
@@ -3851,6 +3964,7 @@
     return `<div class="mv mv-live">
       <header class="mv-h"><span class="pill gold">${S.series.game}세트</span><b class="mv-turn">${st ? S.draft.idx + 1 : 20}/20 · <span class="${st ? st[0] : ""}">${turn}</span></b>
         <span class="mv-sub">${ourSide === "B" ? "블루" : "레드"} · vs ${esc(E.teamOf(S, "enemy").name)}</span><button class="mv-more" data-act="mmore" aria-label="세트·데이터 메뉴" aria-expanded="${MV.more}">${DOTS}</button></header>
+      ${liveCan() ? `<div class="livebar mv-livebar" aria-live="polite">${liveBarHtml()}</div>` : ""}
       <section class="mv-board" aria-label="밴픽 판">${row("our", ourSide)}${row("enemy", enSide)}<div class="mv-bans"><span>밴</span>${bans(ourSide)}${bans(enSide)}</div></section>
       <section class="mv-now" aria-label="지금 차례 추천">${renderNow()}</section>
       ${renderDockM()}
@@ -4071,6 +4185,7 @@
     if (S.tab === "vision") { drawVision(v); runAnims(v); addZoomHint(v); }
     placeLaneLines();
     peakBackfill();
+    liveTick();
     if (S.tab === "notes") v.querySelectorAll(".nbody").forEach((p) => { if (p.scrollHeight > p.clientHeight + 2) p.classList.add("clamped"); });
     if (keepFocus) { const q = document.getElementById("q"); if (q) { q.focus(); q.setSelectionRange(pos, pos); } }
   }
@@ -4082,7 +4197,11 @@
     if (el.classList.contains("tab")) { if (el.tagName === "A") ev.preventDefault(); S.tab = el.dataset.tab; MV.more = false; save(); render(); window.scrollTo(0, 0); if (S.tab === "notes") loadNotes(); return; }
     const a = el.dataset.act;
     if ((a === "close" || a === "nclose" || a === "chdclose") && ev.target !== el && el.classList.contains("modal-bg")) return; // 모달 안쪽 클릭
+    // 실시간 밴픽 같이 보기: 진행자가 아니면 밴픽을 바꾸는 버튼은 막음
+    if (LIVE_ACTS.has(a) && S.tab === "live" && liveOn() && !isHost()) { toast(`진행자(${LIVE.host ? LIVE.host.name : "?"})만 밴픽을 넣을 수 있습니다 — 「진행 맡기」로 넘겨받기`); return; }
     switch (a) {
+      case "livetake": liveTake(); break;
+      case "livesolo": liveSolo(el.dataset.v === "1"); break;
       case "pick": choose(el.dataset.id, el.dataset.role); break;
       case "chdet": openChampDetail(el.dataset.id, el.dataset.role, el); break;
       case "chdclose": closeChampDetail(); break;
