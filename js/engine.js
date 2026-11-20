@@ -31,28 +31,31 @@ window.Engine = (function () {
     const R = window.RECENT;
     const rs0 = R && R.status === "ok" && R.season && team && R.season[team.id] && R.season[team.id][role];
     if (ok(rs0)) { const rs = byQueue(rs0), flex = queueMode() === "flex" && rs0.f;
-      return { riot: rs0.riot, tier: flex ? rs0.tierFlex : rs0.tier, src: "riot", total: { g: rs.n, w: rs.w }, roleN: rs.roleN, champs: rs.champs }; }
+      return { riot: rs0.riot, tier: flex ? rs0.tierFlex : rs0.tier, src: "riot", total: { g: rs.n, w: rs.w }, roleN: rs.roleN, champs: rs.champs, quick: !!rs0.quick }; }
     const S = window.SCOUT;
     const t = S && S.teams && team && S.teams[team.id];
     const x = t && t[role];
     return ok(x) ? { ...x, src: "opgg" } : null;
   }
   // 판수·승률(표본 보정)·숙련도 점수·라인 일치로 0~1 숙련 점수를 만든다
-  function statEntry(x, total, role) {
+  // gw = 가중 판수·승수(11-20: 준비 시작일 이후 2 > 최근 30판 1.5 > 나머지 1) — 점수(판수·승률)에만 쓰고, 비중·원챔은 실제 판수로
+  function statEntry(x, total, role, gw) {
     const c = CH[x.id];
     if (!c) return null;
-    const g = x.g || 0;
+    const g = x.g || 0, G = gw ? gw.g : g, W = gw ? gw.w : x.w || 0;
     const wr = g ? (x.w / g) * 100 : 0;
-    const wrS = (x.w + 5) / (g + 10);
-    const vol = Math.min(1, g / 40);
-    const wrPart = Math.max(0, Math.min(1, (wrS - 0.45) / 0.15)) * Math.min(1, g / 10);
+    const wrS = (W + 5) / (G + 10);
+    const vol = Math.min(1, G / 40);
+    const wrPart = Math.max(0, Math.min(1, (wrS - 0.45) / 0.15)) * Math.min(1, G / 10);
     const mast = Math.min(1, (x.mp || 0) / 300000);
     const share = total && total.g ? g / total.g : 0;
     // 판수 비중이 큰 챔프는 라인과 상관없이 대회에서도 꺼낼 수 있는 주력으로 본다(예: 미드 브라이어 원챔)
     const one = g >= 25 && share >= 0.35;
     const onRole = c.pos.includes(role) || one || share >= 0.2;
-    const score = (0.55 * vol + 0.3 * wrPart + 0.15 * mast) * (onRole ? 1 : 0.45);
-    return { lv: score >= 0.6 ? 3 : score >= 0.35 ? 2 : 1, one, score: one ? Math.max(score, 0.9) : score, g, w: x.w || 0, wr, kda: x.kda, mp: x.mp || 0, share, scout: true };
+    let score = (0.55 * vol + 0.3 * wrPart + 0.15 * mast) * (onRole ? 1 : 0.45);
+    // 숙련도 상한(조작 방지): 숙련도 점수 2만 미만이고 실제 20판 미만이면 「중」(0.59)까지만 — 숙련도는 대회 직전에 꾸미기 어렵다
+    if ((x.mp || 0) < 20000 && g < 20 && !one) score = Math.min(score, 0.59);
+    return { lv: score >= 0.6 ? 3 : score >= 0.35 ? 2 : 1, one, score: one ? Math.max(score, 0.9) : score, g, w: x.w || 0, wr, kda: x.kda, mp: x.mp || 0, share, scout: true, ...(gw ? { gw: Math.round(G * 10) / 10 } : {}) };
   }
   // Riot 최근 경기(tools/recent.py → js/recent.js): 11/10 이후 랭크
   function recentOf(team, role) {
@@ -152,20 +155,36 @@ window.Engine = (function () {
     // 비중(원챔 판단)은 그 라인에서 한 판수 기준(그 라인 10판 이상일 때)
     const strict = !!(sc && sc.roleN && sc.roleN[role] >= 10);
     const roleTotal = strict ? { g: sc.roleN[role] } : sc && sc.total;
-    if (sc) sc.champs.forEach((x0) => { const x = inRole(x0, role, strict); if (!x) return; const e = statEntry(x, roleTotal, role); if (e) stats[x.id] = e; });
-    // 최근 경기: 판수·승률로 점수를 올리고, 시즌 기록에 없던 챔프(2판 이상)도 더한다
+    // ---- 가중치·조작 방지(11-20 사용자 결정) ----
+    //   판 하나당: 대회 준비 시작일 이후 2(혼자 솔랭은 1.5, 팀원 2명 이상과 같이 한 판은 2) > 최근 30판 1.5 > 나머지 1
+    //   준비 기간·최근 30판 가중은 그 구간 3판 이상·승률 40% 이상(작은 표본 보정)일 때만 — 일부러 지면서 판수만 채운 챔프는 안 오름
+    //   모스트픽(예전 판수 상위 3개 또는 20판 이상)은 항상 1.5배 — 최근 전적을 더럽혀도 주력이 밀리지 않게. 숙련도 상한은 statEntry
     const rc = recentOf(team, role);
-    if (rc) rc.champs.forEach((x0) => {
-      const x = inRole(x0, role, strict || !(sc && sc.roleN));
-      if (!x || !CH[x.id]) return;
-      const wrS = (x.w + 3) / (x.g + 6);
-      const rs = Math.min(1, x.g / 12) * 0.7 + Math.max(0, Math.min(1, (wrS - 0.45) / 0.15)) * 0.3;
-      const base = stats[x.id] || (x.g >= 2 ? { lv: 1, one: false, score: 0, g: 0, w: 0, wr: 0, mp: 0, scout: true } : null);
-      if (!base) return;
-      base.rg = x.g; base.rw = x.w;
-      base.score = Math.min(1, Math.max(base.score, rs * 0.9) + 0.08);
-      base.lv = base.score >= 0.6 ? 3 : base.score >= 0.35 ? 2 : 1;
-      stats[x.id] = base;
+    const rcMap = {}; if (rc) rc.champs.forEach((x0) => { const x = inRole(x0, role, strict || !(sc && sc.roleN)); if (x && CH[x.id]) rcMap[x.id] = x; });
+    const okW = (g, w) => g >= 3 && (w + 1) / (g + 2) >= 0.4;
+    const r30Of = (x0, x) => { if (sc && sc.quick) return [x.g, x.w]; if (!x0.r30) return [0, 0]; if (strict && x0.rr30) return x0.rr30[role] || [0, 0]; return x0.r30; };
+    const seasonX = sc ? sc.champs.map((x0) => { const x = inRole(x0, role, strict); return x ? { x0, x } : null; }).filter(Boolean) : [];
+    // 모스트픽은 「예전 판수」(최근 30판·준비 기간을 뺀 판)로만 정함 — 최근에 몰아서 한 챔프가 모스트픽이 되지 않게(예전 판 5판 이상만 상위 3개로 인정)
+    const oldG = (v) => Math.max(0, (v.x.g || 0) - Math.max(r30Of(v.x0, v.x)[0], rcMap[v.x.id] ? rcMap[v.x.id].g : 0));
+    const mostIds = new Set(seasonX.map((v) => ({ id: v.x.id, o: oldG(v) })).sort((a, b) => b.o - a.o).filter((v, i) => (i < 3 && v.o >= 5) || v.o >= 20).map((v) => v.id));
+    const weigh = (id, gAll, wAll, r30) => {
+      const pr = rcMap[id], gP = pr ? pr.g : 0, wP = pr ? pr.w : 0, tr = stackChampRecord(team, role, id), gT = tr ? tr.g : 0, wT = tr ? tr.w : 0;
+      const gOld = Math.max(0, gAll - Math.max(r30[0], gP)), wOld = Math.max(0, wAll - Math.max(r30[1], wP));
+      const g30 = Math.max(0, r30[0] - Math.min(gP, r30[0])), w30 = Math.max(0, r30[1] - Math.min(wP, r30[1]));
+      const gSolo = Math.max(0, gP - gT), wSolo = Math.max(0, wP - wT);
+      const most = mostIds.has(id) ? 1.5 : 1;   // 모스트픽은 판 하나하나를 최소 1.5배로
+      const k30 = Math.max(most, okW(r30[0], r30[1]) ? 1.5 : 1), okP = okW(Math.max(gP, gT), Math.max(wP, wT)), kS = Math.max(most, okP ? 1.5 : 1), kT = okP ? 2 : most;
+      const G = gOld * most + g30 * k30 + gSolo * kS + gT * kT, W = wOld * most + w30 * k30 + wSolo * kS + wT * kT;
+      return { g: G, w: W };
+    };
+    seasonX.forEach(({ x0, x }) => { const e = statEntry(x, roleTotal, role, weigh(x.id, x.g || 0, x.w || 0, r30Of(x0, x))); if (e) stats[x.id] = e; });
+    // 준비 기간에만 있는 챔프: 승률 문턱을 넘거나 팀원과 2판 이상 한 것만 새로 넣음(예전엔 2판만 해도 넣었음 — 조작에 약했음)
+    Object.values(rcMap).forEach((x) => {
+      const tr = stackChampRecord(team, role, x.id);
+      if (stats[x.id]) { stats[x.id].rg = x.g; stats[x.id].rw = x.w; return; }
+      if (!(okW(x.g, x.w) || (tr && tr.g >= 2))) return;
+      const e = statEntry({ ...x, g: x.g, w: x.w, mp: x.mp || 0 }, roleTotal, role, weigh(x.id, x.g, x.w, [0, 0]));
+      if (e) { e.rg = x.g; e.rw = x.w; e.score = Math.min(e.score, 0.59); e.lv = e.score >= 0.35 ? 2 : 1; stats[x.id] = e; }   // 랭크 기록 밖 챔프는 「중」까지
     });
     const manual = p.pool || [];
     manual.forEach(([id, lv, one]) => {
@@ -681,12 +700,14 @@ window.Engine = (function () {
   // 상대가 아직 사일러스를 뽑을 수 있는지(0~1): 사일러스가 남아 있고 그 라인이 비어 있으면 기본 0.25, 상대 선수 기록이 있으면 더 높게
   function sylasRisk(state, who) {
     const opp = who === "our" ? "enemy" : "our";
-    if (!available(state, opp).some((c) => c.id === "Sylas")) return 0;
+    if (!available(state).some((c) => c.id === "Sylas")) return 0;
     const oo = openRoles(state, opp).filter((r) => flexRoles("Sylas").includes(r));
     if (!oo.length) return 0;
     const team = teamOf(state, opp);
     let p = 0.25;
-    oo.forEach((r) => { const e = poolMap(team, r).Sylas; if (e) p = Math.max(p, 0.25 + (e.one ? 1 : Math.max(e.score || 0, e.sscore || 0)) * 0.75); });
+    oo.forEach((r) => { const e = poolMap(team, r).Sylas; if (e) p = Math.max(p, 0.25 + (e.one ? 1 : Math.max(e.score || 0, e.sscore || 0)) * 0.75);
+      // 챔프폭에 없어도 숙련도(꾸미기 어려운 값)가 높으면 다룰 줄 아는 선수(11-20: 우연한 1판 가산을 없애며 숙련도로 대신)
+      else { const sc = scoutOf(team, r), x = sc && sc.champs.find((c) => c.id === "Sylas"); if (x && x.mp) p = Math.max(p, 0.25 + Math.min(1, x.mp / 300000) * 0.4 * 0.75); } });
     return Math.min(1, p);
   }
 
