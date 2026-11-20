@@ -469,7 +469,7 @@
       <div class="sd-opp" id="sdOpp">
       ${opp.map((t) => `<div class="sd-tmw"><button class="sd-tm" data-act="pickenemy" data-id="${t.id}" aria-current="${t.id === curOpp}">${crestOf(t, t.id === curOpp ? "r" : "")}<span class="nm" title="${esc(t.name)}">${esc(t.name)}</span></button><button class="sd-tm-x" data-act="delteam" data-id="${t.id}" aria-label="「${esc(t.name)}」 팀 삭제">×</button></div>`).join("")
         || `<span class="help" style="padding:4px 12px">아직 없음 · 위 + 로 등록</span>`}
-      <button class="sd-tm" data-act="pickenemy" data-id="${SOLO.enemy}" aria-current="${curOpp === SOLO.enemy}"><span class="crest" aria-hidden="true">솔</span><span class="nm" style="color:var(--muted)">솔랭·자랭</span></button>
+      <!-- 솔랭·자랭은 상대 팀이 아니라서 사이드바에서 뺌(11-20 사용자) — 실시간 밴픽 머리줄 상대 고르기에는 그대로 -->
       </div>
       ${SESS ? `<div class="sd-foot"><button class="sd-out" data-act="lgout">로그아웃</button></div>` : ""}`;
   }
