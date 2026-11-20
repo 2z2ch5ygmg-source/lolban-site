@@ -1537,3 +1537,9 @@ html.pc .pt-tbl thead th:first-child { padding-left: 8px; }
 html.pc .pt-in { text-align: center; width: 96px; }
 html.pc .pt-act { justify-content: center; } html.pc .pt-note { text-align: center; }
 @media (max-width: 1100px) { html.pc .pt-pg { grid-template-columns: minmax(0, 600px); } }
+/* 우리 팀 지금 점수: 라인 아이콘 · 티어 엠블럼 + 단계 */
+.pt-lane { display: inline-grid; place-items: center; color: var(--muted); }
+.pt-tr { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; } .pt-tr b { font-weight: 800; } .pt-tr small { font-size: 11.5px; color: var(--muted); font-weight: 700; }
+/* 실시간 밴픽 진영: 블루는 파랑, 레드는 빨강(11-20 사용자: 보라색 말고) */
+html.pc .seg button[data-act="side"][data-v="B"][aria-pressed="true"] { background: var(--blue); color: #fff; border-color: var(--blue); }
+html.pc .seg button[data-act="side"][data-v="R"][aria-pressed="true"] { background: var(--red); color: #fff; border-color: var(--red); }

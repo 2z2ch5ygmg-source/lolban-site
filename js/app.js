@@ -3452,6 +3452,13 @@
   // ---------- 점수 기준표(11-20 사용자) ----------
   const canEditPts = () => !!SPACE && !SPACE.bad && (!SPACE.viaLogin || !!SPACE.isOwner);
   const PTE = { draft: null, msg: "", busy: false };
+  // 티어 아이콘 + 단계(마스터 이상은 LP) · 자유랭이면 「자랭」 글자(11-20 사용자: 티어는 아이콘, 솔랭·자랭은 글자)
+  function ptTierIco(v) {
+    const raw = String(v || ""), fl = /\((자유랭|자랭)\)/.test(raw), x = parseTier(raw.replace(/\s*\((자유랭|자랭)\)/, ""));
+    if (!x.t) return `<span class="pt-tr muted" title="언랭">언랭</span>`;
+    const n = HIGH(x.t) ? (x.lp ? `${x.lp}LP` : "") : x.d;
+    return `<span class="pt-tr" title="${esc(raw)}">${fl ? `<small>자랭</small>` : ""}${tierImg(x.t, 22)}<b>${esc(n)}</b></span>`;
+  }
   function renderPtsPage() {
     const T = ptsTable(), can = canEditPts(), d = PTE.draft || T;
     const rows = PTS_ROWS.map(([k, n]) => { const base = k === "마스터500" ? "마스터" : k === "언랭" ? "" : k;
@@ -3459,7 +3466,7 @@
         <td>${can ? `<input class="input pt-in" type="number" min="0" max="1000" step="0.5" data-ptk="${k}" value="${esc(d[k] != null ? d[k] : "")}" aria-label="${esc(n)} 점수">` : `<b>${esc(T[k])}</b>`}</td>
         <td class="pt-def">${PTS_DEF[k] !== T[k] ? `기본 ${PTS_DEF[k]}` : ""}</td></tr>`; }).join("");
     const ours = team(S.ourTeam), sum = ours && !ours.solo ? ROLES.reduce((n, r) => n + (Number(ours.players[r].pts) || 0), 0) : null;
-    const lineup = ours && !ours.solo ? `<section class="pt-card"><h3>우리 팀 지금 점수 <small>반영 티어 기준 · 합계 <b>${sum}</b>점</small></h3><ul class="pt-team">${ROLES.map((r) => { const p = ours.players[r]; return `<li><span class="l5-r">${ROLE_KO[r]}</span><b>${esc(nick(p.riot) || "—")}</b><span class="muted">${esc(p.tier || "언랭")}</span><span class="pt-v">${esc(p.pts)}점</span></li>`; }).join("")}</ul></section>` : "";
+    const lineup = ours && !ours.solo ? `<section class="pt-card"><h3>우리 팀 지금 점수 <small>반영 티어 기준 · 합계 <b>${sum}</b>점</small></h3><ul class="pt-team">${ROLES.map((r) => { const p = ours.players[r]; return `<li><span class="pt-lane" title="${ROLE_KO[r]}">${laneIco(r, 18)}<span class="sr-only">${ROLE_KO[r]}</span></span><b>${esc(nick(p.riot) || "—")}</b>${ptTierIco(p.tier)}<span class="pt-v">${esc(p.pts)}점</span></li>`; }).join("")}</ul></section>` : "";
     return `<div class="pt-pg"><section class="pt-card"><h3>티어별 점수 <small>${CFG.pts ? "팀이 고친 기준" : "기본 기준"} · 선수 점수와 「점수 차」 계산에 씀</small></h3>
       <table class="pt-tbl"><thead><tr><th>티어</th><th>점수</th><th></th></tr></thead><tbody>${rows}</tbody></table>
       ${can ? `<div class="pt-act"><button class="btn primary" data-act="ptsave" ${PTE.busy ? "disabled" : ""}>저장</button><button class="btn ghost" data-act="ptreset" ${PTE.busy || !CFG.pts ? "disabled" : ""}>기본값으로</button><span class="help" role="status">${esc(PTE.msg)}</span></div>`
