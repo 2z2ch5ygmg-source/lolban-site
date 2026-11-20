@@ -2106,6 +2106,22 @@
     if (list.length && host) { const hr = host.getBoundingClientRect(), er = el.getBoundingClientRect();
       Object.assign(box.style, { top: `${Math.round(er.bottom - hr.top + 4)}px`, left: `${Math.round(er.left - hr.left)}px`, width: `${Math.round(er.width)}px`, right: "auto" }); }
   }
+  // 라인 다섯 칸 구분선(11-20 사용자 지적: 칸 상자 경계 가운데라 눈에 보이는 빈 공간의 가운데가 아님)
+  //   왼쪽 칸 내용(글자·초상화·알약)이 실제로 끝나는 곳과 오른쪽 칸이 시작하는 곳의 가운데에 둔다 — 그린 뒤 재서 --ll(칸 왼쪽 기준 px)로
+  function inkRight(el) {
+    let right = -Infinity;
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) { if (!n.nodeValue.trim()) continue; const rg = document.createRange(); rg.selectNodeContents(n); for (const b of rg.getClientRects()) if (b.width) right = Math.max(right, b.right); }
+    el.querySelectorAll("img, svg, .lv, .ic").forEach((x) => { const b = x.getBoundingClientRect(); if (b.width) right = Math.max(right, b.right); });
+    return right;
+  }
+  function placeLaneLines() {
+    document.querySelectorAll(".lane5").forEach((L) => { const cols = [...L.children];
+      cols.forEach((c, i) => { if (!i) return; const prev = Math.min(inkRight(cols[i - 1]), cols[i - 1].getBoundingClientRect().right), left = c.getBoundingClientRect().left;
+        if (isFinite(prev) && prev < left) c.style.setProperty("--ll", `${Math.round((prev + left) / 2 - left)}px`); else c.style.removeProperty("--ll"); }); });
+  }
+  window.addEventListener("resize", () => { clearTimeout(placeLaneLines.t); placeLaneLines.t = setTimeout(placeLaneLines, 120); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeLaneLines());
   // 추천 창 닫기(고르기·Esc·칸 밖으로 나감)
   function edSugClose(r) {
     document.querySelectorAll(r ? `#edsug-${r}` : ".ed-sug").forEach((b) => { b.hidden = true; b.innerHTML = ""; delete b.dataset.cur; });
@@ -3973,6 +3989,7 @@
     keepX.forEach(([id, x]) => { const el = document.getElementById(id); if (el) el.scrollLeft = x; });
     if (lastIdx !== S.draft.idx) { const sp = document.getElementById("gpStrip"), nw = sp && sp.querySelector(".now"); if (sp && nw) sp.scrollLeft = Math.max(0, nw.offsetLeft - 8); lastIdx = S.draft.idx; }
     if (S.tab === "vision") { drawVision(v); runAnims(v); addZoomHint(v); }
+    placeLaneLines();
     if (S.tab === "notes") v.querySelectorAll(".nbody").forEach((p) => { if (p.scrollHeight > p.clientHeight + 2) p.classList.add("clamped"); });
     if (keepFocus) { const q = document.getElementById("q"); if (q) { q.focus(); q.setSelectionRange(pos, pos); } }
   }
