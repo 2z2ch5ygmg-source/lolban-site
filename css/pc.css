@@ -1187,3 +1187,9 @@ html.pc .live-pc .lv-c { padding: 0 18px; margin: 0 -18px; }
 .iq-steps li.on { color: var(--text); font-weight: 700; } .iq-steps li.on span { background: var(--hi, var(--gold)); color: var(--on-gold, #fff); }
 .iq-steps li.ok span { background: var(--good-bg); color: var(--good); }
 .lvb-dot.off { background: var(--red); box-shadow: 0 0 0 3px var(--red-bg); }
+
+/* 11-20 사용자 요청: 넓은 화면은 추천 카드를 더(최대 10) — 최소 6칸은 항상 한 줄, 남는 폭은 128px 칸으로, 칸에 안 드는 카드는 숨김(app.js fitRecs) */
+html.pc .live-pc .lv-c .recs { grid-template-columns: repeat(auto-fit, minmax(min(128px, calc((100% - 5 * 12px) / 6)), 1fr)); }
+@media (max-width: 1599px) { html.pc .live-pc .lv-c .recs { grid-template-columns: repeat(auto-fit, minmax(min(128px, calc((100% - 5 * 8px) / 6)), 1fr)); } }
+html.pc .live-pc .lv-c .recs > .rec-over { display: none; }
+html.pc .live-pc .lv-c .recs { max-width: none; }   /* 예전 최대 1000px 제한 때문에 넓은 화면 오른쪽이 비었음 */

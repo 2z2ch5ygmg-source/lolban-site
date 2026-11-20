@@ -888,13 +888,15 @@ window.Engine = (function () {
   function ourAnswers(state, who, role, id) {
     const me = who === "our" ? "enemy" : "our";
     if (picks(state, me).some((p) => p.role === role)) return [];
-    const myAvail = new Set(available(state, me).map((c) => c.id));
+    const myAvail = new Set(available(state).map((c) => c.id));
     return Object.entries(poolMap(teamOf(state, me), role)).filter(([x]) => myAvail.has(x) && lanesCounter(x, id))
       .sort((a, b) => lvScore(b[1]) - lvScore(a[1])).slice(0, 3).map(([x]) => x);
   }
 
   // only: 라인 하나만 보고 싶을 때(라인별 칸). 조합·딜러 계산은 남은 라인 전체로 그대로 한다
-  function recommendPick(state, who, only) {
+  // n: 몇 개까지(기본 6, 11-20: 넓은 화면은 10개까지 받아 들어가는 만큼 보여 줌)
+  function recommendPick(state, who, only, n) {
+    const N = n || 6;
     const opp = who === "our" ? "enemy" : "our";
     const team = teamOf(state, who);
     const oppTeam = teamOf(state, opp);
@@ -1036,15 +1038,15 @@ window.Engine = (function () {
       });
     }
     res.sort((a, b) => b.score - a.score);
-    if (!guess) return res.slice(0, 6);
+    if (!guess) return res.slice(0, N);
     // 상대 예상(전체): 한 라인이 여섯 칸을 다 차지하지 않게 라인당 최대 수를 두고(지금 차례로 본 라인은 한 칸 더),
     // 다른 라인은 같은 라인 두 번째부터 조금씩 낮춰 라인을 섞는다
-    const cap0 = Math.max(2, Math.ceil(6 / open.length));
+    const cap0 = Math.max(2, Math.ceil(N / open.length));
     const seen = {};
     const ranked = res.map((x) => { const now = nowRoles.includes(x.role); const k = seen[x.role] = (seen[x.role] || 0) + 1;
       return { x, k, cap: cap0 + (now ? 1 : 0), key: x.score - (now ? 0 : (k - 1) * 5) }; });
-    const pickd = ranked.filter((y) => y.k <= y.cap).sort((a, b) => b.key - a.key).slice(0, 6);
-    if (pickd.length < 6) ranked.filter((y) => y.k > cap).slice(0, 6 - pickd.length).forEach((y) => pickd.push(y));
+    const pickd = ranked.filter((y) => y.k <= y.cap).sort((a, b) => b.key - a.key).slice(0, N);
+    if (pickd.length < N) ranked.filter((y) => y.k > y.cap).slice(0, N - pickd.length).forEach((y) => pickd.push(y));
     return pickd.map((y) => y.x);
   }
 

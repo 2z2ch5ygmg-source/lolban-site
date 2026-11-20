@@ -681,7 +681,8 @@
     const [side, type] = st;
     const who = E.whoOfSide(S, side);
     const t = E.teamOf(S, who);
-    let list = type === "ban" ? E.recommendBan(S, who) : E.recommendPick(S, who);
+    const recN = MOB.matches ? 6 : 10;   // PC는 10개까지 받아 한 줄에 들어가는 만큼 보여 줌(fitRecs, 11-20 사용자 요청: 넓은 화면은 더 많이)
+    let list = type === "ban" ? E.recommendBan(S, who, recN) : E.recommendPick(S, who, undefined, recN);
     // 우리 픽: 추천 조합 1순위가 남은 라인에 쓰는 챔프도 같은 금색으로(이름표 「OO 추천 조합」). 6장 안에 없으면 마지막 칸에 넣는다
     if (type === "pick" && who === "our") {
       const GP = goalPlanNow();
@@ -694,7 +695,7 @@
           const sl = top.slots[r];
           if (!sl || sl.done || !sl.id || (turnRoles.length && !turnRoles.includes(r))) return;
           let card = list.find((x) => x.id === sl.id);
-          if (!card && !list.some((x) => x.comp)) { card = E.recommendPick(S, "our", r).find((x) => x.id === sl.id); if (card) list = list.slice(0, 5).concat([card]); }
+          if (!card && !list.some((x) => x.comp)) { card = E.recommendPick(S, "our", r).find((x) => x.id === sl.id); if (card) list = (list.length >= recN ? list.slice(0, -1) : list).concat([card]); }
           if (card && !card.comp) card.comp = `${top.short} 추천 조합`;
         });
         const ps = GP.steps.find((x) => x.i === S.draft.idx && x.who === "our" && x.id);
@@ -762,7 +763,7 @@
     const t = st ? E.teamOf(S, who) : null;
     const what = done ? "밴픽 완료" : `${who === "our" ? "우리팀" : esc(t.name)} ${st[1] === "ban" ? "밴" : "픽"}`;
     const phase = done ? "아래 전략 확인" : phaseName(S.draft.idx);
-    return `<div class="dstat ${side || ""} ${extra || ""}"><div class="dstat-top"><span class="dstat-n">${done ? 20 : S.draft.idx + 1}<small>/20</small></span><span class="dstat-ph">${phase}</span></div>
+    return `<div class="dstat ${side || ""} ${extra || ""}"><div class="dstat-top"><span class="dstat-n">${done ? 20 : S.draft.idx + 1}<small>/20</small></span>${done ? `<span class="dstat-ph">${phase}</span>` : ""}</div>
       <div class="dstat-what">${what}</div>
       ${!MOB.matches ? `<div class="dstat-act pc-act"><button class="lc-b" data-act="undo" ${S.draft.idx ? "" : "disabled"}>${ico("undo")}되돌리기</button>${st && st[1] === "ban" ? `<button class="lc-b" data-act="skip">${ico("skip")}밴 넘기기</button>` : ""}</div>` : ""}
       <div class="dstat-act m-act">${st && st[1] === "ban" ? `<button class="ib btn sm ghost" data-act="skip" aria-label="밴 넘기기" title="밴 넘기기">${ico("skip")}</button>` : ""}<button class="ib btn sm" data-act="undo" ${S.draft.idx ? "" : "disabled"} aria-label="되돌리기" title="되돌리기">${ico("undo")}</button>${done ? "" : `<button class="btn sm primary m-only" data-act="sheet">고르기</button>`}</div></div>`;
@@ -1151,7 +1152,7 @@
     NOW_HEAD = null;
     const now = renderNow(true), H = NOW_HEAD || {}, G = goalLinePC(), st = curStep();
     const acts = `<span class="lc-c livebar" aria-live="polite">${liveBarHtml()}</span>`;   // 되돌리기·밴 넘기기는 제목 줄로 옮김(11-19) · 가운데 = 팀과 같이 보기(11-20)
-    const row = `<div class="lv-ctrl"><span class="lc-l">${H.step ? `<span class="step">${H.step}</span>` : ""}${H.tabs || ""}</span>${acts}<span class="lc-r">${G.goal}</span></div>`;
+    const row = `<div class="lv-ctrl"><span class="lc-l">${H.tabs || ""}</span>${acts}<span class="lc-r">${G.goal}</span></div>`;
     const plan = G.plan || H.dir ? `<div class="gline">${G.plan || ""}${H.dir ? `<span class="dir">${H.dir}</span>` : ""}</div>` : "";
     return row + plan + now;
   }
@@ -2260,7 +2261,16 @@
       cols.forEach((c, i) => { if (!i) return; const prev = Math.min(inkRight(cols[i - 1]), cols[i - 1].getBoundingClientRect().right), left = c.getBoundingClientRect().left;
         if (isFinite(prev) && prev < left) c.style.setProperty("--ll", `${Math.round((prev + left) / 2 - left)}px`); else c.style.removeProperty("--ll"); }); });
   }
-  window.addEventListener("resize", () => { clearTimeout(placeLaneLines.t); placeLaneLines.t = setTimeout(placeLaneLines, 120); });
+  // 실시간 밴픽 추천 카드: 한 줄에 들어가는 칸 수만큼만 보이기(최소 6, 넓으면 최대 10 — 11-20 사용자 요청)
+  function fitRecs() {
+    document.querySelectorAll(".live-pc .lv-c .recs").forEach((g) => {
+      const kids = [...g.children]; kids.forEach((k) => k.classList.remove("rec-over"));
+      const cols = getComputedStyle(g).gridTemplateColumns.split(" ").filter(Boolean).length;
+      kids.forEach((k, i) => { if (i >= Math.max(6, cols)) k.classList.add("rec-over"); });
+    });
+  }
+  window.addEventListener("resize", () => { clearTimeout(placeLaneLines.t); placeLaneLines.t = setTimeout(() => { placeLaneLines(); fitRecs(); }, 120); });
+  if (window.ResizeObserver) { let rw = 0; new ResizeObserver(() => { const w = document.documentElement.clientWidth; if (w !== rw) { rw = w; fitRecs(); } }).observe(document.documentElement); }   // 폭이 바뀌면 카드 수 다시(창 크기 신호가 없는 경우도)
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeLaneLines());
   // 추천 창 닫기(고르기·Esc·칸 밖으로 나감)
   function edSugClose(r) {
@@ -4352,6 +4362,7 @@
     if (lastIdx !== S.draft.idx) { const sp = document.getElementById("gpStrip"), nw = sp && sp.querySelector(".now"); if (sp && nw) sp.scrollLeft = Math.max(0, nw.offsetLeft - 8); lastIdx = S.draft.idx; }
     if (S.tab === "vision") { drawVision(v); runAnims(v); addZoomHint(v); }
     placeLaneLines();
+    fitRecs();
     peakBackfill();
     liveTick();
     if (S.tab === "notes") v.querySelectorAll(".nbody").forEach((p) => { if (p.scrollHeight > p.clientHeight + 2) p.classList.add("clamped"); });
