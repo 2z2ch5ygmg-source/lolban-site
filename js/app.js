@@ -578,7 +578,7 @@
       // 마우스를 올리면: 상대 픽 → 우리 대응 픽, 우리 픽 → 상대가 꺼낼 대응 픽(남은 라인·챔프폭 기준)
       return `<div class="slot-pick ${now}" data-hov="${s.champ}" data-hwho="${who}" data-hrole="${eff || ""}" tabindex="0">${icon(s.champ)}<div class="who"><div class="cn">${esc(CH[s.champ].ko)}</div><div class="pn">${pn}</div></div>${sel}</div>`;
     }).join("");
-    return `<section class="side ${side}"><div class="side-h"><span class="nm">${esc(t.name)}</span><span class="tag">${side === "B" ? "블루" : "레드"} · ${who === "our" ? "우리" : "상대"}</span></div><div class="bans">${bans}</div><div class="picks">${picks}</div></section>`;
+    return `<section class="side ${side}"><div class="side-h"><span class="nm">${esc(t.name)}</span>${who === "our" ? `<span class="tag our">우리</span>` : ""}<span class="sr-only">${side === "B" ? "블루" : "레드"} 진영</span></div><div class="bans">${bans}</div><div class="picks">${picks}</div></section>`;
   }
 
   // 근거 줄: 분류 이름표 + 한 문장 (전체·라인 칸 모두 같은 모양)

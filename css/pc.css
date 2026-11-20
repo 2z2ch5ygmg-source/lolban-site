@@ -1146,3 +1146,23 @@ html.pc .l5-s { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; m
 .lvb-b.primary { background: var(--hi, var(--gold)); color: var(--on-gold, #fff); }
 .lvb-b:focus-visible { outline: 2px solid var(--hi, var(--gold)); outline-offset: 2px; }
 .mv-livebar { justify-content: flex-start; flex-wrap: wrap; padding: 6px 2px; }
+
+/* 11-20 사용자 지적: 블루(왼쪽) 픽 칸의 챔프 이름이 가운데 정렬을 물려받아 초상화에서 떨어져 보임 — 레드(오른쪽)처럼 초상화 쪽으로 붙임 */
+html.pc .live-pc .side.B .slot-pick { text-align: left; }
+
+/* 11-20 사용자 요청: 진영 머리 — 블루·레드 글자는 빼고(색으로 구분) 우리 쪽에만 「우리」를 팀 이름 바로 옆에. 레드는 오른쪽에서부터 */
+html.pc .live-pc .side-h { justify-content: flex-start; align-items: center; gap: 8px; min-width: 0; }
+html.pc .live-pc .side.R .side-h { flex-direction: row-reverse; }
+html.pc .live-pc .side-h .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.pc .live-pc .side-h .tag.our { flex: none; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--blue-bg); color: var(--blue); }
+html.pc .live-pc .side.R .side-h .tag.our { background: var(--red-bg); color: var(--red); }
+/* 남는 자리만큼 양쪽 칸을 줄이고 가운데 밴픽을 넓힘(밴 다섯 칸 180px은 그대로 들어감) */
+html.pc .live-pc { grid-template-columns: 216px minmax(0, 1fr) 216px; }
+@media (max-width: 1599px) { html.pc .live-pc { grid-template-columns: 192px minmax(0, 1fr) 192px; } }
+/* 11-20 사용자 요청: 사이드바도 여유가 있어 줄이고(긴 팀 이름은 「…」+ 마우스 올리면 전체) 그만큼 가운데를 넓힘 */
+html.pc body { grid-template-columns: 220px minmax(0, 1fr); }
+html.pc #side { padding-left: 14px; padding-right: 14px; }
+@media (max-width: 1599px) {
+  html.pc body { grid-template-columns: 200px minmax(0, 1fr); }
+  html.pc #side { padding-left: 8px; padding-right: 8px; }
+}
