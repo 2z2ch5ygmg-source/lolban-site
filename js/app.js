@@ -741,7 +741,11 @@
       const pl = E.predictRole(S, "enemy", pr);
       const p = et.players[pr];
       const act = who === "our" ? "우리 밴" : `상대 ${type === "ban" ? "밴" : "픽"}`;
-      body = pl.length ? `<p class="help pred-h">상대 ${ROLE_KO[pr]} ${esc(nick(p.riot))} 선수가 꺼낼 수 있는 챔프 · 눌러서 ${act}으로 기록</p><div class="recs">${pl.map((x) => `<button class="rec muted pred" data-act="pick" data-id="${x.id}">
+      // PC(11-20 사용자): 라인을 골라도 「전체」와 같은 카드(순위·색 칩·대응 줄)로
+      const predPC = (x, i) => { const why = x.now.map((n) => ({ t: n.t, d: n.t, v: n.k === "warn" ? -1 : 1 }));
+        return recCardPC({ id: x.id, role: pr, label: x.label, reasons: why, answers: x.answers }, type, true, i + 1, E.cardPills(et, pr, x.id, why.map((w) => ({ t: "", d: w.d, v: 1 })), true)); };
+      body = pl.length && !MOB.matches ? `<p class="help pred-h">상대 ${ROLE_KO[pr]} ${esc(nick(p.riot))} 선수가 꺼낼 수 있는 챔프 · 눌러서 ${act}으로 기록</p><div class="recs">${pl.map(predPC).join("")}</div>`
+        : pl.length ? `<p class="help pred-h">상대 ${ROLE_KO[pr]} ${esc(nick(p.riot))} 선수가 꺼낼 수 있는 챔프 · 눌러서 ${act}으로 기록</p><div class="recs">${pl.map((x) => `<button class="rec muted pred" data-act="pick" data-id="${x.id}">
         <span class="hero">${icon(x.id, "hero").replace(/ title="[^"]*"/, "")}<span class="lab">${esc(x.label)}</span></span><span class="nm"><span class="cn">${esc(CH[x.id].ko)}</span><span class="pos">${ROLE_KO[pr]}</span></span><span class="why has-fx">${pillsHtml(E.cardPills(et, pr, x.id, x.now.map((n) => ({ t: "", d: n.t, v: 1 })), true))}</span>
         ${x.answers.length ? `<span class="ans">우리 대응 ${x.answers.map((id) => `<b>${esc(CH[id].ko)}</b>`).join("·")}</span>` : ""}</button>`).join("")}</div>`
         : `<div class="empty-recs">상대 ${ROLE_KO[pr]} 예상 챔프가 없습니다.</div>`;
