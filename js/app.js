@@ -1651,6 +1651,14 @@
 `;
   }
 
+  // 선수 티어 한 줄(11-20 사용자 요청): 티어 로고 + 「골드 2」 + 큐 표시(솔랭/자랭) + 판수·승률 — 홈 로스터·라인별 상대 같이
+  function tierLineHtml(p, x) {
+    const raw = String(p.tier || ""), fl = /\((자유랭|자랭)\)/.test(raw), v = raw.replace(/\s*\((자유랭|자랭)\)/, "").trim(), pt = parseTier(v);
+    const rec = x && x.n ? `${x.n}판 ${Math.round((x.w / x.n) * 100)}%` : "";
+    const tier = pt.t ? `<span class="l5-t">${tierImg(pt.t, 18)}<b>${esc(v)}</b><span class="l5-q">${fl ? "자랭" : "솔랭"}</span></span>` : v ? `<span>${esc(v)}</span>` : "";
+    if (!tier && !rec) return "&nbsp;";
+    return tier + (tier && rec ? `<span class="l5-dot" aria-hidden="true">·</span>` : "") + (rec ? `<span>${esc(rec)}</span>` : "");
+  }
   // ---------- 홈(PC 새 디자인 A) ----------
   // 기존 계산(poolMap·recentOf·actualRole·fearlessPlan·groupsOf·thin 보강)을 그대로 쓰고 모양만 바꾼다
   function homeRosterPC(t) {
@@ -1658,8 +1666,7 @@
     return `<section class="h-sec"><h3 class="h-h">로스터 · 챔프폭<small>${md((window.RECENT && window.RECENT.since) || "2026-11-10")}~ ${ql}</small>${teamSetMenu("our")}</h3><div class="lane5">${ROLES.map((r) => {
       const p = t.players[r], x = E.recentOf(t, r), ar = x ? E.actualRole(t, r) : null;
       const pm = E.poolMap(t, r), list = Object.entries(pm).sort((a, b) => E.lvScore(b[1]) - E.lvScore(a[1])).slice(0, 5);
-      const sub = [p.tier || "", x && x.n ? `${x.n}판 ${Math.round((x.w / x.n) * 100)}%` : ""].filter(Boolean).join(" · ");
-      return `<div class="l5"><span class="l5-r">${ROLE_KO[r]}</span><b class="l5-n" title="${esc(p.riot)}">${esc(nick(p.riot) || "—")}</b><span class="l5-s">${esc(sub) || "&nbsp;"}</span>
+      return `<div class="l5"><span class="l5-r">${ROLE_KO[r]}</span><b class="l5-n" title="${esc(p.riot)}">${esc(nick(p.riot) || "—")}</b><span class="l5-s">${tierLineHtml(p, x)}</span>
         <span class="l5-w">${ar && ar.differs ? `${lbi("warn", 16)}최근 ${ROLE_KO[ar.role]} ${ar.n}판` : ""}</span>
         ${list.length ? list.map(([id, e], j) => `<span class="l5-c ${j ? "" : "first"}" title="${esc(CH[id] ? CH[id].ko : id)}${e.g ? ` · ${e.g}판` : ""}">${icon(id, j ? "md" : "lg")}<b>${esc(CH[id] ? CH[id].ko : id)}</b>${lvTag({ lv: e.lv, one: e.one })}</span>`).join("") : `<span class="help">챔프폭 없음 · 팀 설정에서</span>`}</div>`;
     }).join("")}</div></section>`;
@@ -1909,8 +1916,7 @@
       const gap = (o.pts || 0) - (p.pts || 0);
       const row = (t, ids, cls) => `<span class="e-mini"><small class="${cls}">${t}</small><span>${ids.length ? ids.map((id) => `<span class="e-mi ${cls}" title="${esc(CH[id].ko)}">${icon(id, "xs")}</span>`).join("") : `<span class="dim">—</span>`}</span></span>`;
       return `<div class="l5"><span class="l5-r">${ROLE_KO[r]}</span><b class="l5-n tr"><a href="${opgg(p.riot)}" target="_blank" rel="noopener" title="${esc(p.riot)}">${esc(nick(p.riot) || "—")}</a></b>
-        <span class="l5-s">${esc([p.tier, x && x.n ? `${x.n}판 ${Math.round((x.w / x.n) * 100)}%` : ""].filter(Boolean).join(" · ")) || "&nbsp;"}</span>
-        <span class="l5-s">vs ${esc(nick(o.riot) || "—")} <b class="${gap >= 15 ? "pos" : gap <= -15 ? "neg" : ""}">${gap > 0 ? "+" : ""}${gap}</b></span>
+        <span class="l5-s">${tierLineHtml(p, x)}</span>
         ${list.map(([id, e], j) => `<button type="button" class="l5-c ${j ? "" : "first"}" data-act="chdet" data-id="${id}" data-role="${r}" aria-label="${esc(CH[id].ko)} 자세히 보기">${icon(id, j ? "md" : "lg")}<b>${esc(CH[id].ko)}</b>${lvTag({ lv: e.lv, one: e.one })}</button>`).join("") || `<span class="help">챔프폭 없음</span>`}
         ${row("우리 대응 가능", have, "good")}${edge.length ? `<span class="e-mini e-edge"><small>승률 우위</small><span>${edge.map((x) => `<span class="e-mi edge" title="${esc(`${CH[x.id].ko} vs ${CH[x.vs].ko} · 솔랭 맞대결 ${x.wr.toFixed(1)}% (${x.g.toLocaleString()}판)`)}">${icon(x.id, "xs")}<small>vs ${esc(CH[x.vs].ko)} ${Math.round(x.wr)}%</small></span>`).join("")}</span></span>` : ""}${row("새로 연습 추천", learn, "hi")}${row("우리 챔프 중 주의", risky, "bad")}</div>`;
     }).join("")}</div></section>`;

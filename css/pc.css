@@ -1126,3 +1126,10 @@ html.pc .lane5 > .l5 + .l5::before { content: ""; position: absolute; left: var(
 
 /* 11-20: 계정 티어 옆 「최고 다이아 2」(2년 내 최고가 현재보다 높을 때) */
 .sd-pk { margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--hi-bg); color: var(--hi); white-space: nowrap; }
+
+/* 11-20: 선수 티어 한 줄 — 티어 로고 + 「골드 2」 + 솔랭/자랭 알약 + 판수·승률 */
+html.pc .l5-s { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 20px; }
+.l5-t { display: inline-flex; align-items: center; gap: 5px; } .l5-t .tier-ic { flex: none; }
+.l5-t b { color: var(--text); font-weight: 700; }
+.l5-q { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--panel2); color: var(--muted); }
+.l5-dot { color: var(--dim); }
