@@ -228,28 +228,37 @@
   function seriesRecord() {
     const done = S.series.games || [];
     const games = [];
-    for (let g = 1; g < S.series.game; g++) {
+    for (let g = 1; g <= S.series.game; g++) {   // 시리즈가 끝나면 마지막 세트 번호에서 멈추므로 지금 번호의 끝난 세트도 포함(11-21)
       const full = done.find((x) => x.game === g);
       if (full) games.push(full);
-      else { const ps = S.series.locked.filter((x) => x.game === g); if (ps.length) games.push({ game: g, partial: true, picks: ps.map((x) => ({ id: x.id, who: x.who })) }); }
+      else if (g < S.series.game) { const ps = S.series.locked.filter((x) => x.game === g); if (ps.length) games.push({ game: g, partial: true, picks: ps.map((x) => ({ id: x.id, who: x.who })) }); }
     }
     const cur = gameRecord(S.series.game);
-    if (hasSteps(cur)) games.push(Object.assign(cur, S.draft.idx < ORDER.length ? { live: true } : {}));
+    if (hasSteps(cur) && !done.some((x) => x.game === S.series.game)) games.push(Object.assign(cur, S.draft.idx < ORDER.length ? { live: true } : {}));
     return games;
   }
-  function saveSeries() {
+  // 시리즈 끝(11-21 사용자: 3연패로 끝났는데 5세트까지 계속 감): 5판 3선승 — 한쪽이 3승이면 끝, 최종 결과를 저장한 밴픽에 남김
+  const SERIES_WIN = 3;
+  function seriesOver(sr) {
+    const g = (sr && sr.games) || [], w = g.filter((x) => x.result === "W").length, l = g.filter((x) => x.result === "L").length;
+    return w >= SERIES_WIN ? { r: "W", w, l } : l >= SERIES_WIN ? { r: "L", w, l } : null;
+  }
+  const finalTxt = (o) => (o ? `최종 ${o.r === "W" ? "승리" : "패배"} ${o.w}:${o.l}` : "");
+  function saveSeries(quiet) {
     const games = seriesRecord();
-    if (!games.length) { alert("저장할 밴픽이 없습니다."); return; }
+    if (!games.length) { if (!quiet) alert("저장할 밴픽이 없습니다."); return; }
     if (!S.series.sid) S.series.sid = "s" + Date.now().toString(36);
-    const rec = { sid: S.series.sid, at: nowKST(), ourTeam: S.ourTeam, ourName: teamName(S.ourTeam), enemyTeam: S.enemyTeam, enemyName: teamName(S.enemyTeam), mode: S.series.mode, games };
+    const rec = { sid: S.series.sid, at: nowKST(), ourTeam: S.ourTeam, ourName: teamName(S.ourTeam), enemyTeam: S.enemyTeam, enemyName: teamName(S.enemyTeam), mode: S.series.mode, games, final: seriesOver(S.series) };
     games.forEach((g) => { if (g.enemyTeam) g.enemyName = teamName(g.enemyTeam); });
     const prev = loadSaved().find((x) => x.sid === rec.sid);   // 저장 목록에서 고른 승·패는 다시 저장해도 유지
     if (prev) games.forEach((g) => { const o = prev.games.find((x) => x.game === g.game); if (!g.result && o && o.result) g.result = o.result; });
     const list = loadSaved().filter((x) => x.sid !== rec.sid);
     list.unshift(rec);
-    if (!writeSaved(list.slice(0, 200))) { alert("이 브라우저 저장소에 쓰지 못했습니다."); return; }
+    if (!writeSaved(list.slice(0, 200))) { if (!quiet) alert("이 브라우저 저장소에 쓰지 못했습니다."); return; }
+    if (rec.final) S.series.finalSaved = rec.sid;
     save(); S.ui.savedOpen = rec.sid; render();
-    alert(`${games.length}세트 밴픽을 저장했습니다. 아래 「저장한 밴픽」에서 볼 수 있습니다.`);
+    if (quiet) toast(`시리즈 끝 · ${finalTxt(rec.final)} — 「피어리스·저장」의 저장한 밴픽에 기록했습니다`);
+    else alert(`${games.length}세트 밴픽을 저장했습니다. 아래 「저장한 밴픽」에서 볼 수 있습니다.`);
   }
 
   // ---------- helpers ----------
@@ -519,7 +528,7 @@
     const vs = `<span class="mh-t">${side("our", ourName, crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b"), "tb")}<span class="vs">VS</span>${side("enemy", en && !en.solo ? en.name : "솔랭·자랭", crestOf(en && !en.solo ? en : { name: "솔" }, "r"), "tr")}</span>`;
     const since = md(PREP.since || (window.RECENT && window.RECENT.since) || "2026-11-10");
     let c;
-    if (S.tab === "live") c = `${vs}<span class="mh-s">${S.series.game}세트${S.series.mode !== "off" ? ` · 피어리스 잠금 ${(S.series.locked || []).length}` : " · 피어리스 끔"}</span>`;
+    if (S.tab === "live") c = `${vs}<span class="mh-s">${seriesOver(S.series) ? `시리즈 끝 · ${finalTxt(seriesOver(S.series))}` : `${S.series.game}세트${S.series.mode !== "off" ? ` · 피어리스 잠금 ${(S.series.locked || []).length}` : " · 피어리스 끔"}`}</span>`;
     else if (S.tab === "enemy") c = `${vs}<span class="mh-s">${S.ui.enView === "comps" ? "예상 조합 · 상황별" : "상대 분석"} · ${since}~ 랭크 기준</span>`;
     else if (S.tab === "our" && needOnboard()) c = `<b class="mh-t">${SESS ? "팀 만들기 · 들어가기" : "로그인"}</b><span class="mh-s">${SESS ? "팀장은 팀을 만들고 6자리 초대 코드를 팀원에게" : "구글·네이버로 로그인 · 팀원은 초대 코드로 들어옴"}</span>`;
     else if (S.tab === "our") {
@@ -864,7 +873,8 @@
     let sid = "", cur = null;   // gameRow가 쓰는 지금 시리즈
     const fb = (g) => noteBtns({ k: "saved", sid, g: g.game, label: `${cur.enemyName} ${g.game}세트`.slice(0, 60), win: g.result === "W" ? true : g.result === "L" ? false : null });
     const res = (g) => `<span class="seg sv-res" role="group" aria-label="${g.game}세트 결과">${[["W", "승"], ["L", "패"]].map(([v, n]) => `<button class="res-${v.toLowerCase()}" data-act="savedRes" data-sid="${esc(sid)}" data-g="${g.game}" data-v="${v}" aria-pressed="${g.result === v}">${n}</button>`).join("")}</span>`;
-    const score = (r) => { const w = r.games.filter((g) => g.result === "W").length, l = r.games.filter((g) => g.result === "L").length; return w || l ? ` · ${w}승 ${l}패` : ""; };
+    const score = (r) => { const w = r.games.filter((g) => g.result === "W").length, l = r.games.filter((g) => g.result === "L").length, fin = r.final || (w >= SERIES_WIN ? { r: "W", w, l } : l >= SERIES_WIN ? { r: "L", w, l } : null);
+      return fin ? ` · <b class="sv-fin ${fin.r === "W" ? "w" : "l"}">${finalTxt(fin)}</b>` : w || l ? ` · ${w}승 ${l}패` : ""; };
     const focusG = (g) => (S.ui.savedFocus && S.ui.savedFocus.sid === sid && S.ui.savedFocus.g === g.game ? "focus" : "");
     const gameRow = (g) => {
       if (g.partial) {
@@ -1181,7 +1191,7 @@
     return `<button class="ib mh-ib" data-act="resetGame" aria-label="이번 세트 다시">${lbi("undo", 22)}</button>
       <button class="ib mh-ib" data-act="resetSeries" aria-label="시리즈 처음부터">${lbi("refresh", 22)}</button>
       ${S.ui.endAsk ? `<span class="end-ask" role="group" aria-label="${S.series.game}세트 결과"><button class="soft-b res-w" data-act="endGame" data-v="W">승</button><button class="soft-b res-l" data-act="endGame" data-v="L">패</button><button class="soft-b" data-act="endCancel">취소</button></span>`
-        : `<button class="soft-b" data-act="nextGame">세트 종료 → 다음 세트</button>`}<span class="lv-roomslot">${liveRoomPC()}</span>`;
+        : seriesOver(S.series) ? `<button class="soft-b" data-act="resetSeries">새 시리즈 시작</button>` : `<button class="soft-b" data-act="nextGame">세트 종료 → 다음 세트</button>`}<span class="lv-roomslot">${liveRoomPC()}</span>`;
   }
   // 팀 방(B안 11-20 사용자): 상단바 버튼 하나(상태 점 · 진행자 · 사람 첫 글자 ▾), 누르면 사람 이름 목록과 진행 요청·넘기기·혼자 하기
   function liveRoomPC() {
@@ -1235,7 +1245,10 @@
     const plan = G.plan ? `<div class="gline">${G.plan}</div>` : "";   // 「우리 조합 방향」은 뺌(11-20 사용자: 왼쪽 밴픽 설계에 이미 나옴)
     const rqh = liveReqHtml();
     const room = liveCan() ? `<div class="lv-room" ${rqh ? "" : "hidden"}><span class="livereq" role="status" ${rqh ? "" : "hidden"}>${rqh}</span></div>` : "";
-    return row + room + plan + now;
+    const ov = seriesOver(S.series);
+    if (ov && S.series.finalSaved !== S.series.sid) setTimeout(() => { if (seriesOver(S.series) && S.series.finalSaved !== S.series.sid) saveSeries(true); }, 0);   // 이 수리 전에 끝난 시리즈·팀 방에서 받은 결과도 한 번 저장
+    const end = ov ? `<div class="sr-end ${ov.r === "W" ? "win" : "lose"}" role="status"><b>시리즈 끝 · ${finalTxt(ov)}</b><span>${(S.series.games || []).filter((g) => g.result).sort((a, b) => a.game - b.game).map((g) => `<i class="${g.result === "W" ? "w" : "l"}" title="${g.game}세트 ${g.result === "W" ? "승" : "패"}">${g.result === "W" ? "승" : "패"}</i>`).join("")}</span><span class="n-sp"></span><button class="soft-b" data-act="dock" data-k="series">저장한 밴픽 보기</button><button class="n-new" data-act="resetSeries">새 시리즈 시작</button></div>` : "";
+    return end + row + room + plan + now;
   }
   const DOCK_PC = [["grid", "챔프 고르기"], ["comps", "추천 조합"], ["strat", "운영 전략"], ["threat", "요주의 인물"], ["prac", "상대 연습 픽"], ["plan", "픽 순서"], ["series", "피어리스·저장"]];
   function renderDockPC() {
@@ -5152,6 +5165,7 @@
       case "undo": if (S.draft.idx > 0) { S.draft.idx--; S.draft.steps[S.draft.idx] = { champ: null, role: null, skip: false }; save(); render(); } break;
       case "resetGame": if (confirm("이번 세트 밴픽을 지울까요?")) { S.draft.steps = emptySteps(); S.draft.idx = 0; save(); render(); } break;
       case "nextGame":   // 결과(승·패)를 고르면 넘어감
+        if (seriesOver(S.series)) { toast(`시리즈가 끝났습니다(${finalTxt(seriesOver(S.series))}) — 「새 시리즈 시작」`); break; }
         if (!["our", "enemy"].some((w) => E.picks(S, w).length)) { alert("이번 세트에 픽이 없습니다."); break; }
         S.ui.endAsk = true; MV.more = false; render(); break;
       case "endCancel": S.ui.endAsk = false; render(); break;
@@ -5160,8 +5174,12 @@
         S.ui.endAsk = false;
         if (!ps.length) { render(); break; }
         S.series.games = (S.series.games || []).filter((g) => g.game !== S.series.game).concat([Object.assign(gameRecord(S.series.game), { result: el.dataset.v })]);
-        S.series.locked = S.series.locked.concat(ps); S.series.game++;
-        S.draft.steps = emptySteps(); S.draft.idx = 0; save(); render(); window.scrollTo(0, 0); break;
+        S.series.locked = S.series.locked.concat(ps);
+        const ov = seriesOver(S.series);
+        if (!ov) S.series.game++;
+        S.draft.steps = emptySteps(); S.draft.idx = 0; save(); render(); window.scrollTo(0, 0);
+        if (ov) saveSeries(true);
+        break;
       }
       case "savedRes": { const list = loadSaved(), r = list.find((x) => x.sid === el.dataset.sid), g = r && r.games.find((x) => String(x.game) === el.dataset.g);
         if (g) { g.result = g.result === el.dataset.v ? null : el.dataset.v; writeSaved(list); S.ui.savedOpen = r.sid; render(); } break; }
