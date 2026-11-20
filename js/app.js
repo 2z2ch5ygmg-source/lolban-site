@@ -453,11 +453,14 @@
         ${SESS ? `<div class="sd-foot"><button class="sd-out" data-act="lgout">로그아웃</button></div>` : ""}`;
       return;
     }
+    const jf = document.activeElement && document.activeElement.id === "jpCode" ? document.activeElement.selectionStart : -1;
+    queueMicrotask(() => { const j = jf >= 0 && document.getElementById("jpCode"); if (j && document.activeElement !== j) { j.focus(); try { j.setSelectionRange(jf, jf); } catch (e) { /* 무시 */ } } });
     el.innerHTML = `<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">${LOGO_MARK}<span>lolban<i>.</i></span></a>
       ${SIDE_MENU.map(([k, ic, n]) => `<button class="tab sd-mi" data-tab="${k}" aria-selected="${S.tab === k}">${lbi(ic, 22)}${n}</button>`).join("")}
       <div class="sd-sec">우리 팀</div>
-      ${our ? `<div class="sd-tmw our-w"><button class="tab sd-tm our" data-tab="team" aria-current="${S.tab === "team"}">${crestOf(our, "b")}<span class="nm" title="${esc(our.name)}">${esc(our.name)}</span></button>${sp ? `<button class="sd-tm-inv" data-act="invite" aria-label="${SPACE && SPACE.viaLogin ? "초대 코드 복사" : "팀원 초대 링크 복사"}">${lbi("invite", 20)}</button>` : ""}</div>`
+      ${our ? `<div class="sd-tmw our-w"><button class="tab sd-tm our" data-tab="team" aria-current="${S.tab === "team"}">${crestOf(our, "b")}<span class="nm" title="${esc(our.name)}">${esc(our.name)}</span></button>${sp ? `<button class="sd-tm-inv" data-act="joinpop" aria-expanded="${JP.open}" aria-label="다른 팀 초대 코드 입력">${lbi("invite", 20)}</button>` : ""}</div>`
         : `<button class="sd-tm sd-new" data-act="team">${lbi("plus", 20)}<span class="nm">팀 만들기</span></button>`}
+      ${joinCard()}
       <div class="sd-sec">상대 팀 <button data-act="import" aria-label="상대 팀 등록(엑셀)" title="상대 팀 등록(엑셀)">${lbi("plus", 18)}</button></div>
       <div class="sd-opp" id="sdOpp">
       ${opp.map((t) => `<div class="sd-tmw"><button class="sd-tm" data-act="pickenemy" data-id="${t.id}" aria-current="${t.id === curOpp}">${crestOf(t, t.id === curOpp ? "r" : "")}<span class="nm" title="${esc(t.name)}">${esc(t.name)}</span></button><button class="sd-tm-x" data-act="delteam" data-id="${t.id}" aria-label="「${esc(t.name)}」 팀 삭제">×</button></div>`).join("")
@@ -3002,6 +3005,34 @@
       ${others.length ? `<p class="help">다른 팀: ${others.map((x) => `<button class="nc-a" data-act="lgswitch" data-id="${x.id}">${esc(x.name)}</button>`).join(" · ")}</p>` : ""}
       <span class="sd-btns"><button class="soft-b bad" data-act="lgleave">팀 나가기</button><button class="nc-a del" data-act="lgdel">탈퇴</button></span>${note}</div>`;
   }
+  // 사이드바 사람+ 버튼(11-20 사용자): 대회마다 팀이 다른 사람이 다른 팀 초대 코드를 넣어 들어가고, 내 다른 팀으로 바로 바꿈
+  const JP = { open: false, val: "", msg: "", busy: false };
+  function joinCard() {
+    if (!JP.open) return "";
+    const others = SPACE && SPACE.viaLogin ? AUTH.spaces.filter((x) => x.id !== SPACE.id) : [];
+    return `<div class="jp-card" role="group" aria-label="다른 팀 들어가기"><label for="jpCode">다른 팀 초대 코드</label>
+      <div class="jp-row"><input id="jpCode" class="input" maxlength="60" placeholder="6자리" value="${esc(JP.val)}" autocomplete="off" spellcheck="false"><button class="btn sm primary" data-act="jpgo" ${JP.busy ? "disabled" : ""}>${JP.busy ? "확인 중" : "들어가기"}</button></div>
+      ${JP.msg ? `<p class="jp-msg" role="alert">${esc(JP.msg)}</p>` : ""}
+      ${others.length ? `<div class="jp-oth"><small>내 다른 팀</small>${others.map((x) => `<button class="jp-sw" data-act="lgswitch" data-id="${esc(x.id)}">${esc(x.name)}</button>`).join("")}</div>` : ""}</div>`;
+  }
+  function joinPop() {
+    if (!SESS) { toast("다른 팀에 들어가려면 먼저 로그인해 주세요"); return; }
+    JP.open = !JP.open; JP.msg = ""; render();
+    if (JP.open) setTimeout(() => { const j = document.getElementById("jpCode"); if (j) j.focus(); }, 0);
+  }
+  async function joinByCode() {
+    if (JP.busy) return;
+    const all = String(JP.val || "").toUpperCase().match(/(?<![A-Z0-9])[A-Z0-9]{6}(?![A-Z0-9])/g) || [];
+    if (!all.length) { JP.msg = "6자리 초대 코드를 넣어 주세요"; render(); return; }
+    JP.busy = true; JP.msg = ""; render();
+    try {
+      const d = await authPost("team/join", { code: all[all.length - 1] });
+      try { localStorage.setItem("lolban.space.v1", d.space.id); } catch (e) { /* 이번만 */ }
+      Object.assign(JP, { open: false, val: "", msg: "", busy: false }); TM2.list = null;
+      await loadMe();
+      toast(`「${d.space.name}」 팀에 들어왔습니다 — 다른 팀으로는 사람+ 버튼에서 바로 바꿀 수 있습니다`);
+    } catch (e) { JP.busy = false; JP.msg = e.message || String(e); render(); }
+  }
   async function copyInvite() {
     if (SPACE && SPACE.viaLogin) {
       if (SPACE.code) { await authAction("lgcopy"); toast(`초대 코드 ${SPACE.code} 복사 — 팀원은 로그인 뒤 「초대 코드로 들어가기」에 붙여 넣으면 됩니다`); return; }
@@ -3033,16 +3064,15 @@
       return `<span class="tsm ${mob ? "mv-hb" : ""}"><button class="btn sm primary tsm-b" data-act="tsm" data-k="${id}" aria-haspopup="menu" aria-expanded="${eo}">${ico("gear")}<span>설정</span></button>
       ${eo ? `<div class="tsm-pop" role="menu" aria-label="상대팀 설정">${it(`data-act="edit" data-mode="pool" data-team="${en.id}"`, "챔프폭 편집", "챔프 넣기·빼기, 숙련도 바꾸기")}${it(`data-act="edit" data-mode="alts" data-team="${en.id}"`, "부계정 입력", "라인마다 부계정 2개까지")}</div>` : ""}</span>`; }
     const items = [
-      ourT && !ourT.solo ? it(`data-act="edit" data-team="${ourT.id}"`, "우리팀 자기평가 입력", ourT.name) : "",
-      en && !en.solo ? it(`data-act="edit" data-mode="pool" data-team="${en.id}"`, "상대 챔프폭 편집", en.name) : "",
+      // 11-20 사용자: 상대 챔프폭 편집·설정 전체는 빼고, 자기평가는 PC에선 오른쪽 버튼으로(휴대폰은 머리줄이 좁아 메뉴에 둠)
+      mob && ourT && !ourT.solo ? it(`data-act="edit" data-team="${ourT.id}"`, "우리팀 자기평가 입력", ourT.name) : "",
       it(`data-act="settings" data-k="basis"`, "분석 기준·대회 준비일", `티어 기준 ${QUEUE_TXT[CFG.queue][0]}`),
       it(`data-act="export"`, "엑셀 내보내기", "팀·챔프폭 한 시트"),
       it(`data-act="import"`, "엑셀 불러오기", "작성법·미리보기 뒤 적용"),
-      it(`data-act="settings" data-k="teams"`, "설정 전체", ""),
     ].join("");
     const open = TSM.open === id;
     return `<span class="tsm ${mob ? "mv-hb" : ""}"><button class="btn sm primary tsm-b" data-act="tsm" data-k="${id}" aria-haspopup="menu" aria-expanded="${open}">${ico("gear")}<span>팀 설정</span></button>
-      ${open ? `<div class="tsm-pop" role="menu" aria-label="팀 설정">${items}</div>` : ""}</span>`;
+      ${open ? `<div class="tsm-pop" role="menu" aria-label="팀 설정">${items}</div>` : ""}</span>${!mob && ourT && !ourT.solo ? `<button class="btn sm tsm-se" data-act="edit" data-team="${ourT.id}">${ico("pencil")}<span>자기평가 입력</span></button>` : ""}`;
   }
   function openSettings(sec) {
     if (S.tab !== "settings") S.ui.setFrom = S.tab;
@@ -4477,6 +4507,8 @@
         if ((a === "tclose") && ev.target !== el && el.classList.contains("modal-bg")) break;
         teamAction(a); break;
       case "invite": copyInvite(); break;
+      case "joinpop": joinPop(); break;
+      case "jpgo": joinByCode(); break;
       case "pickenemy": if (el.dataset.id && team(el.dataset.id)) { S.enemyTeam = el.dataset.id; syncQueue(true); S.tab = "enemy"; MV.more = false; save(); render(); window.scrollTo(0, 0); } break;
       case "gotab": S.tab = el.dataset.k; MV.more = false; save(); render(); window.scrollTo(0, 0); break;
       case "flowhide": S.ui.flowHide = true; save(); render(); break;
@@ -4515,7 +4547,7 @@
       case "myrole": setMemberRole(el.dataset.v); break;
       case "mkick": kickMember(el.dataset.mid, el.dataset.nick || "팀원"); break;
       case "lgnew": case "lgjoin": case "lgcode": case "lgleave": case "lgout": case "lgcopy": case "lgdel": authAction(a, el); break;
-      case "lgswitch": try { localStorage.setItem("lolban.space.v1", el.dataset.id); } catch (e) { /* 이번만 */ } SPACE = loginSpace(); spaceJoined(); break;
+      case "lgswitch": JP.open = false; try { localStorage.setItem("lolban.space.v1", el.dataset.id); } catch (e) { /* 이번만 */ } SPACE = loginSpace(); spaceJoined(); break;
       case "vsopen": S.ui.vsOpen = S.ui.vsOpen === el.dataset.k ? "" : el.dataset.k; renderHead(); { const f = document.querySelector(".vs-pop [aria-selected=true]") || document.querySelector(".vs-pop button"); if (f && S.ui.vsOpen) f.focus(); } break;
       case "vspick": { const id = el.dataset.id; S.ui.vsOpen = "";
         if (el.dataset.k === "our") { S.ourTeam = id; E.setOurTeam(S.ourTeam); if (S.enemyTeam === S.ourTeam) S.enemyTeam = (S.teams.find((x) => x.id !== S.ourTeam && !x.solo) || { id: SOLO.enemy }).id; }
@@ -4683,6 +4715,12 @@
   document.addEventListener("dragleave", (ev) => { const d = ev.target.closest && ev.target.closest("#impDrop"); if (d) d.classList.remove("over"); });
   document.addEventListener("drop", (ev) => { const d = ev.target.closest && ev.target.closest("#impDrop"); if (!d) return; ev.preventDefault(); d.classList.remove("over"); const f = ev.dataTransfer && ev.dataTransfer.files[0]; if (f) readImport(f); });
   document.addEventListener("submit", (ev) => { const f = ev.target.closest && ev.target.closest("[data-alt-form]"); if (!f) return; ev.preventDefault(); altFind(f.dataset.altForm); });
+  document.addEventListener("input", (ev) => { if (ev.target && ev.target.id === "jpCode") { JP.val = ev.target.value; if (JP.msg) { JP.msg = ""; const m = document.querySelector(".jp-msg"); if (m) m.remove(); } } });
+  document.addEventListener("keydown", (ev) => {
+    if (!ev.target || ev.target.id !== "jpCode" || ev.isComposing) return;
+    if (ev.key === "Enter") { ev.preventDefault(); joinByCode(); }
+    else if (ev.key === "Escape") { JP.open = false; render(); const b = document.querySelector('[data-act="joinpop"]'); if (b) b.focus(); }
+  });
   document.addEventListener("input", (ev) => {
     const t = ev.target;
     if (t.id === "ipText") { IMP.text = t.value; return; }

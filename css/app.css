@@ -984,8 +984,9 @@ footer a, .mv-legal a { color: var(--muted); text-decoration: underline; text-un
 .tsm { position: relative; display: inline-flex; }
 .tsm-b { display: inline-flex; align-items: center; gap: 6px; }
 .tsm-b .ico { width: 15px; height: 15px; }
+.tsm-se { display: inline-flex; align-items: center; gap: 6px; } .tsm-se .ico { width: 15px; height: 15px; }
 .tsm-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 45; min-width: 240px; display: grid; gap: 2px; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45); }
-.mv-hb.tsm .tsm-pop, .section-title .tsm:last-child .tsm-pop { left: auto; right: 0; }
+.mv-hb.tsm .tsm-pop, .section-title .tsm:last-child .tsm-pop, .section-title .tsm:has(+ .tsm-se:last-child) .tsm-pop { left: auto; right: 0; }
 .tsm-i { display: grid; gap: 1px; text-align: left; padding: 8px 10px; min-height: 40px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
 .tsm-i:hover, .tsm-i:focus-visible { background: var(--panel2); }
 .tsm-i b { font-size: 13px; } .tsm-i small { font-size: 12px; color: var(--dim); }

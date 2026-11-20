@@ -137,7 +137,8 @@ html.pc .pill { border-radius: 999px; }
 .hg-c { display: grid; justify-items: center; gap: 3px; } .hg-c small { font-size: 11px; color: var(--muted); }
 .h-pg { justify-content: flex-start; }
 .sd-tm .act { border: 0; background: none; box-shadow: none; }
-html.pc .tsm-b { background: var(--bg2); color: var(--text); border: 0; box-shadow: none; }
+html.pc .tsm-b, html.pc .tsm-se { background: var(--bg2); color: var(--text); border: 0; box-shadow: none; }
+.h-h .tsm + .tsm-se { margin-left: -2px; }
 
 /* ---------- 실시간 밴픽 C ---------- */
 html.pc .live-pc { display: grid; grid-template-columns: 232px minmax(0, 1fr) 248px; gap: 28px; height: calc(100vh - 96px - 48px); min-height: 860px; }
@@ -722,7 +723,16 @@ html.pc #side [data-tip]:hover::after, html.pc #side [data-tip]:focus-visible::a
 .set-cards { display: grid; gap: 16px; }
 .sd-tmw.our-w .sd-tm { padding-right: 40px; }
 .sd-tm-inv { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--muted); padding: 5px; border-radius: 8px; display: inline-flex; }
-.sd-tm-inv:hover { color: var(--hi); background: var(--hi-bg); }
+.sd-tm-inv:hover, .sd-tm-inv[aria-expanded="true"] { color: var(--hi); background: var(--hi-bg); }
+.jp-card { margin: 6px 8px 4px; padding: 10px; display: grid; gap: 8px; background: var(--bg2); border-radius: 12px; }
+.jp-card label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.jp-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+.jp-row .input { width: 100%; min-width: 0; height: 34px; padding: 0 8px; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+.jp-row .btn { height: 34px; padding: 0 10px; white-space: nowrap; }
+.jp-msg { margin: 0; font-size: 12px; color: var(--bad); }
+.jp-oth { display: grid; gap: 2px; } .jp-oth small { font-size: 11px; color: var(--muted); }
+.jp-sw { text-align: left; border: 0; background: none; padding: 6px 4px; border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jp-sw:hover, .jp-sw:focus-visible { background: var(--panel); color: var(--hi); }
 .sd-tm.our .nm { color: var(--blue); font-weight: 700; }
 html.pc .sd-tm.our[aria-current="true"] { background: var(--bg2); }
 /* 명단 등록: 양식 내려받기 */
