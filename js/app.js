@@ -2167,7 +2167,7 @@
       const same = d.riot.toLowerCase() === v.toLowerCase();   // 대소문자만 다르면 같은 계정(Riot ID는 대소문자 구분 없음)
       if ((inl || el.dataset.alt != null) && editing && team(editing)) {   // 우리 팀 편집 칸·상대 부계정: 받은 솔랭·자랭을 바로 넣음(고르는 칸 없음)
         const tt = team(editing), p = tt.players[r], val = { ...(d.solo ? { s: lowLp(d.solo) } : {}), ...(d.flex ? { f: lowLp(d.flex) } : {}) };
-        const keep = (x) => { const o = (p.rk || {})[x] || {}; return { ...(o.ps ? { ps: o.ps } : {}), ...(o.pf ? { pf: o.pf } : {}), ...(o.pt ? { pt: o.pt } : {}) }; };
+        const keep = (x) => { const o = (p.rk || {})[x] || {}; return Object.fromEntries(["ps", "pf", "ts", "tf", "pt", "pv"].filter((y) => o[y] != null).map((y) => [y, o[y]])); };
         p.rk = { ...(p.rk || {}), [rkKey(v)]: { ...keep(rkKey(v)), ...val }, [rkKey(d.riot)]: { ...keep(rkKey(d.riot)), ...val } }; applyTiers(); save();
         // 2년 내 최고도 바로 받아 반영 티어에 넣음
         fetchPeak(tt, r, d.riot).then((ok) => { if (!ok) return; const kk = rkKey(d.riot); if (rkKey(v) !== kk) p.rk[rkKey(v)] = { ...p.rk[rkKey(v)], ...p.rk[kk] };
@@ -2262,8 +2262,8 @@
   // 반영 티어: { tier, q, acc, fb(다른 큐로 대신), none(언랭) }
   function effTier(t, r) {
     const p = t.players[r], rk = p.rk || {}, accs = accountsOf(t, r);
-    // 2년 내 최고(기본): 계정마다 현재(s·f)와 op.gg 최고(ps·pf) 중 높은 쪽
-    const pick = (qs) => { let best = null; accs.forEach(([a, lab]) => qs.forEach((q) => { const e = rk[rkKey(a)] || {}, cv = e[q], pv = CFG.tierMode === "peak" ? e["p" + q] : "";
+    // 2년 내 최고(기본)·이번 시즌 최고: 계정마다 현재(s·f)와 op.gg 최고(ps·pf 또는 ts·tf) 중 높은 쪽
+    const pick = (qs) => { let best = null; accs.forEach(([a, lab]) => qs.forEach((q) => { const e = rk[rkKey(a)] || {}, cv = e[q], pv = MODE_KEY[CFG.tierMode] ? e[MODE_KEY[CFG.tierMode] + q] : "";
       const pk = tierNum(pv) > tierNum(cv), v = pk ? pv : cv, n = tierNum(v); if (n >= 0 && (!best || n > best.n)) best = { tier: v, q, acc: lab, n, pk }; })); return best; };
     const basis = CFG.queue === "solo" ? ["s"] : CFG.queue === "flex" ? ["f"] : ["s", "f"];
     const b = pick(basis); if (b) return b;
@@ -2339,7 +2339,7 @@
       if (t && d && d.exists) {
         const p = t.players[r], k = rkKey(a);
         const old = (p.rk || {})[k] || {};
-        p.rk = { ...(p.rk || {}), [k]: { ...(d.solo ? { s: lowLp(d.solo) } : {}), ...(d.flex ? { f: lowLp(d.flex) } : {}), ...(old.ps ? { ps: old.ps } : {}), ...(old.pf ? { pf: old.pf } : {}), ...(old.pt ? { pt: old.pt } : {}) } };
+        p.rk = { ...(p.rk || {}), [k]: { ...(d.solo ? { s: lowLp(d.solo) } : {}), ...(d.flex ? { f: lowLp(d.flex) } : {}), ...Object.fromEntries(["ps", "pf", "ts", "tf", "pt", "pv"].filter((y) => old[y] != null).map((y) => [y, old[y]])) } };
         await fetchPeak(t, r, a);   // 2년 내 최고도 함께(op.gg, Worker 24시간 캐시)
         applyTiers(); shareChanged(tid, r);
       } else { TQ.miss++; const tm = team(tid); TQ.fails.push({ team: tm ? tm.name : "", r, a, why: d && !d.exists ? "Riot에 없는 계정(이름·태그 확인)" : why }); }
@@ -2354,11 +2354,12 @@
   const SEASON_END = { "S2023 S1": "2023-07-19", "S2023 S2": "2024-01-09", "S2024 S1": "2024-05-14", "S2024 S2": "2024-09-24", "S2024 S3": "2025-01-08", "S2025": "2026-01-07" };
   const inTwoYears = (season) => { const e = SEASON_END[season]; return e ? Date.parse(e + "T00:00:00+09:00") >= Date.now() - 730.5 * 864e5 : /^S20(2[6-9]|[3-9]\d)/.test(season); };
   const opStr = (x) => { const t = x && TIER_KO_EN[x.tier]; return !t ? "" : HIGH(t) ? `${t} ${x.lp || 0}LP` : `${t} ${x.div || 4}`; };
-  function peakOf(Q) {
+  function peakOf(Q, seasonOnly) {
     if (!Q) return "";
-    let best = ""; [Q.cur, Q.curPeak, ...(Q.seasons || []).filter((x) => inTwoYears(x.season)).map((x) => x.peak)].forEach((x) => { const v = opStr(x); if (tierNum(v) > tierNum(best)) best = v; });
+    let best = ""; [Q.cur, Q.curPeak, ...(seasonOnly ? [] : (Q.seasons || []).filter((x) => inTwoYears(x.season)).map((x) => x.peak))].forEach((x) => { const v = opStr(x); if (tierNum(v) > tierNum(best)) best = v; });
     return best;
   }
+  const PEAK_V = 2;   // 받아 둔 최고 티어 자료 판(2 = 이번 시즌 최고 ts·tf 포함, 11-20)
   const PK = { busy: new Set(), tried: new Set(), timer: null };
   async function fetchPeak(t, r, a) {
     const k = rkKey(a), key = `${t.id}|${r}|${k}`; if (PK.busy.has(key)) return false;
@@ -2367,20 +2368,20 @@
       const res = await wfetch(`/riot/peak?id=${encodeURIComponent(a)}`); const d = await res.json().catch(() => ({}));
       if (!res.ok || d.status !== "ok") return false;
       const p = t.players[r]; if (!p) return false;
-      const e = { ...((p.rk || {})[k] || {}) }; delete e.ps; delete e.pf;
-      if (d.found) { const ps = peakOf(d.s), pf = peakOf(d.f); if (ps) e.ps = ps; if (pf) e.pf = pf; }
-      e.pt = Date.now(); p.rk = { ...(p.rk || {}), [k]: e };
+      const e = { ...((p.rk || {})[k] || {}) }; ["ps", "pf", "ts", "tf"].forEach((x) => delete e[x]);
+      if (d.found) { const o = { ps: peakOf(d.s), pf: peakOf(d.f), ts: peakOf(d.s, true), tf: peakOf(d.f, true) }; Object.entries(o).forEach(([x, v]) => { if (v) e[x] = v; }); }
+      e.pt = Date.now(); e.pv = PEAK_V; p.rk = { ...(p.rk || {}), [k]: e };
       return true;
     } catch (er) { return false; } finally { PK.busy.delete(key); }
   }
   // 지금 보는 팀(우리·상대)에서 최고 티어를 아직 안 받은 계정만 차례로 받음 — 화면을 그릴 때마다 불러도 한 번씩만
   function peakBackfill() {
-    if (CFG.tierMode !== "peak" || !SPACE || SPACE.bad || !WURL()) return;
+    if (!MODE_KEY[CFG.tierMode] || !SPACE || SPACE.bad || !WURL()) return;
     clearTimeout(PK.timer);
     PK.timer = setTimeout(async () => {
       const todo = [];
       [team(S.ourTeam), E.teamOf(S, "enemy")].filter((t) => t && !t.solo).forEach((t) => ROLES.forEach((r) => accountsOf(t, r).forEach(([a]) => {
-        const k = rkKey(a), e = (t.players[r].rk || {})[k] || {}; if (!e.pt && !PK.tried.has(`${t.id}|${r}|${k}`)) todo.push([t, r, a]); })));
+        const k = rkKey(a), e = (t.players[r].rk || {})[k] || {}; if (e.pv !== PEAK_V && !PK.tried.has(`${t.id}|${r}|${k}`)) todo.push([t, r, a]); })));
       if (!todo.length) return;
       const lanes = new Set();
       for (const [t, r, a] of todo) { if (await fetchPeak(t, r, a)) lanes.add(`${t.id}|${r}`); }
@@ -2421,8 +2422,9 @@
     if (!/#/.test(acc || "")) return `<p class="sd-rkv dim" id="${id}">계정을 넣으면 Riot에서 솔랭·자랭 티어를 불러옵니다</p>`;
     const v = (t.players[r].rk || {})[rkKey(acc)];
     if (!v) return `<p class="sd-rkv dim" id="${id}">${TQ.busy ? "티어 불러오는 중…" : "아직 티어를 못 받음 — 저장하면 Riot에서 다시 받습니다"}</p>`;
-    const q = (k) => { const x = parseTier(v[k]), pv = v["p" + k], pk = CFG.tierMode === "peak" && tierNum(pv) > tierNum(v[k]);
-      return `<span class="sd-rkq"><small>${Q_KO[k]}</small>${tierImg(x.t, 18)}${x.t ? esc(v[k]) : "언랭"}${pk ? `<span class="sd-pk" title="최근 2년 중 최고(op.gg 시즌 기록)">최고 ${esc(pv)}</span>` : ""}</span>`; };
+    const mk = MODE_KEY[CFG.tierMode];
+    const q = (k) => { const x = parseTier(v[k]), pv = mk ? v[mk + k] : "", pk = !!mk && tierNum(pv) > tierNum(v[k]);
+      return `<span class="sd-rkq"><small>${Q_KO[k]}</small>${tierImg(x.t, 18)}${x.t ? esc(v[k]) : "언랭"}${pk ? `<span class="sd-pk" title="${esc(MODE_TXT[CFG.tierMode][1])}">${mk === "t" ? "시즌 최고" : "최고"} ${esc(pv)}</span>` : ""}</span>`; };
     return `<p class="sd-rkv" id="${id}">${q("s")}${q("f")}</p>`;
   }
   function rkRow(t, r, acc) {
@@ -2437,7 +2439,7 @@
     if (e.none) return `<div class="sd-eff none"><span class="sd-eff-h"><small>반영 티어 · ${esc(basis)}</small><b>${tierImg("")}언랭</b></span>
       <label class="sd-fl sd-fp"><small>점수</small><input class="input" type="number" min="0" max="100" data-ptsu data-role="${r}" value="${esc(p.ptsU != null ? p.ptsU : "")}" placeholder="0" aria-label="${ROLE_KO[r]} 언랭 점수"></label>
       <span class="sd-warn">솔랭·자랭 티어가 없어 점수를 직접 넣어 주세요(비우면 0점)</span></div>`;
-    return `<div class="sd-eff ${e.fb ? "fb" : ""}"><span class="sd-eff-h"><small>반영 티어 · ${esc(basis)} · ${e.pk ? "2년 내 최고" : "현재"}</small><b>${tierImg(parseTier(e.tier).t)}${esc(e.tier)}</b></span><span class="sd-eff-m">${esc(e.acc)} · ${Q_KO[e.q]} · 점수 <b>${p.pts}</b></span>
+    return `<div class="sd-eff ${e.fb ? "fb" : ""}"><span class="sd-eff-h"><small>반영 티어 · ${esc(basis)} · ${e.pk ? MODE_TXT[CFG.tierMode][0] : "현재"}</small><b>${tierImg(parseTier(e.tier).t)}${esc(e.tier)}</b></span><span class="sd-eff-m">${esc(e.acc)} · ${Q_KO[e.q]} · 점수 <b>${p.pts}</b></span>
       ${e.fb ? `<span class="sd-warn">${CFG.queue === "solo" ? "솔랭" : "자랭"} 티어가 없어 ${Q_KO[e.q]}으로 대신 반영</span>` : ""}</div>`;
   }
   function edInlineHtml(t) {
@@ -2532,8 +2534,10 @@
   // ---------- 설정 페이지(11-19 정식 배포: 흩어진 설정을 한 곳에) ----------
   // 왼쪽 목차 + 오른쪽 한 칸(상대팀 분석과 같은 틀). 휴대폰은 목차가 위 칩 줄.
   const CFG = { queue: "both", qMsg: "", tierMode: "peak", mMsg: "" };   // 티어 분석 기준(팀 공간마다 서버 /config, 공간이 없으면 이 브라우저)
-  // 티어 반영(11-20 사용자 결정): 2년 내 최고(기본, op.gg 지난 시즌 기록) / 현재(Riot)
-  const MODE_TXT = { peak: ["2년 내 최고", "최근 2년(지난 시즌 포함) 중 가장 높았던 티어 — op.gg 시즌 기록"], current: ["현재 티어", "지금 시즌 현재 티어 — Riot"] };
+  // 티어 반영(11-20 사용자 결정): 2년 내 최고(기본, op.gg 지난 시즌 기록) / 현재(Riot) / 이번 시즌 최고(op.gg 탑 레이팅)
+  const MODE_TXT = { peak: ["2년 내 최고", "최근 2년(지난 시즌 포함) 중 가장 높았던 티어 — op.gg 시즌 기록"], current: ["현재 티어", "지금 시즌 현재 티어 — Riot"], season: ["이번 시즌 최고", "이번 시즌 중 가장 높았던 티어(탑 레이팅) — op.gg"] };
+  // 모드별로 쓰는 최고 티어 칸: 2년 내 최고 = ps·pf, 이번 시즌 최고 = ts·tf
+  const MODE_KEY = { peak: "p", season: "t" };
   const QUEUE_TXT = { both: ["솔랭+자랭", "솔로랭크·자유랭크 중 높은 티어, 두 큐 랭크 전적을 모두"], solo: ["솔랭만", "솔로랭크 티어와 솔로랭크 전적만"], flex: ["자랭만", "자유랭크 티어와 자유랭크 전적만"] };
   const SET_SECS = [["space", "우리 팀·초대"], ["basis", "분석 기준"], ["teams", "선수·챔프폭"], ["browser", "이 브라우저"]];
   // ---------- 핵심 흐름(11-19): 팀 만들기 → 팀원 초대 링크 → 상대 팀 등록 이 한눈에 ----------
@@ -2756,7 +2760,7 @@
           <div class="seg set-seg" role="group" aria-label="티어 기준">${Object.entries(QUEUE_TXT).map(([k, [n]]) => `<button data-act="setq" data-v="${k}" aria-pressed="${CFG.queue === k}">${n}</button>`).join("")}</div></div>
         <p class="help">${esc(QUEUE_TXT[CFG.queue][1])}을(를) 봅니다.${SPACE && !SPACE.bad ? " 팀 공간 전체에 적용됩니다." : " 지금은 이 브라우저에만 적용됩니다."}</p>
         ${CFG.qMsg ? `<p class="help" role="status">${esc(CFG.qMsg)}</p>` : ""}
-        <div class="set-row"><div class="set-l"><b>티어 반영</b><span class="help">선수 티어·점수에 현재 티어를 쓸지, 최근 2년 중 가장 높았던 티어를 쓸지(위 티어 기준의 큐 안에서)</span></div>
+        <div class="set-row"><div class="set-l"><b>티어 반영</b><span class="help">선수 티어·점수에 최근 2년 중 최고 · 현재 · 이번 시즌 최고 중 무엇을 쓸지(위 티어 기준의 큐 안에서)</span></div>
           <div class="seg set-seg" role="group" aria-label="티어 반영">${Object.entries(MODE_TXT).map(([k, [n]]) => `<button data-act="setmode" data-v="${k}" aria-pressed="${CFG.tierMode === k}">${n}</button>`).join("")}</div></div>
         <p class="help">${esc(MODE_TXT[CFG.tierMode][1])}.</p>${CFG.mMsg ? `<p class="help" role="status">${esc(CFG.mMsg)}</p>` : ""}
         <div class="set-row"><div class="set-l"><b>대회 준비 시작일</b><span class="help">이 날짜부터 한 판을 「연습」으로 셉니다(상대 연습 픽·함께 한 경기)</span></div></div>
@@ -4465,7 +4469,7 @@
   const sameJ = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const shareable = (tid) => { const t = team(tid); return !!t && !t.solo; };
   function sharedBody(tid, r) { const t = team(tid), p = t.players[r];
-    const rk = p.rk ? Object.fromEntries(accountsOf(t, r).map(([a]) => rkKey(a)).filter((k, i, a) => a.indexOf(k) === i && p.rk[k]).slice(0, 3).map((k) => [k, { ...(p.rk[k].s ? { s: p.rk[k].s } : {}), ...(p.rk[k].f ? { f: p.rk[k].f } : {}), ...(p.rk[k].ps ? { ps: p.rk[k].ps } : {}), ...(p.rk[k].pf ? { pf: p.rk[k].pf } : {}) }])) : null;
+    const rk = p.rk ? Object.fromEntries(accountsOf(t, r).map(([a]) => rkKey(a)).filter((k, i, a) => a.indexOf(k) === i && p.rk[k]).slice(0, 3).map((k) => [k, { ...(p.rk[k].s ? { s: p.rk[k].s } : {}), ...(p.rk[k].f ? { f: p.rk[k].f } : {}), ...(p.rk[k].ps ? { ps: p.rk[k].ps } : {}), ...(p.rk[k].pf ? { pf: p.rk[k].pf } : {}), ...(p.rk[k].ts ? { ts: p.rk[k].ts } : {}), ...(p.rk[k].tf ? { tf: p.rk[k].tf } : {}) }])) : null;
     const hide = (p.hide || []).filter((id) => /^[A-Za-z][A-Za-z0-9]{1,24}$/.test(id)).slice(-30);
     return { pool: normPool(p.pool), tier: p.tier && p.tier !== seedP(tid, r).tier ? p.tier : "", ...(rk && Object.keys(rk).length ? { rk } : {}), ...(hide.length ? { hide } : {}) }; }
   function editedLocally(tid, r) { const p = team(tid).players[r], sp = seedP(tid, r); return !sameJ(normPool(p.pool), normPool(sp.pool)) || (p.tier || "") !== (sp.tier || ""); }
