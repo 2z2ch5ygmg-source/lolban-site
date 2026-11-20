@@ -1394,3 +1394,15 @@ html.pc .notes-pc .n-col { display: flex; flex-direction: column; gap: 10px; }
 .n-empty span { font-size: 14px; font-weight: 700; color: var(--text); } .n-empty small { font-size: 12.5px; }
 .n-empty:hover, .n-empty:focus-visible { border-color: var(--hi); color: var(--hi); background: var(--hi-bg); outline: none; }
 .n-empty .lbi { width: 22px; height: 22px; }
+/* 점수 기준표(11-20) */
+.pt-pg { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.pt-card { background: var(--panel); border-radius: 18px; padding: 20px 22px; display: grid; gap: 14px; }
+.pt-card h3 { margin: 0; font-size: 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; } .pt-card h3 small { font-size: 12.5px; color: var(--muted); font-weight: 600; } .pt-card h3 small b { color: var(--text); }
+.pt-tbl { width: 100%; border-collapse: collapse; } .pt-tbl th, .pt-tbl td { padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--bg2); } .pt-tbl thead th { font-size: 12px; color: var(--muted); font-weight: 700; }
+.pt-tbl tbody th { font-weight: 700; font-size: 14px; } .pt-t { display: inline-flex; align-items: center; gap: 8px; } .pt-none { width: 22px; text-align: center; color: var(--dim); }
+.pt-in { width: 110px; height: 38px; text-align: right; font-size: 15px; font-weight: 700; } .pt-def { font-size: 12px; color: var(--muted); }
+.pt-act { display: flex; align-items: center; gap: 8px; } .pt-note { margin: 0; font-size: 12.5px; }
+.pt-team { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pt-team li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--bg); font-size: 14px; }
+.pt-team li b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .pt-team .muted { color: var(--muted); font-size: 12.5px; } .pt-v { font-weight: 800; }
+@media (max-width: 1100px) { .pt-pg { grid-template-columns: 1fr; } }

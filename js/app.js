@@ -436,7 +436,7 @@
   // ---------- 새 디자인(PC) 사이드바·머리줄 ----------
   const guest = () => !(SPACE && !SPACE.bad);
   const GUEST_TABS = ["live", "our"];   // our = 로그인·팀 만들기 화면
-  const SIDE_MENU = [["our", "home", "홈"], ["live", "draft", "실시간 밴픽"], ["vision", "vision", "공부자료"], ["notes", "note", "피드백 노트"], ["alts", "scout", "부계정 찾기"]];
+  const SIDE_MENU = [["our", "home", "홈"], ["live", "draft", "실시간 밴픽"], ["vision", "vision", "공부자료"], ["notes", "note", "피드백 노트"], ["alts", "scout", "부계정 찾기"], ["pts", "mastery", "점수 기준표"]];
   function renderSideNav() {
     const el = document.getElementById("side");
     if (!el) return;
@@ -525,7 +525,7 @@
       c = `<span class="mh-t">${crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b")}<span class="tb">${esc(ourName)}</span></span><span class="mh-s">연습 기간 ${since}~${g ? ` · 함께 한 경기 ${g.length}판 ${g.filter((x) => x.win).length}승` : ""}</span>`;
     } else {
       const VS = window.VISION, nD = typeof allDrills === "function" && VS ? allDrills().length : 0, nOk = Object.values(S.ui.dScore || {}).filter(Boolean).length;
-      const T = { team: ["우리 팀", `${esc(ourName)} · 선수·챔프폭 · 팀원 초대`], vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자유랭크에서 같은 5명이 여러 날 모인 기록으로 찾음"] }[S.tab] || ["", ""];
+      const T = { team: ["우리 팀", `${esc(ourName)} · 선수·챔프폭 · 팀원 초대`], vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자유랭크에서 같은 5명이 여러 날 모인 기록으로 찾음"], pts: ["점수 기준표", "티어별 선수 점수 · 대회 규정에 맞게 팀장이 고침"] }[S.tab] || ["", ""];
       c = `<b class="mh-t">${T[0]}</b><span class="mh-s">${T[1]}</span>`;
     }
     el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}${hdMe()}</div>`;
@@ -1525,7 +1525,8 @@
   const md = (d) => (d ? d.slice(5).replace("-", "/").replace(/^0/, "") : "");
   async function loadPrep() {
     if (!window.RECENT_LIVE_URL) return;
-    try { const d = await (await fetch(`${WURL()}/config${SPACE ? "?" + spaceQ() : ""}`, { cache: "no-store" })).json(); if (d.status === "ok") { PREP.since = d.since; PREP.def = d.default; if (SPACE && d.queue) CFG.queue = d.queue; if (SPACE && MODE_TXT[d.tierMode] && CFG.tierMode !== d.tierMode) { CFG.tierMode = d.tierMode; applyTiers(); save(); render(); } if (S.tab === "live" || S.tab === "enemy") render(); } } catch (e) { /* 그대로 */ }
+    try { const d = await (await fetch(`${WURL()}/config${SPACE ? "?" + spaceQ() : ""}`, { cache: "no-store" })).json(); if (d.status === "ok") { PREP.since = d.since; PREP.def = d.default; if (SPACE && d.queue) CFG.queue = d.queue; if (SPACE && MODE_TXT[d.tierMode] && CFG.tierMode !== d.tierMode) { CFG.tierMode = d.tierMode; applyTiers(); save(); render(); }
+      if (SPACE && JSON.stringify(d.pts || null) !== JSON.stringify(CFG.pts || null)) { CFG.pts = d.pts || null; applyTiers(); save(); render(); } if (S.tab === "live" || S.tab === "enemy") render(); } } catch (e) { /* 그대로 */ }
   }
   async function savePrep(v) {
     if (!SPACE) { PREP.msg = "팀 공간에 들어와야 바꿀 수 있습니다(「팀 공간」)."; render(); return; }
@@ -2237,8 +2238,12 @@
       + (x.t && HIGH(x.t) ? `<input class="input" style="width:84px" type="number" min="0" step="1" inputmode="numeric" data-tf="lp" data-role="${r}" value="${esc(x.lp)}" placeholder="LP" aria-label="${ROLE_KO[r]} LP">` : "");
   }
   // 점수(티어 점수 합 비교용): 마스터 70(500LP 이상 90) · 그랜드마스터·챌린저 90 · 다이아 60 · 에메랄드 45 · 플래티넘 35 · 골드 25 · 실버 15 · 브론즈 5 (js/teams.js 머리말과 같음)
-  const TIER_PTS = { 아이언: 0, 브론즈: 5, 실버: 15, 골드: 25, 플래티넘: 35, 에메랄드: 45, 다이아: 60 };
-  function ptsOf(tier) { const x = parseTier(tier); if (!x.t) return null; if (HIGH(x.t)) return x.t === "마스터" && !(Number(x.lp) >= 500) ? 70 : 90; return TIER_PTS[x.t] != null ? TIER_PTS[x.t] : null; }
+  // 점수 기준표(11-20 사용자: 화면에 점수는 안 보이게, 대회 규정에 맞게 팀이 사이드바 「점수 기준표」에서 고침). 서버 /config pts가 기본값을 덮음
+  const PTS_ROWS = [["챌린저", "챌린저"], ["그랜드마스터", "그랜드마스터"], ["마스터500", "마스터 500LP 이상"], ["마스터", "마스터"], ["다이아", "다이아"], ["에메랄드", "에메랄드"], ["플래티넘", "플래티넘"], ["골드", "골드"], ["실버", "실버"], ["브론즈", "브론즈"], ["아이언", "아이언"], ["언랭", "언랭(티어 없음)"]];
+  const PTS_DEF = { 언랭: 0, 아이언: 0, 브론즈: 5, 실버: 15, 골드: 25, 플래티넘: 35, 에메랄드: 45, 다이아: 60, 마스터: 70, 마스터500: 90, 그랜드마스터: 90, 챌린저: 90 };
+  const ptsTable = () => ({ ...PTS_DEF, ...((typeof CFG !== "undefined" && CFG.pts) || {}) });
+  function ptsKey(tier) { const x = parseTier(tier); if (!x.t) return "언랭"; return x.t === "마스터" && Number(x.lp) >= 500 ? "마스터500" : x.t; }
+  function ptsOf(tier) { const v = ptsTable()[ptsKey(tier)]; return v != null ? v : null; }
   function setRkFrom(el) {
     const r = el.dataset.role, q = el.dataset.q, acc = el.dataset.acc, p = team(editing).players[r];
     const row = el.closest(".sd-qrow"), tt = row.querySelector('[data-rkf="t"]').value, d = row.querySelector('[data-rkf="d"]'), lp = row.querySelector('[data-rkf="lp"]');
@@ -2468,15 +2473,14 @@
       <input class="input ed-acc" style="flex:2" data-f="riot" data-role="${r}" value="${esc(p.riot)}" placeholder="본계정 이름#태그" aria-label="${ROLE_KO[r]} 라이엇 ID">
       ${[0, 1].map((k) => `<input class="input ed-acc ed-alt" style="flex:1.4" data-alt="${k}" data-role="${r}" value="${esc(((p.alts || altsOf(t.id, r)) || [])[k] || "")}" placeholder="부계정${k + 1}(선택)" aria-label="${ROLE_KO[r]} 부계정 ${k + 1}">`).join("")}
       ${tierPicker(r, p.tier)}
-      ${HIGH(parseTier(p.tier).t) ? `<span class="ed-pts help" title="마스터 500LP 이상·그랜드마스터·챌린저 90, 마스터 70">점수 ${p.pts}</span>` : `<input class="input" style="width:70px" type="number" data-f="pts" data-role="${r}" value="${p.pts}" aria-label="점수">`}</div>
       <div class="ed-sug" id="edsug-${r}" role="listbox" aria-label="${ROLE_KO[r]} 계정 추천" hidden></div>
       <p class="ed-chk" id="edchk-${r}" aria-live="polite" data-k="${t.id}|${r}|riot">${CHK[`${t.id}|${r}|riot`] || ""}</p>
       <div class="row-chips">${poolChips(t, r, { edit: true })}</div>
       <div class="ed-row"><input class="input" style="flex:1" list="champList" data-add="${r}" placeholder="챔피언 추가 (이름 입력 후 Enter)">
       <select data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select>
       <button class="ib btn sm" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></div></div>`; }).join(""); }
-    root.innerHTML = `<div class="modal-bg" data-act="close"><div class="modal ${!altMode && !MOB.matches && t.id === S.ourTeam && !t.solo ? "se-modal" : ""}" role="dialog" aria-modal="true" aria-label="${t.id === S.ourTeam ? "자기평가 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}" ${MOB.matches ? `data-edr="${edLane}"` : ""}>
-      <div class="modal-h"><h2>${esc(t.name)} · ${t.id === S.ourTeam ? "자기평가 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}</h2><button class="ib btn sm" data-act="close" aria-label="닫기" title="닫기">${ico("x")}</button></div>
+    root.innerHTML = `<div class="modal-bg" data-act="close"><div class="modal ${!altMode && !MOB.matches && t.id === S.ourTeam && !t.solo ? "se-modal" : ""}" role="dialog" aria-modal="true" aria-label="${t.id === S.ourTeam ? "챔프폭 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}" ${MOB.matches ? `data-edr="${edLane}"` : ""}>
+      <div class="modal-h"><h2>${esc(t.name)} · ${t.id === S.ourTeam ? "챔프폭 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}</h2><button class="ib btn sm" data-act="close" aria-label="닫기" title="닫기">${ico("x")}</button></div>
       ${altMode ? `<p class="help ed-intro">이름#태그를 넣고 「찾기」 → 맞으면 「적용」. 적용하면 그 계정 챔프폭을 받아 이 라인 챔프폭에 합칩니다</p>` : MOB.matches ? `<p class="help ed-intro">${t.id === S.ourTeam ? "<b>대회에서 실제로 꺼낼 수 있는 챔프</b>만 넣고 자신감을 고르세요. 본인 평가가 있는 선수는 이 목록만 추천에 쓰고, 전적은 참고로만 붙습니다. " : ""}${t.id === S.ourTeam ? "" : "여기 넣은 챔프는 전적 추천에 <b>더해집니다</b>(전적 챔프는 그대로 남음). "}칩을 누르면 상 → 중 → 하 → 원챔 순서로 바뀝니다. ×는 삭제.</p>` : t.id === S.ourTeam && !t.solo ? "" : `<p class="help ed-intro">${t.id === S.ourTeam ? "알약을 누르면 숙련도가 바뀝니다 · ×는 빼기" : "기록(본계정·부계정)에서 찾은 챔프가 자동으로 들어 있습니다 · 알약을 누르면 숙련도가 바뀌고 ×는 빼기(↺로 되돌림)"} · 바로 저장됩니다</p>`}
       ${MOB.matches ? `<p class="help" id="shareNote" aria-live="polite">${t.solo ? "개인(솔랭) 상대는 이 브라우저에만 저장됩니다." : shareNote()}</p>${t.solo || !SH.url ? "" : shareRoles(t)}` : ""}
       ${MOB.matches ? laneChips("edlane", edLane, "라인", { noAll: true }) : ""}${roles}</div></div>`;
@@ -2802,7 +2806,7 @@
   function applyTiers() {
     S.teams.forEach((t) => { if (t.solo) return; ROLES.forEach((r) => { const p = t.players[r]; if (!p) return; migrateTier(t, r); if (!p.rk) return;
       const e = effTier(t, r);
-      if (e.none) { p.tier = ""; p.pts = p.ptsU != null && p.ptsU !== "" ? Number(p.ptsU) || 0 : 0; return; }
+      if (e.none) { p.tier = ""; p.pts = ptsTable()["언랭"]; return; }
       p.tier = e.q === "f" ? `${e.tier} (자유랭)` : e.tier; const pv = ptsOf(e.tier); if (pv != null) p.pts = pv; }); });
   }
   const TIER_FILE = { 아이언: "iron", 브론즈: "bronze", 실버: "silver", 골드: "gold", 플래티넘: "platinum", 에메랄드: "emerald", 다이아: "diamond", 마스터: "master", 그랜드마스터: "grandmaster", 챌린저: "challenger" };
@@ -2846,9 +2850,8 @@
     const e = effTier(t, r);
     const basis = QUEUE_TXT[CFG.queue][0];
     if (e.none) return `<div class="sd-eff none"><span class="sd-eff-h"><small>반영 티어 · ${esc(basis)}</small><b>${tierImg("")}언랭</b></span>
-      <label class="sd-fl sd-fp"><small>점수</small><input class="input" type="number" min="0" max="100" data-ptsu data-role="${r}" value="${esc(p.ptsU != null ? p.ptsU : "")}" placeholder="0" aria-label="${ROLE_KO[r]} 언랭 점수"></label>
-      <span class="sd-warn">솔랭·자랭 티어가 없어 점수를 직접 넣어 주세요(비우면 0점)</span></div>`;
-    return `<div class="sd-eff ${e.fb ? "fb" : ""}"><span class="sd-eff-h"><small>반영 티어 · ${esc(basis)} · ${e.pk ? MODE_TXT[CFG.tierMode][0] : "현재"}</small><b>${tierImg(parseTier(e.tier).t)}${esc(e.tier)}</b></span><span class="sd-eff-m">${esc(e.acc)} · ${Q_KO[e.q]} · 점수 <b>${p.pts}</b></span>
+      <span class="sd-warn">솔랭·자랭 티어가 없습니다 — 점수는 「점수 기준표」의 언랭 값</span></div>`;
+    return `<div class="sd-eff ${e.fb ? "fb" : ""}"><span class="sd-eff-h"><small>반영 티어 · ${esc(basis)} · ${e.pk ? MODE_TXT[CFG.tierMode][0] : "현재"}</small><b>${tierImg(parseTier(e.tier).t)}${esc(e.tier)}</b></span><span class="sd-eff-m">${esc(e.acc)} · ${Q_KO[e.q]}</span>
       ${e.fb ? `<span class="sd-warn">${CFG.queue === "solo" ? "솔랭" : "자랭"} 티어가 없어 ${Q_KO[e.q]}으로 대신 반영</span>` : ""}</div>`;
   }
   function edInlineHtml(t) {
@@ -3206,6 +3209,33 @@
     pg.style.minHeight = extra > 0 ? `${pg.offsetHeight + extra}px` : "";
   }
   window.addEventListener("resize", () => { if (S.tab === "alts" || S.tab === "notes") fitAltPage(); });
+  // ---------- 점수 기준표(11-20 사용자) ----------
+  const canEditPts = () => !!SPACE && !SPACE.bad && (!SPACE.viaLogin || !!SPACE.isOwner);
+  const PTE = { draft: null, msg: "", busy: false };
+  function renderPtsPage() {
+    const T = ptsTable(), can = canEditPts(), d = PTE.draft || T;
+    const rows = PTS_ROWS.map(([k, n]) => { const base = k === "마스터500" ? "마스터" : k === "언랭" ? "" : k;
+      return `<tr><th scope="row"><span class="pt-t">${base ? tierImg(base) : `<span class="pt-none" aria-hidden="true">–</span>`}${esc(n)}</span></th>
+        <td>${can ? `<input class="input pt-in" type="number" min="0" max="1000" step="0.5" data-ptk="${k}" value="${esc(d[k] != null ? d[k] : "")}" aria-label="${esc(n)} 점수">` : `<b>${esc(T[k])}</b>`}</td>
+        <td class="pt-def">${PTS_DEF[k] !== T[k] ? `기본 ${PTS_DEF[k]}` : ""}</td></tr>`; }).join("");
+    const ours = team(S.ourTeam), sum = ours && !ours.solo ? ROLES.reduce((n, r) => n + (Number(ours.players[r].pts) || 0), 0) : null;
+    const lineup = ours && !ours.solo ? `<section class="pt-card"><h3>우리 팀 지금 점수 <small>반영 티어 기준 · 합계 <b>${sum}</b>점</small></h3><ul class="pt-team">${ROLES.map((r) => { const p = ours.players[r]; return `<li><span class="l5-r">${ROLE_KO[r]}</span><b>${esc(nick(p.riot) || "—")}</b><span class="muted">${esc(p.tier || "언랭")}</span><span class="pt-v">${esc(p.pts)}점</span></li>`; }).join("")}</ul></section>` : "";
+    return `<div class="pt-pg"><section class="pt-card"><h3>티어별 점수 <small>${CFG.pts ? "팀이 고친 기준" : "기본 기준"} · 선수 점수와 「점수 차」 계산에 씀</small></h3>
+      <table class="pt-tbl"><thead><tr><th>티어</th><th>점수</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+      ${can ? `<div class="pt-act"><button class="btn primary" data-act="ptsave" ${PTE.busy ? "disabled" : ""}>저장</button><button class="btn ghost" data-act="ptreset" ${PTE.busy || !CFG.pts ? "disabled" : ""}>기본값으로</button><span class="help" role="status">${esc(PTE.msg)}</span></div>`
+        : `<p class="help">${SPACE ? "기준표는 팀장만 바꿀 수 있습니다" : "팀 공간에 들어오면 팀 기준표를 씁니다"}</p>`}
+      <p class="help pt-note">반영 티어는 「분석 기준」(솔랭·자랭)과 「티어 반영」(2년 내 최고·현재·이번 시즌 최고) 설정을 따릅니다 · 마스터는 LP 500 이상이면 「마스터 500LP 이상」 점수</p></section>${lineup}</div>`;
+  }
+  async function ptsSave(reset) {
+    if (!canEditPts()) return;
+    const out = {}; if (!reset) document.querySelectorAll(".pt-in").forEach((i) => { if (i.value !== "") out[i.dataset.ptk] = Number(i.value); });
+    PTE.busy = true; PTE.msg = "저장 중…"; render();
+    try { const res = await wfetch(`/config`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pts: reset ? null : out }) }); const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.status !== "ok") throw new Error(d.reason || "HTTP " + res.status);
+      CFG.pts = d.pts || null; PTE.draft = null; applyTiers(); save(); PTE.msg = reset ? "기본 기준으로 돌렸습니다" : "저장했습니다 — 팀원 모두에게 적용"; }
+    catch (e) { PTE.msg = e.message || String(e); }
+    PTE.busy = false; render();
+  }
   async function suspectAdd(tid, r, riot) {
     const t = team(tid), p = t && t.players[r]; if (!p) return;
     const alts = ((p.alts || altsOf(tid, r)) || []).filter(Boolean);
@@ -3302,14 +3332,14 @@
       ${eo ? `<div class="tsm-pop" role="menu" aria-label="상대팀 설정">${it(`data-act="edit" data-mode="pool" data-team="${en.id}"`, "챔프폭 편집", "챔프 넣기·빼기, 숙련도 바꾸기")}${it(`data-act="edit" data-mode="alts" data-team="${en.id}"`, "부계정 입력", "라인마다 부계정 2개까지")}</div>` : ""}</span>`; }
     const items = [
       // 11-20 사용자: 상대 챔프폭 편집·설정 전체는 빼고, 자기평가는 PC에선 오른쪽 버튼으로(휴대폰은 머리줄이 좁아 메뉴에 둠)
-      mob && ourT && !ourT.solo ? it(`data-act="edit" data-team="${ourT.id}"`, "우리팀 자기평가 입력", ourT.name) : "",
+      mob && ourT && !ourT.solo ? it(`data-act="edit" data-team="${ourT.id}"`, "우리팀 챔프폭 입력", ourT.name) : "",
       it(`data-act="settings" data-k="basis"`, "분석 기준·대회 준비일", `티어 기준 ${QUEUE_TXT[CFG.queue][0]}`),
       it(`data-act="export"`, "엑셀 내보내기", "팀·챔프폭 한 시트"),
       it(`data-act="import"`, "엑셀 불러오기", "작성법·미리보기 뒤 적용"),
     ].join("");
     const open = TSM.open === id;
     return `<span class="tsm ${mob ? "mv-hb" : ""}"><button class="btn sm primary tsm-b" data-act="tsm" data-k="${id}" aria-haspopup="menu" aria-expanded="${open}">${ico("gear")}<span>팀 설정</span></button>
-      ${open ? `<div class="tsm-pop" role="menu" aria-label="팀 설정">${items}</div>` : ""}</span>${!mob && ourT && !ourT.solo ? `<button class="btn sm tsm-se" data-act="edit" data-team="${ourT.id}">${ico("pencil")}<span>자기평가 입력</span></button>` : ""}`;
+      ${open ? `<div class="tsm-pop" role="menu" aria-label="팀 설정">${items}</div>` : ""}</span>${!mob && ourT && !ourT.solo ? `<button class="btn sm tsm-se" data-act="edit" data-team="${ourT.id}">${ico("pencil")}<span>챔프폭 입력</span></button>` : ""}`;
   }
   function openSettings(sec) {
     if (S.tab !== "settings") S.ui.setFrom = S.tab;
@@ -3356,7 +3386,7 @@
         <div class="set-row"><div class="set-l"><b>대회 준비 시작일</b><span class="help">이 날짜부터 한 판을 「연습」으로 셉니다(상대 연습 픽·함께 한 경기)</span></div></div>
         ${prepHtml(window.RECENT)}`,
       teams: () => `<h3>선수·챔프폭</h3>
-        <div class="set-row"><div class="set-l"><b>우리팀 · ${esc(ourT ? ourT.name : "-")}</b><span class="help">선수 계정(라인당 3개)·티어·자기평가 챔프폭</span></div>${ourT && !ourT.solo ? `<button class="btn sm primary" data-act="edit" data-team="${ourT.id}">자기평가 입력</button>` : ""}</div>
+        <div class="set-row"><div class="set-l"><b>우리팀 · ${esc(ourT ? ourT.name : "-")}</b><span class="help">선수 계정(라인당 3개)·티어·자기평가 챔프폭</span></div>${ourT && !ourT.solo ? `<button class="btn sm primary" data-act="edit" data-team="${ourT.id}">챔프폭 입력</button>` : ""}</div>
         <div class="set-row"><div class="set-l"><b>상대 팀</b><span class="help">상대 선수 계정·챔프폭 메모(우리 팀 공간 안에서만 공유)</span></div>
           <span class="set-inline"><select id="setEnemy" aria-label="편집할 상대 팀">${enemies.map((t) => `<option value="${t.id}" ${t.id === S.enemyTeam ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select><button class="btn sm" data-act="setedit">챔프폭 편집</button></span></div>
         <div class="set-row"><div class="set-l"><b>엑셀로 한 번에</b><span class="help">팀 ${S.teams.filter((t) => !t.solo).length}개 · 팀마다 섹션 한 시트</span></div>
@@ -4732,7 +4762,7 @@
     const keepEd = !mob && S.tab === "team" ? document.getElementById("setEd") : null;
     const keepEdF = keepEd && keepEd.contains(document.activeElement) ? keepEd : null;
     const edAE = keepEdF ? document.activeElement : null;
-    v.innerHTML = mobV ? mobV() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderStudyPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : S.tab === "team" ? (mob ? renderSettings() : renderTeamPC()) : S.tab === "alts" ? renderAltFind() : (mob ? renderEnemy() : renderEnemyPC());
+    v.innerHTML = mobV ? mobV() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderStudyPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : S.tab === "team" ? (mob ? renderSettings() : renderTeamPC()) : S.tab === "alts" ? renderAltFind() : S.tab === "pts" ? renderPtsPage() : (mob ? renderEnemy() : renderEnemyPC());
     if (!mob && S.tab === "team") { const ph = document.getElementById("setEd"); if (ph) { if (keepEdF && keepEdF.dataset.team === setTeamPC()) { ph.replaceWith(keepEdF); if (edAE && keepEdF.contains(edAE)) { const c = edAE.selectionStart; edAE.focus(); try { edAE.setSelectionRange(c, c); } catch (e) { /* select */ } } } else renderEditor(); } }
     // 휴대폰: 챔프 고르기·「⋯」 메뉴는 화면 아래 시트로
     const ms = document.getElementById("msheet") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "msheet" }));
@@ -4842,6 +4872,8 @@
       case "susno": suspectNo(el.dataset.tid, el.dataset.riot, el.dataset.id); break;
       case "altview": S.ui.altView = el.dataset.v; save(); render(); break;
       case "oppalts": S.ui.oppAlts = el.dataset.v; save(); render(); break;
+      case "ptsave": ptsSave(false); break;
+      case "ptreset": ptsSave(true); break;
       case "altteam": S.ui.altTeam = el.dataset.v; save(); render(); break;
       case "altsel": S.ui.altSel = S.ui.altSel === el.dataset.v ? "" : el.dataset.v; save(); render(); break;
       case "jpgo": joinByCode(); break;
