@@ -108,6 +108,7 @@ html.pc .pill { border-radius: 999px; }
 .l5-n { font-size: 17px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .l5-s { font-size: 13px; color: var(--muted); }
 .l5-w { min-height: 18px; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--red); }
+.l5-x { color: var(--hi); } .l5-x .ico { width: 15px; height: 15px; flex: none; }
 .l5-c { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .l5-c b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .l5-c.first b { font-size: 16px; }

@@ -142,6 +142,29 @@ window.Engine = (function () {
     const other = Object.entries(x.rr).filter(([k]) => k !== role && x.rr[k][0]).map(([k, v]) => [k, v[0]]);
     return { ...x, g, w, elsewhere: other };
   }
+  // 교차 출전(11-20 사용자): 등록 라인 비중 10% 미만 + 다른 한 라인 50% 이상(랭크 20판 이상) = 주 라인을 두고 다른 라인으로 출전.
+  //   그 선수의 다른 라인 기록은 등록 라인에서 꺼낼 수 있는 챔프(flexRoles)만 남기고, 원챔·높은 숙련도로 보지 않는다
+  //   (예: 서폿 93판 선수의 쓰레쉬 57판 → 탑 원챔 차단 1순위였음)
+  function crossOfSc(sc, role) {
+    const rn = sc && sc.roleN; if (!rn) return null;
+    const tot = Object.values(rn).reduce((a, b) => a + (b || 0), 0); if (tot < 20) return null;
+    const reg = rn[role] || 0, [main, mn] = Object.entries(rn).sort((a, b) => b[1] - a[1])[0];
+    if (main === role || reg / tot >= 0.1 || mn / tot < 0.5) return null;
+    return { main, share: Math.round((mn / tot) * 100), reg, tot };
+  }
+  function crossOf(team, role) { return team && team.players && team.players[role] ? crossOfSc(scoutOf(team, role), role) : null; }
+  function inRoleCross(x, role) {
+    const rr = x.rr && x.rr[role];
+    if (rr && rr[0]) return { ...x, g: rr[0], w: rr[1], elsewhere: Object.entries(x.rr).filter(([k, v]) => k !== role && v[0]).map(([k, v]) => [k, v[0]]) };
+    return flexRoles(x.id).includes(role) ? { ...x, offMain: true, crossOff: true } : null;
+  }
+  // 주 라인에서 자주 쓴 챔프의 성향(st) — 교차 출전 선수가 등록 라인에서 꺼낼 만한 비슷한 챔프를 고를 때
+  function mainStyles(sc, main) {
+    const cnt = {};
+    (sc && sc.champs || []).filter((x) => CH[x.id] && (!x.rr || (x.rr[main] && x.rr[main][0]))).sort((a, b) => (b.g || 0) - (a.g || 0)).slice(0, 5)
+      .forEach((x) => (CH[x.id].st || []).forEach((t) => (cnt[t] = (cnt[t] || 0) + (x.g || 1))));
+    return Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t);
+  }
   const MANUAL_SCORE = { 3: 0.75, 2: 0.45, 1: 0.2 };
   // 우리 팀 직접 입력 = 본인 자기평가(그 목록만 씀). 상대 팀 직접 입력 = 전적에 더하는 정찰 메모(전적 추천은 그대로 둠)
   let OUR_ID = window.SEED_OUR_TEAM;
@@ -155,15 +178,17 @@ window.Engine = (function () {
     // 비중(원챔 판단)은 그 라인에서 한 판수 기준(그 라인 10판 이상일 때)
     const strict = !!(sc && sc.roleN && sc.roleN[role] >= 10);
     const roleTotal = strict ? { g: sc.roleN[role] } : sc && sc.total;
+    const cross = strict ? null : crossOfSc(sc, role);
+    const inR = (x0, st) => (cross ? inRoleCross(x0, role) : inRole(x0, role, st));
     // ---- 가중치·조작 방지(11-20 사용자 결정) ----
     //   판 하나당: 대회 준비 시작일 이후 2(혼자 솔랭은 1.5, 팀원 2명 이상과 같이 한 판은 2) > 최근 30판 1.5 > 나머지 1
     //   준비 기간·최근 30판 가중은 그 구간 3판 이상·승률 40% 이상(작은 표본 보정)일 때만 — 일부러 지면서 판수만 채운 챔프는 안 오름
     //   모스트픽(예전 판수 상위 3개 또는 20판 이상)은 항상 1.5배 — 최근 전적을 더럽혀도 주력이 밀리지 않게. 숙련도 상한은 statEntry
     const rc = recentOf(team, role);
-    const rcMap = {}; if (rc) rc.champs.forEach((x0) => { const x = inRole(x0, role, strict || !(sc && sc.roleN)); if (x && CH[x.id]) rcMap[x.id] = x; });
+    const rcMap = {}; if (rc) rc.champs.forEach((x0) => { const x = inR(x0, strict || !(sc && sc.roleN)); if (x && CH[x.id]) rcMap[x.id] = x; });
     const okW = (g, w) => g >= 3 && (w + 1) / (g + 2) >= 0.4;
-    const r30Of = (x0, x) => { if (sc && sc.quick) return [x.g, x.w]; if (!x0.r30) return [0, 0]; if (strict && x0.rr30) return x0.rr30[role] || [0, 0]; return x0.r30; };
-    const seasonX = sc ? sc.champs.map((x0) => { const x = inRole(x0, role, strict); return x ? { x0, x } : null; }).filter(Boolean) : [];
+    const r30Of = (x0, x) => { if (sc && sc.quick) return [x.g, x.w]; if (!x0.r30) return [0, 0]; if ((strict || (cross && !x.crossOff)) && x0.rr30) return x0.rr30[role] || [0, 0]; return x0.r30; };
+    const seasonX = sc ? sc.champs.map((x0) => { const x = inR(x0, strict); return x ? { x0, x } : null; }).filter(Boolean) : [];
     // 모스트픽은 「예전 판수」(최근 30판·준비 기간을 뺀 판)로만 정함 — 최근에 몰아서 한 챔프가 모스트픽이 되지 않게(예전 판 5판 이상만 상위 3개로 인정)
     const oldG = (v) => Math.max(0, (v.x.g || 0) - Math.max(r30Of(v.x0, v.x)[0], rcMap[v.x.id] ? rcMap[v.x.id].g : 0));
     const mostIds = new Set(seasonX.map((v) => ({ id: v.x.id, o: oldG(v) })).sort((a, b) => b.o - a.o).filter((v, i) => (i < 3 && v.o >= 5) || v.o >= 20).map((v) => v.id));
@@ -177,13 +202,15 @@ window.Engine = (function () {
       const G = gOld * most + g30 * k30 + gSolo * kS + gT * kT, W = wOld * most + w30 * k30 + wSolo * kS + wT * kT;
       return { g: G, w: W };
     };
-    seasonX.forEach(({ x0, x }) => { const e = statEntry(x, roleTotal, role, weigh(x.id, x.g || 0, x.w || 0, r30Of(x0, x))); if (e) stats[x.id] = e; });
+    // 교차 출전: 다른 라인에서만 한 챔프는 원챔 아님·「중」까지(그 라인에서 해 본 적 없음)
+    const crossCap = (e, x) => { if (e && x.crossOff) { e.one = false; e.score = Math.min(e.score * 0.7, 0.59); e.lv = e.score >= 0.35 ? 2 : 1; e.crossOff = true; } return e; };
+    seasonX.forEach(({ x0, x }) => { const e = crossCap(statEntry(x, roleTotal, role, weigh(x.id, x.g || 0, x.w || 0, r30Of(x0, x))), x); if (e) stats[x.id] = e; });
     // 준비 기간에만 있는 챔프: 승률 문턱을 넘거나 팀원과 2판 이상 한 것만 새로 넣음(예전엔 2판만 해도 넣었음 — 조작에 약했음)
     Object.values(rcMap).forEach((x) => {
       const tr = stackChampRecord(team, role, x.id);
       if (stats[x.id]) { stats[x.id].rg = x.g; stats[x.id].rw = x.w; return; }
       if (!(okW(x.g, x.w) || (tr && tr.g >= 2))) return;
-      const e = statEntry({ ...x, g: x.g, w: x.w, mp: x.mp || 0 }, roleTotal, role, weigh(x.id, x.g, x.w, [0, 0]));
+      const e = crossCap(statEntry({ ...x, g: x.g, w: x.w, mp: x.mp || 0 }, roleTotal, role, weigh(x.id, x.g, x.w, [0, 0])), x);
       if (e) { e.rg = x.g; e.rw = x.w; e.score = Math.min(e.score, 0.59); e.lv = e.score >= 0.35 ? 2 : 1; stats[x.id] = e; }   // 랭크 기록 밖 챔프는 「중」까지
     });
     const manual = p.pool || [];
@@ -217,7 +244,7 @@ window.Engine = (function () {
     if (!e) return "";
     const rec = e.rg ? ` · 최근 ${e.rg}판 ${e.rw}승` : "";
     if (e.manual) return `${e.g ? `시즌 ${e.g}판` : "본인 추천 챔프"}${rec}`;
-    if (e.g) return `${e.g}판 ${Math.round(e.wr)}%${e.one ? " · 원챔" : ""}${rec}`;
+    if (e.g) return `${e.g}판 ${Math.round(e.wr)}%${e.one ? " · 원챔" : ""}${e.crossOff ? " · 다른 라인" : ""}${rec}`;
     if (e.rg) return `최근 ${e.rg}판 ${e.rw}승`;
     if (e.mp && !e.manual) return `숙련도 ${Math.round(e.mp / 1000)}k`;
     return e.one ? "원챔" : LEVEL_KO[e.lv];
@@ -1664,20 +1691,28 @@ window.Engine = (function () {
       const bp = botPartner(state, who, role, c.id);
       if (bp) list.push({ id: c.id, e: null, mi: metaInfo(c.id, role), src: "pair", s: 0 });
     });
+    const cx = crossOf(team, role);
+    if (cx) {
+      const sty = mainStyles(scoutOf(team, role), cx.main);
+      window.CHAMPIONS.filter((c) => c.pos[0] === role && avail.has(c.id) && !pm[c.id]).map((c) => ({ c, mi: metaInfo(c.id, role), sim: (c.st || []).filter((t) => sty.includes(t)).length }))
+        .filter((x) => x.mi && x.sim).sort((a, b) => b.sim - a.sim || b.mi.score - a.mi.score).slice(0, 4)
+        .forEach((x) => list.push({ id: x.c.id, e: null, mi: x.mi, src: "meta", cross: cx, s: x.mi.score * 6 + x.sim * 4,
+          styleNote: `주 라인 ${ROLE_KO[cx.main]} 성향(${sty.filter((t) => (x.c.st || []).includes(t)).map((t) => STYLE_KO[t] || t).join("·")})과 비슷` }));
+    }
     if (list.length < 6) {
-      window.CHAMPIONS.filter((c) => c.pos[0] === role && avail.has(c.id) && !pm[c.id])
+      window.CHAMPIONS.filter((c) => c.pos[0] === role && avail.has(c.id) && !pm[c.id] && !list.some((y) => y.id === c.id))
         .map((c) => ({ id: c.id, e: null, mi: metaInfo(c.id, role), src: "meta" }))
         .filter((x) => x.mi).sort((a, b) => b.mi.score - a.mi.score).slice(0, 6 - list.length)
         .forEach((x) => list.push({ ...x, s: x.mi.score * 6 }));
     }
-    const myPool = Object.entries(poolMap(myTeam, role)).filter(([id]) => myAvail.has(id));
+    const myPool = Object.entries(poolMap(myTeam, role)).filter(([id]) => avail.has(id));
     // 우리 픽에 맞춰 바뀜: 같은 라인 우리 챔프를 카운터하는 챔프는 위로, 우리 조합을 받아치는 성향도 반영
     const ourPicks = picks(state, me);
     const ourLaner = ourPicks.find((p) => p.role === role);
     const ourDir = ourPicks.length ? direction(state, me) : null;
     const ourIds = ourPicks.map((p) => p.champ);
     list.forEach((x) => {
-      x.adj = [];
+      x.adj = x.styleNote ? [{ t: "", d: x.styleNote }] : [];
       const bp = botPartner(state, who, role, x.id);
       if (bp) { x.s += bp.v * 2; x.bp = bp; x.adj.push({ t: "세트", d: `${j(ko(bp.partner), "과", "와")} 세트 · ${bp.d}` }); }
       if (ourLaner) {
@@ -1695,7 +1730,7 @@ window.Engine = (function () {
     return list.sort((a, b) => b.s - a.s).slice(0, 8).map((x) => {
       const answers = myPool.filter(([id]) => lanesCounter(id, x.id)).sort((a, b) => lvScore(b[1]) - lvScore(a[1])).slice(0, 3).map(([id]) => id);
       const counterTag = x.adj.find((a) => a.t === "카운터 픽");
-      const label = counterTag ? "카운터 픽" : x.bp ? "바텀 세트" : x.tr ? "함께 한 경기 픽" : x.e && x.e.one ? "원챔" : x.e && x.e.score >= 0.6 ? "숙련도 높음" : x.e && x.e.g >= 15 && x.e.wr >= 60 ? "고승률" : x.src === "meta" ? "메타 픽" : "챔프폭";
+      const label = counterTag ? "카운터 픽" : x.bp ? "바텀 세트" : x.tr ? "함께 한 경기 픽" : x.e && x.e.one ? "원챔" : x.e && x.e.score >= 0.6 ? "숙련도 높음" : x.e && x.e.g >= 15 && x.e.wr >= 60 ? "고승률" : x.styleNote ? "주 라인 성향" : x.src === "meta" ? "메타 픽" : "챔프폭";
       const d = x.e ? statText(x.e) : x.mi ? metaText(x.mi) : "챔프폭 기록 없음";
       return { id: x.id, label, d, meta: x.mi && x.e ? metaText(x.mi) : "", answers: ourLaner ? [] : answers, vsOurs: x.adj.map((a) => a.d),
         now: x.adj.map((a) => ({ k: /불리/.test(a.d) ? "warn" : "now", l: /불리/.test(a.d) ? "주의" : "지금", t: a.d })) };
@@ -1956,7 +1991,7 @@ window.Engine = (function () {
 
   return {
     champ, ko, j, poolMap, setOurTeam, scoutOf, statText, lvScore, levelOf, teamHasPools, fit, compScores, buildComp, teamComps, fearlessPlan,
-    picks, bans, taken, available, openRoles, teamOf, guessRole, pickRole, scenarios, flexRoles, sylasRisk, pairBonus, direction, sideOf, whoOfSide,
+    picks, bans, taken, available, openRoles, crossOf, teamOf, guessRole, pickRole, scenarios, flexRoles, sylasRisk, pairBonus, direction, sideOf, whoOfSide,
     facts, nowFacts, cardPills, liveComps, enemyCompSet, answerComp, goalAnchors, goalPlan, recommendBan, recommendPick, buildStrategy, laneStudy, lockedFor, pickPlan, keyThreats, metaInfo, metaText, muWr, predictRole, hoverInfo, recentOf, actualRole, stacksOf, groupsOf, duoSuggest, proDuo, practiceOf, practicePick, practiceText,
   };
 })();
