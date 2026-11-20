@@ -2269,8 +2269,18 @@
       kids.forEach((k, i) => { if (i >= Math.max(6, cols)) k.classList.add("rec-over"); });
     });
   }
-  window.addEventListener("resize", () => { clearTimeout(placeLaneLines.t); placeLaneLines.t = setTimeout(() => { placeLaneLines(); fitRecs(); }, 120); });
-  if (window.ResizeObserver) { let rw = 0; new ResizeObserver(() => { const w = document.documentElement.clientWidth; if (w !== rw) { rw = w; fitRecs(); } }).observe(document.documentElement); }   // 폭이 바뀌면 카드 수 다시(창 크기 신호가 없는 경우도)
+  // 챔프 고르기 격자: 초상화가 반쯤 잘린 줄이 없게 높이를 줄 단위로(11-20 사용자 지적: 노트북에서 셋째 줄이 잘림) — 나머지는 스크롤
+  function fitGrid() {
+    const g = document.querySelector(".live-pc .dock-pc .champs"); if (!g) return;
+    g.style.maxHeight = "";
+    const b = g.querySelector(".cbtn"); if (!b) return;
+    const cs = getComputedStyle(g), gap = parseFloat(cs.rowGap) || 0, pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const rowH = b.getBoundingClientRect().height + gap, h = g.clientHeight - pad;
+    const rows = Math.max(1, Math.floor((h + gap) / rowH)), fit = rows * rowH - gap + pad + 2;
+    if (fit < g.clientHeight - 1) g.style.maxHeight = `${fit}px`;
+  }
+  window.addEventListener("resize", () => { clearTimeout(placeLaneLines.t); placeLaneLines.t = setTimeout(() => { placeLaneLines(); fitRecs(); fitGrid(); }, 120); });
+  if (window.ResizeObserver) { let rw = 0; new ResizeObserver(() => { const w = document.documentElement.clientWidth; if (w !== rw) { rw = w; fitRecs(); } fitGrid(); requestAnimationFrame(() => { fitRecs(); fitGrid(); }); }).observe(document.documentElement); }   // 폭이 바뀌면 카드 수 다시(창 크기 신호가 없는 경우도)
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeLaneLines());
   // 추천 창 닫기(고르기·Esc·칸 밖으로 나감)
   function edSugClose(r) {
@@ -4363,6 +4373,7 @@
     if (S.tab === "vision") { drawVision(v); runAnims(v); addZoomHint(v); }
     placeLaneLines();
     fitRecs();
+    fitGrid();
     peakBackfill();
     liveTick();
     if (S.tab === "notes") v.querySelectorAll(".nbody").forEach((p) => { if (p.scrollHeight > p.clientHeight + 2) p.classList.add("clamped"); });

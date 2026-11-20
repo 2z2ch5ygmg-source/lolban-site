@@ -1193,3 +1193,9 @@ html.pc .live-pc .lv-c .recs { grid-template-columns: repeat(auto-fit, minmax(mi
 @media (max-width: 1599px) { html.pc .live-pc .lv-c .recs { grid-template-columns: repeat(auto-fit, minmax(min(128px, calc((100% - 5 * 8px) / 6)), 1fr)); } }
 html.pc .live-pc .lv-c .recs > .rec-over { display: none; }
 html.pc .live-pc .lv-c .recs { max-width: none; }   /* 예전 최대 1000px 제한 때문에 넓은 화면 오른쪽이 비었음 */
+
+/* 11-20 사용자 지적: 카드 초상화 아래 알약(숙련도 중 등)이 얼굴을 너무 가림 — 더 내리고 이름도 그만큼 아래로 */
+html.pc :is(.live-pc, .enemy-pc) .rec .hero .lab { bottom: -14px; }
+html.pc :is(.live-pc, .enemy-pc) .rec .nm { margin-top: 16px; }
+/* 11-20: 실시간 밴픽을 화면 아래까지 조금 더(남던 44px 중 12px, 페이지 스크롤 없이) — 격자 줄은 app.js fitGrid가 줄 단위로 */
+@media (max-width: 1599px) { html.pc .live-pc { height: calc(100vh - 96px - 52px); } }   /* 노트북 크기만(아래 여백 32px) — 큰 화면은 여백 40px라 그대로 */
