@@ -4562,21 +4562,70 @@
   function resetStudyUi() { if (!S.ui) return; S.ui.stOpen = ""; S.ui.stPlay = ""; S.ui.stMode = "theory"; S.ui.stCat = ""; S.ui.stTopic = ""; S.ui.stQi = {}; S.ui.tut = {}; }
   // 로그인·팀 만들기는 앱 화면 안이 아니라 따로 된 한 페이지로(11-20 사용자: 탭 안 로그인·단계 표시 필요 없음)
   //   사이드바·머리줄·본문을 가리고 가운데 카드 하나. 입력 중 다시 그려도 칸이 비지 않게 내용이 바뀔 때만 새로 그림
+  // 로그인 B(왼쪽 소개 + 오른쪽 로그인) · 첫 화면 A(팀장 「팀 만들기」 / 팀원 「초대 코드 6칸」) — 11-20 사용자 결정
+  //   입력값은 AP에 들고 있다가 다시 그려도 그대로(오류 뒤 다시 칠 필요 없게)
+  const AP = { team: "", code: "" };
+  function authMsg() {
+    const m = AUTH.msg || (LOGIN_ERR ? { cancel: "로그인을 취소했습니다", state: "로그인 시간이 지났습니다 — 다시 눌러 주세요", provider: "로그인 공급자 응답에 문제가 있었습니다 — 잠시 뒤 다시", not_ready: "그 로그인은 아직 준비 중입니다" }[LOGIN_ERR] || "로그인하지 못했습니다" : "");
+    return m ? `<p class="ap-msg" role="status">${esc(m)}</p>` : "";
+  }
+  const AP_FOOT = `<div class="ap-foot"><a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a> · <a href="mailto:wonseo151@naver.com">문의</a></div>`;
   function authPage() {
     const on = guest() && S.tab === "our";
     document.documentElement.classList.toggle("auth-on", on);
     let el = document.getElementById("authpg");
     if (!on) { if (el) el.remove(); return; }
     if (!el) { el = document.createElement("div"); el.id = "authpg"; document.body.appendChild(el); }
-    const h = `<div class="ap"><div class="ap-top"><button class="ap-logo" data-act="gotab" data-k="live" aria-label="lolban 실시간 밴픽으로">${LOGO_MARK}<span>lolban<i>.</i></span></button>${themeBtn()}</div>
-      <section class="ap-card" aria-label="로그인"><h1>${SESS ? "팀 만들기 · 들어가기" : "로그인"}</h1>
-        <p class="ap-sub">${SESS ? "팀장은 팀을 만들고, 팀원은 초대 코드로 들어갑니다" : "구글·네이버 계정으로 시작합니다"}</p>
-        ${SPACE && SPACE.bad ? `<p class="warn">이 브라우저의 팀 공간 열쇠가 바뀌었습니다. 팀장에게 새 초대 코드를 받아 주세요.</p>` : ""}
-        ${loginBody()}
-        <button class="ap-skip" data-act="gotab" data-k="live">팀 없이 실시간 밴픽만 쓰기 <span aria-hidden="true">→</span></button></section>
-      <div class="ap-foot"><a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a> · <a href="mailto:wonseo151@naver.com">문의</a></div></div>`;
+    const logo = `<button class="ap-logo" data-act="gotab" data-k="live" aria-label="lolban 실시간 밴픽으로">${LOGO_MARK}<span>lolban<i>.</i></span></button>`;
+    const skip = `<button class="ap-skip" data-act="gotab" data-k="live">${SESS ? "팀 없이" : "로그인 없이"} 실시간 밴픽만 쓰기 <span aria-hidden="true">→</span></button>`;
+    let h;
+    if (!SESS) {
+      const pv = AUTH.providers, pvIco = { google: `<span class="pv-g" aria-hidden="true"></span>`, naver: `<span class="pv-n" aria-hidden="true">N</span>`, kakao: `<span class="pv-k" aria-hidden="true">K</span>` };
+      const btns = pv == null ? `<p class="help">불러오는 중…</p>` : pv.length ? pv.map((x) => `<button class="lg-b ${x}" data-act="lglogin" data-k="${x}">${pvIco[x] || ""}${PROVIDER_KO[x] || x}로 로그인</button>`).join("") : `<p class="help">로그인 준비 중입니다 — 곧 열립니다</p>`;
+      const feat = (ic, t, d) => `<li><span class="ap-ic" aria-hidden="true">${ic}</span><span><b>${t}</b><small>${d}</small></span></li>`;
+      h = `<div class="ap ap-split"><div class="ap-intro">${logo}
+          <div><h2>대회 밴픽,<br>팀이 같이 준비하는 곳</h2><ul class="ap-feat">${feat("BP", "실시간 밴픽", "진행자 한 명이 넣으면 팀원 화면에 바로")}${feat(lbi("scout", 18), "상대 분석", "상대 챔프폭·예상 밴·라인별 연습 포인트")}${feat(ico("users"), "부계정 찾기", "같은 5명이 모인 자유랭크로 의심 계정 표시")}</ul></div>
+          <span class="ap-tag">LoL 대회 팀용 피어리스 밴픽 보드</span></div>
+        <div class="ap-side"><div class="ap-tool">${themeBtn()}</div><section class="ap-box" aria-label="로그인"><h1>로그인</h1>${btns}${authMsg()}
+          <p class="help ap-note">회원 번호(바꿔서 저장)와 닉네임만 받습니다 · 이메일·전화번호는 받지 않음</p>${skip}</section>${AP_FOOT}</div></div>`;
+    } else {
+      const who = AUTH.user ? `${esc(AUTH.user.nick || "로그인됨")} · ${PROVIDER_KO[AUTH.user.provider] || ""}` : "로그인됨";
+      const boxes = Array.from({ length: 6 }, (_, k) => `<input class="ap-cbox" data-ci="${k}" maxlength="1" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="초대 코드 ${k + 1}번째 글자" value="${esc(AP.code[k] || "")}">`).join("");
+      h = `<div class="ap ap-first"><div class="ap-top">${logo}<span class="ap-who">${who}${themeBtn()}<button class="nc-a" data-act="lgout">로그아웃</button></span></div>
+        <section class="ap-wrap" aria-label="팀 만들기 · 들어가기"><h1>어떻게 시작할까요?</h1><p class="ap-sub">팀장은 팀을 만들고, 팀원은 팀장에게 받은 코드로 들어옵니다</p>
+          ${SPACE && SPACE.bad ? `<p class="warn">이 브라우저의 팀 공간 열쇠가 바뀌었습니다. 팀장에게 새 초대 코드를 받아 주세요.</p>` : ""}
+          <div class="ap-two">
+            <div class="ap-c"><span class="ap-role">팀장</span><h2>팀 만들기</h2><p>팀 이름만 정하면 끝. 만든 뒤 초대 코드를 팀 단톡방에 보내세요.</p>
+              <input class="input" id="lgTeam" maxlength="30" placeholder="팀 이름" value="${esc(AP.team)}" aria-label="팀 이름"><button class="n-new" data-act="lgnew" ${AUTH.busy ? "disabled" : ""}>팀 만들기</button></div>
+            <div class="ap-c"><span class="ap-role">팀원</span><h2>초대 코드로 들어가기</h2><p>팀장에게 받은 6자리 코드를 붙여 넣으세요.</p>
+              <div class="ap-code" role="group" aria-label="초대 코드 6자리">${boxes}</div><input type="hidden" id="lgCode" value="${esc(AP.code)}">
+              <button class="n-new" data-act="lgjoin" ${AUTH.busy ? "disabled" : ""}>${AUTH.busy ? "확인 중…" : "들어가기"}</button></div>
+          </div>${authMsg()}${skip}</section>${AP_FOOT}</div>`;
+    }
     if (el.__h !== h) { el.innerHTML = h; el.__h = h; }
   }
+  // 초대 코드 6칸: 한 글자씩 · 붙여 넣으면 안내 글째여도 코드만 나눠 채움 · 지우면 앞 칸 · Enter = 들어가기
+  (function codeBoxes() {
+    const boxes = () => [...document.querySelectorAll(".ap-cbox")];
+    const sync = () => { AP.code = boxes().map((b) => b.value).join("").toUpperCase(); const h = document.getElementById("lgCode"); if (h) h.value = AP.code; };
+    const fill = (txt) => { const all = String(txt || "").toUpperCase().match(/(?<![A-Z0-9])[A-Z0-9]{6}(?![A-Z0-9])/g); const c = all ? all[all.length - 1] : String(txt || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+      boxes().forEach((b, k) => { b.value = c[k] || ""; }); sync(); const nx = boxes()[Math.min(5, c.length)]; if (nx) nx.focus(); };
+    document.addEventListener("input", (ev) => {
+      const b = ev.target; if (!b || !b.classList || !b.classList.contains("ap-cbox")) { if (ev.target && ev.target.id === "lgTeam") AP.team = ev.target.value; return; }
+      const v = b.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (v.length > 1) { fill(v); return; }
+      b.value = v; sync(); if (v) { const nx = boxes()[+b.dataset.ci + 1]; if (nx) nx.focus(); }
+    });
+    document.addEventListener("paste", (ev) => { const b = ev.target; if (!b || !b.classList || !b.classList.contains("ap-cbox")) return; ev.preventDefault(); fill((ev.clipboardData || window.clipboardData).getData("text")); });
+    document.addEventListener("keydown", (ev) => {
+      const b = ev.target; if (!b || !b.classList || !b.classList.contains("ap-cbox")) { if (ev.target && ev.target.id === "lgTeam" && ev.key === "Enter" && !ev.isComposing) { ev.preventDefault(); const go = document.querySelector('[data-act="lgnew"]'); if (go) go.click(); } return; }
+      const k = +b.dataset.ci;
+      if (ev.key === "Backspace" && !b.value && k > 0) { const pv = boxes()[k - 1]; pv.value = ""; pv.focus(); sync(); ev.preventDefault(); }
+      else if (ev.key === "ArrowLeft" && k > 0) boxes()[k - 1].focus();
+      else if (ev.key === "ArrowRight" && k < 5) boxes()[k + 1].focus();
+      else if (ev.key === "Enter") { ev.preventDefault(); const go = document.querySelector('[data-act="lgjoin"]'); if (go) go.click(); }
+    });
+  })();
   function render() {
     if (lastTab !== S.tab) { if (lastTab === "vision" || (lastTab === null && S.tab === "vision")) resetStudyUi(); lastTab = S.tab; }
     if (RENDERING) { RENDER_AGAIN = true; return; }
