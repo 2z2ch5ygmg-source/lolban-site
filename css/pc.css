@@ -1119,3 +1119,7 @@ html.pc :is(.live-pc, .enemy-pc) .rec:is(.first, .comp) .why.rchips > .rc:not(.r
 /* 11-20: 계정 추천 창 — 지금 쓰는 칸 바로 아래(위치는 app.js edSuggest가 칸에 맞춤), ↑↓로 고른 줄 표시 */
 .sd-acc .ed-sug { max-height: 300px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12); }
 .ed-s.cur { background: var(--panel2); }
+
+/* 11-20 사용자 요청: 라인 다섯 칸(로스터·챔프폭, 라인별 상대) 사이를 가운데 짧은 세로선으로 구분 — 칸 높이의 가운데 절반, 칸 사이 간격 한가운데 */
+html.pc .lane5 > .l5 { position: relative; }
+html.pc .lane5 > .l5 + .l5::before { content: ""; position: absolute; left: -14px; top: 25%; bottom: 25%; width: 1px; background: var(--line); pointer-events: none; }
