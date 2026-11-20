@@ -3469,7 +3469,9 @@
   }
   async function authAction(a, el) {
     // 다시 그리기 전에 입력값부터 읽음(그리면 칸이 새로 만들어져 비어 버림)
-    const vals = { lgTeam: ((document.getElementById("lgTeam") || {}).value || "").trim(), lgCode: ((document.getElementById("lgCode") || {}).value || "").trim() };
+    // 11-21 QA: 첫 화면(.authpg) 뒤에 홈의 로그인 칸도 같은 id로 숨어 있어 getElementById가 빈 칸을 읽었음 → 첫 화면 칸 먼저, 그다음 보이는 칸
+    const pick = (id) => { const els = [...document.querySelectorAll("#" + id)]; const el = els.find((x) => x.closest(".authpg")) || els.find((x) => x.offsetParent) || els[0]; return ((el || {}).value || "").trim(); };
+    const vals = { lgTeam: pick("lgTeam"), lgCode: pick("lgCode") };
     const v = (id) => vals[id] || "";
     AUTH.busy = true; AUTH.msg = ""; render();
     try {
@@ -3477,7 +3479,7 @@
       else if (a === "lgjoin") { const all = String(v("lgCode") || "").toUpperCase().match(/(?<![A-Z0-9])[A-Z0-9]{6}(?![A-Z0-9])/g) || [];   // 안내 글째 붙여 넣어도 코드만(11-19)
         const d = await authPost("team/join", { code: all.length ? all[all.length - 1] : v("lgCode") }); TM2.list = null; try { localStorage.setItem("lolban.space.v1", d.space.id); } catch (e) { /* 이번만 */ } AUTH.msg = `「${d.space.name}」 팀에 들어왔습니다`; }
       else if (a === "lgcode") { const d = await authPost("team/code", { space: SPACE.id }); AUTH.msg = `새 초대 코드 ${d.code} — ${d.exp}까지`; }
-      else if (a === "lgleave") { if (!confirm(`「${SPACE.name}」 팀에서 나갈까요?`)) { AUTH.busy = false; render(); return; } await authPost("team/leave", { space: SPACE.id }); try { localStorage.removeItem("lolban.space.v1"); } catch (e) { /* 무시 */ } SPACE = null; AUTH.msg = "팀에서 나왔습니다"; }
+      else if (a === "lgleave") { const me1 = (AUTH.spaces || []).find((x) => x.id === SPACE.id) || {}; if (!confirm(me1.owner && (me1.members || 1) <= 1 ? `「${SPACE.name}」에 혼자 남아 있어 나가면 팀과 팀 자료(명단·노트·세트 결과 등)가 모두 지워집니다. 되돌릴 수 없습니다. 나갈까요?` : `「${SPACE.name}」 팀에서 나갈까요?`)) { AUTH.busy = false; render(); return; } await authPost("team/leave", { space: SPACE.id }); try { localStorage.removeItem("lolban.space.v1"); } catch (e) { /* 무시 */ } SPACE = null; AUTH.msg = "팀에서 나왔습니다"; }
       else if (a === "lgdel") { if (!confirm("탈퇴할까요? 로그인 정보와 소속이 지워지고, 혼자 있는 팀은 팀 자료까지 지워집니다. 되돌릴 수 없습니다.")) { AUTH.busy = false; render(); return; } await authPost("delete", {}); AUTH.busy = false; logoutLocal("탈퇴했습니다 — 로그인 정보를 지웠습니다"); return; }
       else if (a === "lgout") { try { await authPost("logout", {}); } catch (e) { /* 서버에서 이미 끝남 */ } AUTH.busy = false; logoutLocal("로그아웃했습니다"); return; }
       else if (a === "lgcopy") { const c = SPACE && SPACE.code; if (c) { try { await navigator.clipboard.writeText(c); AUTH.msg = `초대 코드 ${c} 복사 — 팀원은 로그인 뒤 「초대 코드로 들어가기」에 붙여 넣으면 됩니다`; S.ui.invited = true; save(); } catch (e) { AUTH.msg = `초대 코드: ${c}`; } } }
@@ -5131,7 +5133,14 @@
     if (lastTab !== S.tab) { if (lastTab === "vision" || (lastTab === null && S.tab === "vision")) resetStudyUi(); lastTab = S.tab; }
     if (RENDERING) { RENDER_AGAIN = true; return; }
     RENDERING = true;
+    // 11-21 QA(사용자 「이름 한 글자 치면 키보드가 안 먹힘」): 입력 중 다른 일(자료 도착 등)로 다시 그리면 칸이 새로 만들어져 커서가 빠졌음 → 같은 칸을 찾아 커서 되돌림
+    const ae = document.activeElement, fsel = ae && /^(INPUT|TEXTAREA)$/.test(ae.tagName) && ae.type !== "hidden" ? (ae.id ? "#" + CSS.escape(ae.id) : ae.dataset.ci != null ? `.ap-cbox[data-ci="${ae.dataset.ci}"]` : ae.dataset.add ? `[data-add="${ae.dataset.add}"]` : "") : "";
+    const fpos = fsel ? [ae.selectionStart, ae.selectionEnd] : null;
     try { renderInner(); authPage(); } finally { RENDERING = false; }
+    if (fsel && (!ae.isConnected || document.activeElement === document.body)) {
+      const nx = [...document.querySelectorAll(fsel)].find((x) => x.offsetParent);
+      if (nx && nx !== ae) { nx.focus({ preventScroll: true }); try { const n = nx.value.length; nx.setSelectionRange(Math.min(fpos[0] ?? n, n), Math.min(fpos[1] ?? n, n)); } catch (e) { /* 숫자 칸 등 */ } }
+    }
     if (RENDER_AGAIN) { RENDER_AGAIN = false; render(); }
   }
   function renderInner() {
