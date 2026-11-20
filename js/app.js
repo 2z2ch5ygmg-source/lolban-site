@@ -3051,13 +3051,14 @@
   function suspectList() {
     const R = window.RECENT; if (!R || !R.suspects || guest()) return [];
     const key = (a) => normId(String(a || "")).toLowerCase(), out = [];
-    S.teams.filter((t) => !t.solo).forEach((t) => (R.suspects[t.id] || []).forEach((x) => {
+    S.teams.filter((t) => !t.solo).forEach((t) => { const seen = new Set(); (R.suspects[t.id] || []).forEach((x) => {
       const p = t.players[x.role]; if (!p) return;
+      if (seen.has(key(x.riot))) return; seen.add(key(x.riot));   // 한 계정은 한 번만(앞쪽 = 더 센 쪽, 예전 수집 자료도)
       const have = [p.riot, ...((p.alts || altsOf(t.id, x.role)) || [])].filter(Boolean).map(key);
       const any = S.teams.some((tt) => !tt.solo && ROLES.some((r) => tt.players[r] && [tt.players[r].riot, ...(tt.players[r].alts || [])].filter(Boolean).map(key).includes(key(x.riot))));
       if (have.includes(key(x.riot)) || any || (t.altNo || []).map(key).includes(key(x.riot))) return;
       out.push({ t, x });
-    }));
+    }); });
     return out.sort((a, b) => (a.t.id === S.ourTeam) - (b.t.id === S.ourTeam) || (a.x.grade !== "high") - (b.x.grade !== "high") || b.x.days.length - a.x.days.length);
   }
   function suspectCard({ t, x }, mini) {
@@ -3086,10 +3087,30 @@
     const waitH = wait ? `<div class="as-wait" role="status"><span class="iq-spin" aria-hidden="true"></span><span>${wait}</span></div>` : "";
     const notYet = R && R.suspects ? S.teams.filter((t) => !t.solo && !(t.id in R.suspects) && ROLES.some((r) => /#/.test((t.players[r] || {}).riot || ""))) : [];
     if (!R || !R.suspects) return `<div class="as-pg">${waitH}<p class="help">${at} · ${wait ? "끝나면 여기에 팀별로 나옵니다." : "다음 0시 수집(또는 명단 등록) 때부터 부계정 의심을 찾습니다."}</p></div>`;
-    const groups = {}; list.forEach((it) => (groups[it.t.id] = groups[it.t.id] || []).push(it));
-    return `<div class="as-pg">${waitH}${notYet.length ? `<p class="help as-top">아직 안 찾은 팀: ${notYet.map((t) => esc(t.name)).join(", ")} — ${wait ? "찾는 중" : "다음 0시 수집 때 찾습니다"}</p>` : ""}<p class="help as-top">${at} · 대회 계정이 1명 이상 낀 자유랭크에서 <b>완전히 같은 5명</b>이 2일 이상 모였을 때, 그 묶음에 빠진 라인 선수의 부계정으로 의심합니다. 하루뿐인 묶음·본계정이 같은 시간에 다른 게임 중이던 계정은 뺐습니다.</p>
-      ${list.length ? Object.values(groups).map((g) => `<section class="as-sec"><h3>${esc(g[0].t.name)}${g[0].t.id === S.ourTeam ? " <small>우리 팀</small>" : ""}</h3><div class="as-grid">${g.map((it) => suspectCard(it)).join("")}</div></section>`).join("")
-        : `<div class="as-empty">${lbi("scout", 28)}<b>지금은 의심 계정이 없습니다</b><span class="help">0시 수집마다 다시 찾습니다</span></div>`}</div>`;
+    // 11-20 사용자 결정: 기본형(팀 칩 + 카드, A안) / 리스트형(팀 × 라인 표 + 펼쳐 보기, C안) 전환. 우리 팀 포함 모든 팀
+    const teams = S.teams.filter((t) => !t.solo && ROLES.some((r) => /#/.test((t.players[r] || {}).riot || ""))).sort((a, b) => (b.id === S.ourTeam) - (a.id === S.ourTeam));
+    const byT = {}; list.forEach((it) => (byT[it.t.id] = byT[it.t.id] || []).push(it));
+    const view = S.ui.altView === "list" ? "list" : "card";
+    const head = `<div class="as-bar"><p class="help as-top">${at} · 대회 계정이 1명 이상 낀 자유랭크에서 <b>완전히 같은 5명</b>이 2일 이상 모였을 때 그 묶음에 빠진 라인 선수의 부계정으로 의심 · 하루뿐인 묶음·본계정이 같은 시간에 다른 게임 중이던 계정은 뺌</p>
+      <div class="seg as-view" role="group" aria-label="보기"><button data-act="altview" data-v="card" aria-pressed="${view === "card"}">기본형</button><button data-act="altview" data-v="list" aria-pressed="${view === "list"}">리스트형</button></div></div>`;
+    const notYetH = notYet.length ? `<p class="help as-top">아직 안 찾은 팀: ${notYet.map((t) => esc(t.name)).join(", ")} — ${wait ? "찾는 중" : "다음 0시 수집(또는 명단 등록) 때 찾습니다"}</p>` : "";
+    const empty = `<div class="as-empty">${lbi("scout", 28)}<b>의심 계정이 없습니다</b><span class="help">0시 수집마다 다시 찾습니다</span></div>`;
+    let body;
+    if (view === "card") {
+      const cur = S.ui.altTeam && (S.ui.altTeam === "all" || teams.some((t) => t.id === S.ui.altTeam)) ? S.ui.altTeam : "all";
+      const chip = (id, name, n, our) => `<button class="as-chip" data-act="altteam" data-v="${esc(id)}" aria-pressed="${cur === id}">${esc(name)}${our ? `<small>우리</small>` : ""}<span class="as-n ${n ? "" : "z"}">${n}</span></button>`;
+      const chips = `<div class="as-chips" role="group" aria-label="팀">${chip("all", "전체", list.length)}${teams.map((t) => chip(t.id, t.name, (byT[t.id] || []).length, t.id === S.ourTeam)).join("")}</div>`;
+      const show = cur === "all" ? teams.filter((t) => byT[t.id]) : teams.filter((t) => t.id === cur);
+      body = chips + (show.some((t) => byT[t.id]) ? show.map((t) => `<section class="as-sec">${cur === "all" ? `<h3>${esc(t.name)}${t.id === S.ourTeam ? " <small>우리 팀</small>" : ""}</h3>` : ""}<div class="as-grid">${(byT[t.id] || []).map((it) => suspectCard(it)).join("")}</div></section>`).join("") : empty);
+    } else {
+      const sel = S.ui.altSel || "", selIt = list.find((it) => `${it.t.id}|${it.x.riot}` === sel) || null;
+      const cell = (t, r) => { const xs = (byT[t.id] || []).filter((it) => it.x.role === r);
+        return xs.length ? xs.map((it) => `<button class="as-cell ${it.x.grade === "high" ? "hi" : ""}" data-act="altsel" data-v="${esc(t.id + "|" + it.x.riot)}" aria-pressed="${sel === t.id + "|" + it.x.riot}" title="${esc(it.x.riot)} · 같은 5명 ${it.x.days.length}일 ${it.x.g}판"><span>${esc(it.x.riot)}</span></button>`).join("") : `<span class="as-dash">—</span>`; };
+      body = `<div class="as-tw"><table class="as-mx"><thead><tr><th>팀</th>${ROLES.map((r) => `<th>${ROLE_KO[r]}</th>`).join("")}</tr></thead><tbody>
+        ${teams.map((t) => `<tr><td class="as-tn">${esc(t.name)}${t.id === S.ourTeam ? "<small>우리</small>" : ""}</td>${ROLES.map((r) => `<td>${cell(t, r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+        ${selIt ? suspectCard(selIt) : `<p class="help">칸의 계정을 누르면 근거와 「부계정으로 추가」·「아님」이 아래에 나옵니다</p>`}`;
+    }
+    return `<div class="as-pg">${waitH}${notYetH}${head}${body}</div>`;
   }
   async function suspectAdd(tid, r, riot) {
     const t = team(tid), p = t && t.players[r]; if (!p) return;
@@ -4633,6 +4654,9 @@
       case "joinpop": joinPop(); break;
       case "susadd": suspectAdd(el.dataset.tid, el.dataset.r, el.dataset.riot); break;
       case "susno": suspectNo(el.dataset.tid, el.dataset.riot); break;
+      case "altview": S.ui.altView = el.dataset.v; save(); render(); break;
+      case "altteam": S.ui.altTeam = el.dataset.v; save(); render(); break;
+      case "altsel": S.ui.altSel = S.ui.altSel === el.dataset.v ? "" : el.dataset.v; save(); render(); break;
       case "jpgo": joinByCode(); break;
       case "pickenemy": if (el.dataset.id && team(el.dataset.id)) { S.enemyTeam = el.dataset.id; syncQueue(true); S.tab = "enemy"; MV.more = false; save(); render(); window.scrollTo(0, 0); } break;
       case "gotab": S.tab = el.dataset.k; MV.more = false; save(); render(); window.scrollTo(0, 0); break;
