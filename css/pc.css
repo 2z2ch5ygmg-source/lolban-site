@@ -1556,3 +1556,6 @@ html.pc .seg button[data-act="side"][data-v="R"][aria-pressed="true"] { backgrou
 /* 상단바 아래 작은 글씨 빼기(11-20 사용자) — 실시간 밴픽의 세트·피어리스 잠금만 남김 */
 html.pc #mhead .mh-s { display: none; }
 html.pc:has(#view .live-pc) #mhead .mh-s { display: block; }
+/* 운영 전략·시나리오 글씨가 라이트 모드에서 안 보이던 것(11-20 사용자): 예전 다크 전용 연한 색(#cfd6e4) → 본문 색 */
+html.pc :is(.pp-sum, .sc-sum, .plan dd, .vtip, .lcore p) { color: var(--text); line-height: 1.6; }
+html.pc .plan dd { font-size: 13.5px; }

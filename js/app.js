@@ -4960,18 +4960,30 @@
   (function codeBoxes() {
     const boxes = () => [...document.querySelectorAll(".ap-cbox")];
     const sync = () => { AP.code = boxes().map((b) => b.value).join("").toUpperCase(); const h = document.getElementById("lgCode"); if (h) h.value = AP.code; };
-    const fill = (txt) => { const all = String(txt || "").toUpperCase().match(/(?<![A-Z0-9])[A-Z0-9]{6}(?![A-Z0-9])/g); const c = all ? all[all.length - 1] : String(txt || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+    // 한글 자판 상태로 치면 A가 「ㅁ」로 들어와 지워지던 것(11-20 팀원 제보): 같은 자리 영문으로 바꿈(두벌식), 글자 하나로 합쳐진 것(예: 「마」)도 풀어서
+    const KO_KEY = { ㅂ: "Q", ㅈ: "W", ㄷ: "E", ㄱ: "R", ㅅ: "T", ㅛ: "Y", ㅕ: "U", ㅑ: "I", ㅐ: "O", ㅔ: "P", ㅁ: "A", ㄴ: "S", ㅇ: "D", ㄹ: "F", ㅎ: "G", ㅗ: "H", ㅓ: "J", ㅏ: "K", ㅣ: "L", ㅋ: "Z", ㅌ: "X", ㅊ: "C", ㅍ: "V", ㅠ: "B", ㅜ: "N", ㅡ: "M",
+      ㅃ: "Q", ㅉ: "W", ㄸ: "E", ㄲ: "R", ㅆ: "T", ㅒ: "O", ㅖ: "P", ㅘ: "HK", ㅙ: "HO", ㅚ: "HL", ㅝ: "NJ", ㅞ: "NP", ㅟ: "NL", ㅢ: "ML", ㄳ: "RT", ㄵ: "SW", ㄶ: "SG", ㄺ: "FR", ㄻ: "FA", ㄼ: "FQ", ㄽ: "FT", ㄾ: "FX", ㄿ: "FV", ㅀ: "FG", ㅄ: "QT" };
+    const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ", JUNG = "ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ", JONG = ["", "ㄱ", "ㄲ", "ㄳ", "ㄴ", "ㄵ", "ㄶ", "ㄷ", "ㄹ", "ㄺ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㄿ", "ㅀ", "ㅁ", "ㅂ", "ㅄ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+    const koToEn = (t) => [...String(t || "")].map((ch) => { const n = ch.charCodeAt(0) - 0xac00;
+      if (n >= 0 && n < 11172) return [CHO[Math.floor(n / 588)], JUNG[Math.floor((n % 588) / 28)], JONG[n % 28]].map((j) => KO_KEY[j] || "").join("");
+      return KO_KEY[ch] || ch; }).join("");
+    const fill = (txt) => { txt = koToEn(txt); const all = String(txt || "").toUpperCase().match(/(?<![A-Z0-9])[A-Z0-9]{6}(?![A-Z0-9])/g); const c = all ? all[all.length - 1] : String(txt || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
       boxes().forEach((b, k) => { b.value = c[k] || ""; }); sync(); const nx = boxes()[Math.min(5, c.length)]; if (nx) nx.focus(); };
     document.addEventListener("input", (ev) => {
       const b = ev.target; if (!b || !b.classList || !b.classList.contains("ap-cbox")) { if (ev.target && ev.target.id === "lgTeam") AP.team = ev.target.value; if (ev.target && ev.target.id === "obNick") AP.nick = ev.target.value; return; }
-      const v = b.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (ev.isComposing) return;   // 한글 조합 중엔 기다렸다가(compositionend에서 다시)
+      const v = koToEn(b.value).toUpperCase().replace(/[^A-Z0-9]/g, "");
       if (v.length > 1) { fill(v); return; }
       b.value = v; sync(); if (v) { const nx = boxes()[+b.dataset.ci + 1]; if (nx) nx.focus(); }
     });
     document.addEventListener("paste", (ev) => { const b = ev.target; if (!b || !b.classList || !b.classList.contains("ap-cbox")) return; ev.preventDefault(); fill((ev.clipboardData || window.clipboardData).getData("text")); });
+    document.addEventListener("compositionend", (ev) => { const b = ev.target; if (b && b.classList && b.classList.contains("ap-cbox")) b.dispatchEvent(new Event("input", { bubbles: true })); });
     document.addEventListener("keydown", (ev) => {
       const b = ev.target; if (!b || !b.classList || !b.classList.contains("ap-cbox")) { if (ev.target && (ev.target.id === "lgTeam" || ev.target.id === "obNick") && ev.key === "Enter" && !ev.isComposing) { ev.preventDefault(); const go = document.querySelector(ev.target.id === "lgTeam" ? '[data-act="lgnew"]' : '[data-act="obnick"]'); if (go) go.click(); } return; }
       const k = +b.dataset.ci;
+      // 자판 언어와 상관없이 누른 키 자리로(한글 자판이어도 A 키 = A) — 휴대폰 화면 자판처럼 키 자리를 안 주면 위 입력 처리(한글 → 영문)로
+      const m = !ev.ctrlKey && !ev.metaKey && !ev.altKey && /^(?:Key([A-Z])|Digit([0-9])|Numpad([0-9]))$/.exec(ev.code || "");
+      if (m) { ev.preventDefault(); b.value = m[1] || m[2] || m[3]; sync(); const nx = boxes()[k + 1]; if (nx) nx.focus(); else b.select && b.select(); return; }
       if (ev.key === "Backspace" && !b.value && k > 0) { const pv = boxes()[k - 1]; pv.value = ""; pv.focus(); sync(); ev.preventDefault(); }
       else if (ev.key === "ArrowLeft" && k > 0) boxes()[k - 1].focus();
       else if (ev.key === "ArrowRight" && k < 5) boxes()[k + 1].focus();
