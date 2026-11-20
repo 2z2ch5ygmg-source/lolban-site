@@ -221,6 +221,6 @@ window.KB = (function () {
     Galio: 2, Rammus: 2, Morgana: 1, Soraka: 1, Jax: 1, Annie: 1, Azir: 2 };
   // 그랩(투사체 끌기·CC 시작)을 막는 챔프: 모르가나 E(블랙 실드), 시비르 E(주문 보호막), 브라움 E(투사체 막기), 야스오 W(바람 장막)
   const HOOKS = ["Blitzcrank", "Thresh", "Nautilus", "Pyke", "Morgana"];
-  const ANTI_HOOK = { Morgana: 3, Sivir: 1, Braum: 2, Yasuo: 1 };
+  const ANTI_HOOK = { Morgana: 3, Sivir: 1, Braum: 2, Yasuo: 1, Mel: 2 };   // 멜 W(반사)는 그랩을 되돌려 보냄(11-20 사용자)
   return { ROLES, ROLE_KO, STYLE_KO, COMPS, COUNTERS, LEVEL_KO, ORDER, SLIPPERY, GANK, ULT_STEAL, DUO_PAIRS, TANKBUSTER, ANTI_ENGAGE, ANTI_DIVE, HOOKS, ANTI_HOOK, useOrder };
 })();
