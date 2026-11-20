@@ -1337,3 +1337,60 @@ html.auth-on body > :not(#authpg):not(script):not(.toast):not(#toast) { display:
 }
 .ap-c .n-new { display: flex; align-items: center; justify-content: center; width: 100%; border: 0; border-radius: 12px; background: var(--hi, #5B3FE0); color: var(--on-gold, #fff); font: inherit; font-weight: 800; cursor: pointer; }
 .ap-c .n-new:disabled { opacity: .6; cursor: default; }
+/* 자기평가 A안(11-20) */
+.se-intro { margin: 0 0 12px; }
+.se-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-bottom: 14px; }
+.se-tab { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); text-align: left; font: inherit; cursor: pointer; min-width: 0; }
+.se-tab b { font-size: 14px; display: flex; align-items: center; gap: 6px; } .se-tab span { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.se-tab small { font-size: 11.5px; color: var(--dim); } .se-tab small.ok { color: var(--hi); font-weight: 700; }
+.se-tab[aria-selected="true"] { border-color: var(--hi); box-shadow: 0 0 0 3px var(--hi-bg); }
+.se-me { font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: var(--text); color: var(--bg); }
+.se-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.se-list > .help { grid-column: 1 / -1; margin: 6px 0; }
+.se-row { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; background: var(--bg); min-width: 0; }
+.se-row .ic { flex: none; } .se-nm { flex: 1; min-width: 0; display: grid; } .se-nm b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .se-nm small { font-size: 12px; color: var(--muted); }
+.se-lv { display: inline-flex; border-radius: 999px; background: var(--bg2); padding: 2px; flex: none; }
+.se-lv button { border: 0; background: none; font: inherit; font-size: 12px; font-weight: 700; padding: 4px 8px; border-radius: 999px; color: var(--muted); cursor: pointer; }
+.se-lv button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.se-lv.ro { background: none; }
+.se-del { border: 0; background: none; color: var(--dim); width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; cursor: pointer; flex: none; } .se-del:hover { color: var(--bad); background: var(--bad-bg); } .se-del .ico { width: 15px; height: 15px; }
+.se-rec { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; } .se-rec-h { font-size: 12px; font-weight: 700; color: var(--muted); margin-right: 4px; }
+.se-add { display: grid; grid-template-columns: minmax(0, 1fr) 110px auto; gap: 8px; margin-top: 12px; align-items: center; }
+.se-lock { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--bg2); color: var(--muted); font-size: 13px; }
+html.pc .modal.se-modal { width: min(820px, calc(100vw - 32px)); max-width: none; }
+/* 처음 설정: 이름 → 포지션(11-20) */
+.ob-wrap { width: min(560px, 100%); }
+.ob-step { margin: 0; text-align: center; font-size: 12.5px; font-weight: 800; color: var(--hi); letter-spacing: .02em; }
+.ob-box { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.ob-in { height: 54px; font-size: 18px; text-align: center; }
+.ob-go { height: 54px; padding: 0 22px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 12px; background: var(--hi, #5B3FE0); color: var(--on-gold, #fff); font: inherit; font-weight: 800; cursor: pointer; }
+.ob-roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.ob-role { display: grid; gap: 4px; padding: 16px 16px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.ob-role b { font-size: 17px; } .ob-role small { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ob-role:hover, .ob-role:focus-visible { border-color: var(--hi); box-shadow: 0 0 0 3px var(--hi-bg); outline: none; }
+.ob-wrap .ap-skip { justify-self: center; text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 860px) { .ob-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* 부계정 찾기 배치(11-20 사용자): 양쪽 같은 여백으로 넓게, 팀 칩 한 줄(넘치면 가로 스크롤)·보기 전환은 그 줄 오른쪽 끝,
+   의심 없음은 화면 가운데, 설명은 화면 맨 아래(스크롤 안 생기게) */
+.as-pg { max-width: none; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+.as-bar { display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; }
+.as-bar .as-chips { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
+.as-bar .as-chip { flex: none; white-space: nowrap; }
+.as-bar .as-view { flex: none; margin-left: auto; }
+.as-bar-t { font-weight: 800; font-size: 15px; }
+.as-pg > .as-empty { flex: 1 1 auto; align-content: center; padding: 24px 16px; }
+.as-empty b { font-size: 16px; color: var(--text); }
+.as-foot { margin-top: auto; display: grid; gap: 4px; }
+.as-desc { margin: 0; max-width: none; font-size: 12.5px; line-height: 1.55; }
+.as-grid { grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr)); }
+/* 스크롤 막대 없애기(11-20 사용자 「우측 끝 스크롤 표시」): 탭 줄은 세로로 1px 넘쳐 막대가 생겼음 → 세로는 자르고 가로만, 막대는 숨김(밀어서 넘기기는 됨) */
+.dock-tabs, .as-bar .as-chips { overflow-y: hidden; scrollbar-width: none; }
+.dock-tabs::-webkit-scrollbar, .as-bar .as-chips::-webkit-scrollbar { display: none; }
+/* 피드백 노트(11-20): 화면 높이를 채우고, 빈 라인은 「아직 노트가 없습니다」 칸이 아래까지 */
+html.pc .notes-pc { display: flex; flex-direction: column; }
+html.pc .notes-pc > .n-cols { flex: 1 1 auto; align-items: stretch; }
+html.pc .notes-pc .n-col { display: flex; flex-direction: column; gap: 10px; }
+.n-empty { flex: 1 1 auto; min-height: 160px; display: grid; place-content: center; justify-items: center; gap: 6px; padding: 18px 12px; border: 1px dashed var(--line); border-radius: 14px; background: transparent; color: var(--muted); font: inherit; cursor: pointer; text-align: center; }
+.n-empty span { font-size: 14px; font-weight: 700; color: var(--text); } .n-empty small { font-size: 12.5px; }
+.n-empty:hover, .n-empty:focus-visible { border-color: var(--hi); color: var(--hi); background: var(--hi-bg); outline: none; }
+.n-empty .lbi { width: 22px; height: 22px; }

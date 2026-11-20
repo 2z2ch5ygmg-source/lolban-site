@@ -2459,7 +2459,7 @@
     // 챔프폭 편집 줄 머리: 본계정 + 부계정(그 부계정 기록이 챔프폭에 합쳐졌는지까지 — 11-20 사용자 지적 「미드 처음 계정 하나만 나옴」)
     const whoAll = (r) => { const p = t.players[r], alts = (t.id === S.ourTeam || t.solo) ? [] : ((p.alts || altsOf(t.id, r)) || []).filter(Boolean);
       return who(p) + alts.map((a) => { const st = altMerged(t, r, a); return `<span class="ed-who ed-alt-who" title="부계정 · ${st === "in" ? "챔프폭에 합침" : st === "wait" ? "챔프폭 받는 중" : "챔프폭은 기록 갱신 때 합침"}"><i>+</i>${esc(nick(a))}<small>#${esc(String(a).split("#")[1] || "")}</small><em class="alt-st ${st}">${st === "in" ? "합침" : st === "wait" ? "받는 중" : "갱신 필요"}</em></span>`; }).join(""); };
-    const roles = altMode ? ROLES.map((r) => `<div class="ed-role ed-pool-only ed-altonly" data-r="${r}"><div class="ed-row"><b style="width:40px">${ROLE_KO[r]}</b>${who(t.players[r])}<small class="help">본계정</small></div>${altsBox(r)}</div>`).join("") : MOB.matches ? edRolesFull(t) : ROLES.map((r) => { const p = t.players[r]; return `<div class="ed-role ed-pool-only" data-r="${r}"><div class="ed-row ed-who-row"><b style="width:40px">${ROLE_KO[r]}</b>${whoAll(r)}</div>
+    const roles = !altMode && !MOB.matches && t.id === S.ourTeam && !t.solo ? seEditorHtml(t) : altMode ? ROLES.map((r) => `<div class="ed-role ed-pool-only ed-altonly" data-r="${r}"><div class="ed-row"><b style="width:40px">${ROLE_KO[r]}</b>${who(t.players[r])}<small class="help">본계정</small></div>${altsBox(r)}</div>`).join("") : MOB.matches ? edRolesFull(t) : ROLES.map((r) => { const p = t.players[r]; return `<div class="ed-role ed-pool-only" data-r="${r}"><div class="ed-row ed-who-row"><b style="width:40px">${ROLE_KO[r]}</b>${whoAll(r)}</div>
       <div class="row-chips">${poolChips(t, r, { edit: true })}</div>
       <div class="ed-row"><input class="input" style="flex:1" list="champList" data-add="${r}" placeholder="챔피언 추가 (이름 입력 후 Enter)">
       <select data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select>
@@ -2475,11 +2475,35 @@
       <div class="ed-row"><input class="input" style="flex:1" list="champList" data-add="${r}" placeholder="챔피언 추가 (이름 입력 후 Enter)">
       <select data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select>
       <button class="ib btn sm" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></div></div>`; }).join(""); }
-    root.innerHTML = `<div class="modal-bg" data-act="close"><div class="modal" role="dialog" aria-modal="true" aria-label="${t.id === S.ourTeam ? "자기평가 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}" ${MOB.matches ? `data-edr="${edLane}"` : ""}>
+    root.innerHTML = `<div class="modal-bg" data-act="close"><div class="modal ${!altMode && !MOB.matches && t.id === S.ourTeam && !t.solo ? "se-modal" : ""}" role="dialog" aria-modal="true" aria-label="${t.id === S.ourTeam ? "자기평가 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}" ${MOB.matches ? `data-edr="${edLane}"` : ""}>
       <div class="modal-h"><h2>${esc(t.name)} · ${t.id === S.ourTeam ? "자기평가 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}</h2><button class="ib btn sm" data-act="close" aria-label="닫기" title="닫기">${ico("x")}</button></div>
-      ${altMode ? `<p class="help ed-intro">이름#태그를 넣고 「찾기」 → 맞으면 「적용」. 적용하면 그 계정 챔프폭을 받아 이 라인 챔프폭에 합칩니다</p>` : MOB.matches ? `<p class="help ed-intro">${t.id === S.ourTeam ? "<b>대회에서 실제로 꺼낼 수 있는 챔프</b>만 넣고 자신감을 고르세요. 본인 평가가 있는 선수는 이 목록만 추천에 쓰고, 전적은 참고로만 붙습니다. " : ""}${t.id === S.ourTeam ? "" : "여기 넣은 챔프는 전적 추천에 <b>더해집니다</b>(전적 챔프는 그대로 남음). "}칩을 누르면 상 → 중 → 하 → 원챔 순서로 바뀝니다. ×는 삭제.</p>` : `<p class="help ed-intro">${t.id === S.ourTeam ? "알약을 누르면 숙련도가 바뀝니다 · ×는 빼기" : "기록(본계정·부계정)에서 찾은 챔프가 자동으로 들어 있습니다 · 알약을 누르면 숙련도가 바뀌고 ×는 빼기(↺로 되돌림)"} · 바로 저장됩니다</p>`}
+      ${altMode ? `<p class="help ed-intro">이름#태그를 넣고 「찾기」 → 맞으면 「적용」. 적용하면 그 계정 챔프폭을 받아 이 라인 챔프폭에 합칩니다</p>` : MOB.matches ? `<p class="help ed-intro">${t.id === S.ourTeam ? "<b>대회에서 실제로 꺼낼 수 있는 챔프</b>만 넣고 자신감을 고르세요. 본인 평가가 있는 선수는 이 목록만 추천에 쓰고, 전적은 참고로만 붙습니다. " : ""}${t.id === S.ourTeam ? "" : "여기 넣은 챔프는 전적 추천에 <b>더해집니다</b>(전적 챔프는 그대로 남음). "}칩을 누르면 상 → 중 → 하 → 원챔 순서로 바뀝니다. ×는 삭제.</p>` : t.id === S.ourTeam && !t.solo ? "" : `<p class="help ed-intro">${t.id === S.ourTeam ? "알약을 누르면 숙련도가 바뀝니다 · ×는 빼기" : "기록(본계정·부계정)에서 찾은 챔프가 자동으로 들어 있습니다 · 알약을 누르면 숙련도가 바뀌고 ×는 빼기(↺로 되돌림)"} · 바로 저장됩니다</p>`}
       ${MOB.matches ? `<p class="help" id="shareNote" aria-live="polite">${t.solo ? "개인(솔랭) 상대는 이 브라우저에만 저장됩니다." : shareNote()}</p>${t.solo || !SH.url ? "" : shareRoles(t)}` : ""}
       ${MOB.matches ? laneChips("edlane", edLane, "라인", { noAll: true }) : ""}${roles}</div></div>`;
+  }
+  // 자기평가 A안(11-20 사용자 결정): 위 다섯 라인 탭(누구 라인 · 편집 가능/보기만) → 고른 라인 챔프 목록(초상화·판수·상/중/하/원챔·빼기)
+  //   + 기록에만 있는 챔프(누르면 넣기) + 챔프 추가. 처음엔 내 라인
+  function seEditorHtml(t) {
+    const my = SPACE && SPACE.viaLogin ? SPACE.myRole : "";
+    const lane = ROLES.includes(S.ui.seLane) ? S.ui.seLane : ROLES.includes(my) ? my : "T";
+    if (!ROLES.includes(S.ui.seLane)) S.ui.seLane = lane;
+    const tabs = `<div class="se-tabs" role="tablist" aria-label="라인">${ROLES.map((r) => { const p = t.players[r] || {}, can = canEditLane(t.id, r);
+      return `<button class="se-tab" role="tab" data-act="selane" data-r="${r}" aria-selected="${r === lane}"><b>${ROLE_KO[r]}${my === r ? `<span class="se-me">나</span>` : ""}</b><span>${esc(nick(p.riot) || "계정 없음")}</span><small class="${can ? "ok" : ""}">${can ? "✎ 편집 가능" : "🔒 보기만"}</small></button>`; }).join("")}</div>`;
+    const r = lane, p = t.players[r] || {}, can = canEditLane(t.id, r);
+    const stats = E.poolMap({ ...t, players: { ...t.players, [r]: { ...p, pool: [], hide: [] } } }, r);
+    const pool = (p.pool || []).slice().sort((a, b) => (b[2] ? 4 : b[1]) - (a[2] ? 4 : a[1]));
+    const LV = [[3, "상"], [2, "중"], [1, "하"], ["one", "원챔"]];
+    const row = ([id, lv, one]) => { const st = stats[id], cur = one ? "one" : lv;
+      const seg = can ? `<span class="se-lv" role="group" aria-label="${esc(CH[id] ? CH[id].ko : id)} 숙련도">${LV.map(([v, n]) => `<button data-act="setlv" data-team="${t.id}" data-role="${r}" data-id="${id}" data-v="${v}" aria-pressed="${String(v) === String(cur)}">${n}</button>`).join("")}</span>`
+        : `<span class="se-lv ro">${lvTag({ lv, one })}</span>`;
+      return `<div class="se-row">${icon(id, "sm")}<span class="se-nm"><b>${esc(CH[id] ? CH[id].ko : id)}</b><small>${st && st.g ? `${st.g}판 ${Math.round(st.wr)}%` : "기록 없음"}</small></span>${seg}${can ? `<button class="se-del" data-act="del" data-team="${t.id}" data-role="${r}" data-id="${id}" aria-label="${esc(CH[id] ? CH[id].ko : id)} 빼기">${ico("x")}</button>` : ""}</div>`; };
+    const mine = new Set(pool.map((x) => x[0])), hidden = new Set(p.hide || []);
+    const rec = Object.entries(stats).filter(([id, e]) => !mine.has(id) && !hidden.has(id) && CH[id] && (e.g || e.rg)).sort((a, b) => E.lvScore(b[1]) - E.lvScore(a[1])).slice(0, 10);
+    const recH = rec.length ? `<div class="se-rec"><span class="se-rec-h">기록에만 있는 챔프${can ? " · 누르면 넣기" : ""}</span>${rec.map(([id, e]) => can ? `<button class="chip auto-chip" data-act="pinrec" data-team="${t.id}" data-role="${r}" data-id="${id}" data-lv="${e.lv}" data-one="${e.one ? 1 : ""}">${icon(id, "sm")}${esc(CH[id].ko)}<span class="st">${e.g || e.rg}판</span></button>` : `<span class="chip">${icon(id, "sm")}${esc(CH[id].ko)}<span class="st">${e.g || e.rg}판</span></span>`).join("")}</div>` : "";
+    const add = can ? `<div class="se-add"><input class="input" list="champList" data-add="${r}" placeholder="챔피언 추가 — 이름 입력 후 Enter"><select class="input" data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select><button class="ib btn sm" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></div>`
+      : `<p class="se-lock">🔒 ${laneLockMsg(r)}</p>`;
+    return `<p class="help se-intro">숙련도를 누르면 바로 저장 · ${SPACE && SPACE.viaLogin ? "내 라인만 고칠 수 있음(팀장·코치는 전체)" : "이 브라우저 팀 열쇠로는 모든 라인을 고칠 수 있음"}</p>${tabs}
+      <div class="se-list">${pool.length ? pool.map(row).join("") : `<p class="help">아직 넣은 챔프가 없습니다${can ? " — 아래에서 넣거나 기록에만 있는 챔프를 누르세요" : ""}</p>`}</div>${recH}${add}`;
   }
   // 설정 PC: 라인 한 줄 = 라인 · 계정(본계정 확인·부계정·티어) · 챔프폭 알약(+ 챔프)
   function setTeamPC() {
@@ -2895,7 +2919,25 @@
       <section class="sd-card"><h3>계정</h3>${acct}</section></div>`;
     return `<div class="home settings-only">${right}</div>`;
   }
+  async function obSaveNick() {
+    const inp = document.getElementById("obNick"), v = String((inp && inp.value) || AP.nick || "").replace(/\s+/g, " ").trim();
+    if (!v) { AUTH.msg = "이름을 넣어 주세요"; render(); return; }
+    AUTH.busy = true; AUTH.msg = ""; render();
+    try { const d = await authPost("me/nick", { nick: v }); AUTH.user = { ...AUTH.user, ...d.user }; AP.nick = null; TM2.list = null;
+      try { localStorage.setItem(KEY_AUTH, JSON.stringify({ user: AUTH.user, spaces: AUTH.spaces })); } catch (e) { /* 이번만 */ } }
+    catch (e) { AUTH.msg = e.message || String(e); }
+    AUTH.busy = false; render();
+    const nx = document.querySelector(".ob-role"); if (nx) nx.focus();
+  }
+  // 팀장 권한(11-20 사용자): 우리 팀 자기평가 챔프폭은 그 라인 선수 본인 · 팀장 · 코치만(서버도 같은 규칙). 상대 팀 메모·열쇠(옛 방식) 공간은 그대로
+  function canEditLane(tid, r) {
+    if (tid !== S.ourTeam || !SPACE || !SPACE.viaLogin) return true;
+    return !!SPACE.isOwner || SPACE.myRole === "coach" || SPACE.myRole === r;
+  }
+  const canConfirmAlt = () => !SPACE || !SPACE.viaLogin || !!SPACE.isOwner;   // 부계정 찾기 확정(추가·아님)은 팀장만
+  const laneLockMsg = (r) => `${ROLE_KO[r]} 챔프폭은 ${ROLE_KO[r]} 선수 본인·팀장·코치만 고칠 수 있습니다`;
   function addChamp(r) {
+    if (!canEditLane(editing, r)) { toast(laneLockMsg(r)); return; }
     const inp = document.querySelector(`[data-add="${r}"]`);
     const c = findChamp(inp.value);
     if (!c) { inp.setCustomValidity("챔피언을 찾을 수 없습니다"); inp.reportValidity(); return; }
@@ -2996,18 +3038,19 @@
   }
   // 홈 맨 위: 아직 포지션을 안 고른 팀원에게
   function rolePickCard() {
+    return "";   // 11-20 사용자: 처음 들어올 때 「이름 → 포지션」 화면에서 고름(obNeed)
     if (!SESS || !SPACE || !SPACE.viaLogin || SPACE.myRole) return "";
     const ours = team(S.ourTeam);
     const lane = (r) => { const p = ours && !ours.solo && ours.players[r]; return p && p.riot ? `<small>${esc(nick(p.riot))}</small>` : ""; };
     return `<section class="rp-card" role="region" aria-label="내 포지션 고르기"><div><b>「${esc(SPACE.name)}」에서 내 포지션은?</b><span class="help">고르면 팀원 목록에 표시되고, 팀장이 바꿀 수도 있습니다</span></div>
-      <div class="rp-btns">${MROLE.map(([k, n]) => `<button class="rp-b" data-act="myrole" data-v="${k}"><b>${n}</b>${ROLES.includes(k) ? lane(k) : ""}</button>`).join("")}</div></section>`;
+      <div class="rp-btns">${MROLE.filter(([k]) => k !== "coach" || SPACE.isOwner).map(([k, n]) => `<button class="rp-b" data-act="myrole" data-v="${k}"><b>${n}</b>${ROLES.includes(k) ? lane(k) : ""}</button>`).join("")}</div></section>`;
   }
   function membersCard() {
     if (!SESS || !SPACE || !SPACE.viaLogin) return "";
     if (!TM2.list || TM2.sp !== SPACE.id) { loadMembers(); return `<section class="sd-card"><h3>팀원</h3><p class="help">불러오는 중…</p></section>`; }
-    const sel = (m) => `<select class="input mr-sel" data-act="mrole" data-mid="${m.me ? "" : esc(m.mid)}" aria-label="${esc(m.nick)} 포지션"><option value="" ${m.role ? "" : "selected"}>미정</option>${MROLE.map(([k, n]) => `<option value="${k}" ${m.role === k ? "selected" : ""}>${n}</option>`).join("")}</select>`;
+    const sel = (m) => `<select class="input mr-sel" data-act="mrole" data-mid="${m.me ? "" : esc(m.mid)}" aria-label="${esc(m.nick)} 포지션"><option value="" ${m.role ? "" : "selected"}>미정</option>${MROLE.filter(([k]) => k !== "coach" || SPACE.isOwner || m.role === "coach").map(([k, n]) => `<option value="${k}" ${m.role === k ? "selected" : ""}>${n}</option>`).join("")}</select>`;   // 코치(모든 라인 편집)는 팀장만 지정
     const order = (r) => { const i = MROLE.findIndex(([k]) => k === r); return i < 0 ? 99 : i; };
-    return `<section class="sd-card"><h3>팀원 <small class="dim">${TM2.list.length}명</small></h3><ul class="mr-list">${TM2.list.slice().sort((a, b) => order(a.role) - order(b.role)).map((m) => `<li><span class="mr-n"><b>${esc(m.nick)}</b>${m.me ? `<small>나</small>` : ""}${m.owner ? `<small class="mr-own">팀장</small>` : ""}</span><span class="mr-act">${m.me || SPACE.isOwner ? sel(m) : `<span class="mr-r">${mroleKo(m.role)}</span>`}${SPACE.isOwner && !m.me && !m.owner ? `<button class="mr-kick" data-act="mkick" data-mid="${esc(m.mid)}" data-nick="${esc(m.nick)}" title="${esc(m.nick)} 내보내기" aria-label="${esc(m.nick)} 팀에서 내보내기">${ico("x")}</button>` : SPACE.isOwner ? `<span class="mr-kick-sp" aria-hidden="true"></span>` : ""}</span></li>`).join("")}</ul></section>`;
+    return `<section class="sd-card"><h3>팀원 <small class="dim">${TM2.list.length}명</small></h3><ul class="mr-list">${TM2.list.slice().sort((a, b) => order(a.role) - order(b.role)).map((m) => `<li><span class="mr-n"><b>${esc(m.nick)}</b>${m.me ? `<small>나</small>` : ""}${m.owner ? `<small class="mr-own">팀장</small>` : ""}</span><span class="mr-act">${SPACE.isOwner ? sel(m) : `<span class="mr-r">${mroleKo(m.role)}</span>`}${SPACE.isOwner && !m.me && !m.owner ? `<button class="mr-kick" data-act="mkick" data-mid="${esc(m.mid)}" data-nick="${esc(m.nick)}" title="${esc(m.nick)} 내보내기" aria-label="${esc(m.nick)} 팀에서 내보내기">${ico("x")}</button>` : SPACE.isOwner ? `<span class="mr-kick-sp" aria-hidden="true"></span>` : ""}</span></li>`).join("")}</ul></section>`;
   }
   async function loadMe() {
     if (!SESS || !WURL()) return;
@@ -3114,7 +3157,7 @@
     return `<article class="as-card ${hi ? "hi" : lo ? "lo" : ""}"><div class="as-h"><span class="as-g">${SUS_GRADE[x.grade] || "의심 보통"}</span><span class="as-t">${esc(t.name)} · ${ROLE_KO[x.role]}</span></div>
       <div class="as-who"><span class="as-main" title="${esc(p.riot)}">${esc(nick(p.riot) || "—")}</span><span class="as-ar" aria-hidden="true">→</span><a class="as-sus" href="${opgg(x.riot)}" target="_blank" rel="noopener">${esc(nick(x.riot))}<small>#${esc(String(x.riot).split("#")[1] || "")}</small></a></div>
       ${mini ? "" : `<ul class="as-ev">${lines.map((l) => `<li>${l}</li>`).join("")}</ul><p class="help as-note">용병·친구 파티일 수도 있습니다 · 대회 계정 4개 + 1명은 2일·3판, 1~3개 묶음은 같은 5명 3일·5판 이상일 때만 띄움</p>`}
-      <div class="as-act"><button class="btn sm primary" data-act="susadd" data-tid="${esc(t.id)}" data-r="${x.role}" data-riot="${esc(x.riot)}" ${((p.alts || []).filter(Boolean).length >= 2) ? `disabled title="부계정은 라인당 2개까지"` : ""}>부계정으로 추가</button><button class="btn sm ghost" data-act="susno" data-tid="${esc(t.id)}" data-riot="${esc(x.riot)}" data-id="${esc(x.id || "")}">아님</button></div></article>`;
+      ${canConfirmAlt() ? "" : `<p class="help as-note">부계정 확정(추가·아님)은 팀장이 합니다</p>`}<div class="as-act" ${canConfirmAlt() ? "" : "hidden"}><button class="btn sm primary" data-act="susadd" data-tid="${esc(t.id)}" data-r="${x.role}" data-riot="${esc(x.riot)}" ${((p.alts || []).filter(Boolean).length >= 2) ? `disabled title="부계정은 라인당 2개까지"` : ""}>부계정으로 추가</button><button class="btn sm ghost" data-act="susno" data-tid="${esc(t.id)}" data-riot="${esc(x.riot)}" data-id="${esc(x.id || "")}">아님</button></div></article>`;
   }
   // 찾는 중 안내(11-20 사용자): 명단 등록 작업이 도는 중이면 그 남은 시간, 0시 수집이 도는 중이면 시작 시각 + 약 1시간
   function altFindWait() {
@@ -3133,27 +3176,36 @@
     const byT = {}; list.forEach((it) => (byT[it.t.id] = byT[it.t.id] || []).push(it));
     const teams = S.teams.filter((t) => !t.solo && (byT[t.id] || ROLES.some((r) => /#/.test((t.players[r] || {}).riot || "")))).sort((a, b) => (b.id === S.ourTeam) - (a.id === S.ourTeam));   // 의심이 있는 팀은 명단이 비어 보여도 넣음
     const view = S.ui.altView === "list" ? "list" : "card";
-    const head = `<div class="as-bar"><p class="help as-top">${at} · 자유랭크 <b>완전히 같은 5명</b> 묶음에서 빠진 라인 선수의 부계정으로 의심 · 대회 계정 4개 + 1명은 2일·3판 이상, 1~3개 묶음은 3일·5판 이상 · 등급: 강력(근거 + 하루 더) / 보통(라인 일치나 본계정 쉼) / 낮음(기준만, 또는 본계정 동시 게임)</p>
-      <div class="seg as-view" role="group" aria-label="보기"><button data-act="altview" data-v="card" aria-pressed="${view === "card"}">기본형</button><button data-act="altview" data-v="list" aria-pressed="${view === "list"}">리스트형</button></div></div>`;
-    const notYetH = notYet.length ? `<p class="help as-top">아직 안 찾은 팀: ${notYet.map((t) => esc(t.name)).join(", ")} — ${wait ? "찾는 중" : "다음 0시 수집(또는 명단 등록) 때 찾습니다"}</p>` : "";
-    const empty = `<div class="as-empty">${lbi("scout", 28)}<b>의심 계정이 없습니다</b><span class="help">0시 수집마다 다시 찾습니다</span></div>`;
+    const desc = `<p class="help as-desc">${at} · 자유랭크 <b>완전히 같은 5명</b> 묶음에서 빠진 라인 선수의 부계정으로 의심 · 대회 계정 4개 + 1명은 2일·3판 이상, 1~3개 묶음은 3일·5판 이상 · 등급: 강력(근거 + 하루 더) / 보통(라인 일치나 본계정 쉼) / 낮음(기준만, 또는 본계정 동시 게임)</p>`;
+    const toggle = `<div class="seg as-view" role="group" aria-label="보기"><button data-act="altview" data-v="card" aria-pressed="${view === "card"}">기본형</button><button data-act="altview" data-v="list" aria-pressed="${view === "list"}">리스트형</button></div>`;
+    const notYetH = notYet.length ? `<p class="help as-desc">아직 안 찾은 팀: ${notYet.map((t) => esc(t.name)).join(", ")} — ${wait ? "찾는 중" : "다음 0시 수집(또는 명단 등록) 때 찾습니다"}</p>` : "";
+    const empty = `<div class="as-empty">${lbi("scout", 32)}<b>의심 계정이 없습니다</b><span class="help">0시 수집·명단 등록 때마다 다시 찾습니다</span></div>`;
     let body;
     if (view === "card") {
       const cur = S.ui.altTeam && (S.ui.altTeam === "all" || teams.some((t) => t.id === S.ui.altTeam)) ? S.ui.altTeam : "all";
       const chip = (id, name, n, our) => `<button class="as-chip" data-act="altteam" data-v="${esc(id)}" aria-pressed="${cur === id}">${esc(name)}${our ? `<small>우리</small>` : ""}<span class="as-n ${n ? "" : "z"}">${n}</span></button>`;
       const chips = `<div class="as-chips" role="group" aria-label="팀">${chip("all", "전체", list.length)}${teams.map((t) => chip(t.id, t.name, (byT[t.id] || []).length, t.id === S.ourTeam)).join("")}</div>`;
       const show = cur === "all" ? teams.filter((t) => byT[t.id]) : teams.filter((t) => t.id === cur);
-      body = chips + (show.some((t) => byT[t.id]) ? show.map((t) => `<section class="as-sec">${cur === "all" ? `<h3>${esc(t.name)}${t.id === S.ourTeam ? " <small>우리 팀</small>" : ""}</h3>` : ""}<div class="as-grid">${(byT[t.id] || []).map((it) => suspectCard(it)).join("")}</div></section>`).join("") : empty);
+      body = `<div class="as-bar">${chips}${toggle}</div>` + (show.some((t) => byT[t.id]) ? show.map((t) => `<section class="as-sec">${cur === "all" ? `<h3>${esc(t.name)}${t.id === S.ourTeam ? " <small>우리 팀</small>" : ""}</h3>` : ""}<div class="as-grid">${(byT[t.id] || []).map((it) => suspectCard(it)).join("")}</div></section>`).join("") : empty);
     } else {
       const sel = S.ui.altSel || "", selIt = list.find((it) => `${it.t.id}|${it.x.riot}` === sel) || null;
       const cell = (t, r) => { const xs = (byT[t.id] || []).filter((it) => it.x.role === r);
         return xs.length ? xs.map((it) => `<button class="as-cell ${it.x.grade === "high" ? "hi" : it.x.grade === "low" ? "lo" : ""}" data-act="altsel" data-v="${esc(t.id + "|" + it.x.riot)}" aria-pressed="${sel === t.id + "|" + it.x.riot}" title="${esc(it.x.riot)} · ${SUS_GRADE[it.x.grade] || ""} · 같은 5명 ${it.x.days.length}일 ${it.x.g}판"><span>${esc(it.x.riot)}</span></button>`).join("") : `<span class="as-dash">—</span>`; };
-      body = `<div class="as-tw"><table class="as-mx"><thead><tr><th>팀</th>${ROLES.map((r) => `<th>${ROLE_KO[r]}</th>`).join("")}</tr></thead><tbody>
+      body = `<div class="as-bar"><span class="as-bar-t">팀 × 라인</span>${toggle}</div><div class="as-tw"><table class="as-mx"><thead><tr><th>팀</th>${ROLES.map((r) => `<th>${ROLE_KO[r]}</th>`).join("")}</tr></thead><tbody>
         ${teams.map((t) => `<tr><td class="as-tn">${esc(t.name)}${t.id === S.ourTeam ? "<small>우리</small>" : ""}</td>${ROLES.map((r) => `<td>${cell(t, r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
         ${selIt ? suspectCard(selIt) : `<p class="help">칸의 계정을 누르면 근거와 「부계정으로 추가」·「아님」이 아래에 나옵니다</p>`}`;
     }
-    return `<div class="as-pg">${waitH}${notYetH}${head}${body}</div>`;
+    return `<div class="as-pg">${waitH}${body}<div class="as-foot">${notYetH}${desc}</div></div>`;
   }
+  // 부계정 찾기 화면을 딱 화면 높이로(설명은 맨 아래, 스크롤 없이): 실제 남는 높이를 재서 채움 — 화면 폭에 따라 꼬리말 줄 수가 달라서
+  function fitAltPage() {
+    const pg = document.querySelector(".as-pg, .notes-pc"); if (!pg) return;   // 부계정 찾기·피드백 노트(11-20 사용자: 비었을 때 꼬리말이 위로 올라옴)
+    pg.style.minHeight = "0px";
+    const ft = document.querySelector("body > footer"), bottom = ft ? ft.getBoundingClientRect().bottom + scrollY : document.documentElement.scrollHeight;
+    const extra = Math.floor(innerHeight - bottom) - 1;
+    pg.style.minHeight = extra > 0 ? `${pg.offsetHeight + extra}px` : "";
+  }
+  window.addEventListener("resize", () => { if (S.tab === "alts" || S.tab === "notes") fitAltPage(); });
   async function suspectAdd(tid, r, riot) {
     const t = team(tid), p = t && t.players[r]; if (!p) return;
     const alts = ((p.alts || altsOf(tid, r)) || []).filter(Boolean);
@@ -4564,14 +4616,34 @@
   //   사이드바·머리줄·본문을 가리고 가운데 카드 하나. 입력 중 다시 그려도 칸이 비지 않게 내용이 바뀔 때만 새로 그림
   // 로그인 B(왼쪽 소개 + 오른쪽 로그인) · 첫 화면 A(팀장 「팀 만들기」 / 팀원 「초대 코드 6칸」) — 11-20 사용자 결정
   //   입력값은 AP에 들고 있다가 다시 그려도 그대로(오류 뒤 다시 칠 필요 없게)
-  const AP = { team: "", code: "" };
+  const AP = { team: "", code: "", nick: null };
   function authMsg() {
     const m = AUTH.msg || (LOGIN_ERR ? { cancel: "로그인을 취소했습니다", state: "로그인 시간이 지났습니다 — 다시 눌러 주세요", provider: "로그인 공급자 응답에 문제가 있었습니다 — 잠시 뒤 다시", not_ready: "그 로그인은 아직 준비 중입니다" }[LOGIN_ERR] || "로그인하지 못했습니다" : "");
     return m ? `<p class="ap-msg" role="status">${esc(m)}</p>` : "";
   }
   const AP_FOOT = `<div class="ap-foot"><a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a> · <a href="mailto:wonseo151@naver.com">문의</a></div>`;
+  // 처음 들어오기(11-20 사용자): 초대 코드 → 이름 → 포지션을 홈 없이 차례로. 이름은 팀원 목록에 쓰고, 포지션은 처음 한 번만 직접(이후 팀장)
+  const obNeed = () => !!(SESS && SPACE && SPACE.viaLogin && AUTH.user && (!AUTH.user.nickSet || (!SPACE.myRole && !(SPACE.isOwner && S.ui.roleLater))));
+  function onboardHtml() {
+    const who = AUTH.user ? `${esc(AUTH.user.nick || "로그인됨")} · ${PROVIDER_KO[AUTH.user.provider] || ""}` : "로그인됨";
+    const top = `<div class="ap-top"><button class="ap-logo" data-act="noop" aria-label="lolban">${LOGO_MARK}<span>lolban<i>.</i></span></button><span class="ap-who">${who}${themeBtn()}<button class="nc-a" data-act="lgout">로그아웃</button></span></div>`;
+    const step = (n, t) => `<p class="ob-step">${n} / 3 · ${t}</p>`;
+    let body;
+    if (!AUTH.user.nickSet) {
+      body = `${step(2, esc(SPACE.name))}<h1>이름을 알려 주세요</h1><p class="ap-sub">팀원 목록과 실시간 밴픽에 이 이름으로 보입니다</p>
+        <div class="ob-box"><input class="input ob-in" id="obNick" maxlength="12" value="${esc(AP.nick != null ? AP.nick : AUTH.user.nick || "")}" placeholder="본인 이름(1~12자)" aria-label="이름" autocomplete="name">
+        <button class="n-new ob-go" data-act="obnick" ${AUTH.busy ? "disabled" : ""}>다음</button></div>`;
+    } else {
+      const t = team(SPACE.id), acc = (r) => { const pl = t && t.players[r]; return pl && pl.riot ? `<small>${esc(nick(pl.riot))}</small>` : ""; };
+      const opts = MROLE.filter(([k]) => k !== "coach" || SPACE.isOwner);
+      body = `${step(3, esc(SPACE.name))}<h1>내 포지션을 골라 주세요</h1><p class="ap-sub">${SPACE.isOwner ? "팀장은 나중에 팀원 목록에서 언제든 바꿀 수 있습니다" : "처음 한 번만 직접 고르고, 바꾸는 건 팀장이 합니다"}</p>
+        <div class="ob-roles">${opts.map(([k, n]) => `<button class="ob-role" data-act="obrole" data-v="${k}" ${AUTH.busy ? "disabled" : ""}><b>${n}</b>${ROLES.includes(k) ? acc(k) : `<small>${k === "sub" ? "출전 라인 없음" : "모든 라인 자기평가 편집"}</small>`}</button>`).join("")}</div>
+        ${SPACE.isOwner ? `<button class="ap-skip" data-act="obrolelater">나중에 고르기 <span aria-hidden="true">→</span></button>` : ""}`;
+    }
+    return `<div class="ap ap-first">${top}<section class="ap-wrap ob-wrap" aria-label="처음 설정">${body}${authMsg()}</section>${AP_FOOT}</div>`;
+  }
   function authPage() {
-    const on = guest() && S.tab === "our";
+    const ob = obNeed(), on = (guest() && S.tab === "our") || ob;
     document.documentElement.classList.toggle("auth-on", on);
     let el = document.getElementById("authpg");
     if (!on) { if (el) el.remove(); return; }
@@ -4579,7 +4651,8 @@
     const logo = `<button class="ap-logo" data-act="gotab" data-k="live" aria-label="lolban 실시간 밴픽으로">${LOGO_MARK}<span>lolban<i>.</i></span></button>`;
     const skip = `<button class="ap-skip" data-act="gotab" data-k="live">${SESS ? "팀 없이" : "로그인 없이"} 실시간 밴픽만 쓰기 <span aria-hidden="true">→</span></button>`;
     let h;
-    if (!SESS) {
+    if (ob) h = onboardHtml();
+    else if (!SESS) {
       const pv = AUTH.providers, pvIco = { google: `<span class="pv-g" aria-hidden="true"></span>`, naver: `<span class="pv-n" aria-hidden="true">N</span>`, kakao: `<span class="pv-k" aria-hidden="true">K</span>` };
       const btns = pv == null ? `<p class="help">불러오는 중…</p>` : pv.length ? pv.map((x) => `<button class="lg-b ${x}" data-act="lglogin" data-k="${x}">${pvIco[x] || ""}${PROVIDER_KO[x] || x}로 로그인</button>`).join("") : `<p class="help">로그인 준비 중입니다 — 곧 열립니다</p>`;
       const feat = (ic, t, d) => `<li><span class="ap-ic" aria-hidden="true">${ic}</span><span><b>${t}</b><small>${d}</small></span></li>`;
@@ -4611,14 +4684,14 @@
     const fill = (txt) => { const all = String(txt || "").toUpperCase().match(/(?<![A-Z0-9])[A-Z0-9]{6}(?![A-Z0-9])/g); const c = all ? all[all.length - 1] : String(txt || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
       boxes().forEach((b, k) => { b.value = c[k] || ""; }); sync(); const nx = boxes()[Math.min(5, c.length)]; if (nx) nx.focus(); };
     document.addEventListener("input", (ev) => {
-      const b = ev.target; if (!b || !b.classList || !b.classList.contains("ap-cbox")) { if (ev.target && ev.target.id === "lgTeam") AP.team = ev.target.value; return; }
+      const b = ev.target; if (!b || !b.classList || !b.classList.contains("ap-cbox")) { if (ev.target && ev.target.id === "lgTeam") AP.team = ev.target.value; if (ev.target && ev.target.id === "obNick") AP.nick = ev.target.value; return; }
       const v = b.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
       if (v.length > 1) { fill(v); return; }
       b.value = v; sync(); if (v) { const nx = boxes()[+b.dataset.ci + 1]; if (nx) nx.focus(); }
     });
     document.addEventListener("paste", (ev) => { const b = ev.target; if (!b || !b.classList || !b.classList.contains("ap-cbox")) return; ev.preventDefault(); fill((ev.clipboardData || window.clipboardData).getData("text")); });
     document.addEventListener("keydown", (ev) => {
-      const b = ev.target; if (!b || !b.classList || !b.classList.contains("ap-cbox")) { if (ev.target && ev.target.id === "lgTeam" && ev.key === "Enter" && !ev.isComposing) { ev.preventDefault(); const go = document.querySelector('[data-act="lgnew"]'); if (go) go.click(); } return; }
+      const b = ev.target; if (!b || !b.classList || !b.classList.contains("ap-cbox")) { if (ev.target && (ev.target.id === "lgTeam" || ev.target.id === "obNick") && ev.key === "Enter" && !ev.isComposing) { ev.preventDefault(); const go = document.querySelector(ev.target.id === "lgTeam" ? '[data-act="lgnew"]' : '[data-act="obnick"]'); if (go) go.click(); } return; }
       const k = +b.dataset.ci;
       if (ev.key === "Backspace" && !b.value && k > 0) { const pv = boxes()[k - 1]; pv.value = ""; pv.focus(); sync(); ev.preventDefault(); }
       else if (ev.key === "ArrowLeft" && k > 0) boxes()[k - 1].focus();
@@ -4674,6 +4747,7 @@
     peakBackfill();
     liveTick();
     if (S.tab === "notes") v.querySelectorAll(".nbody").forEach((p) => { if (p.scrollHeight > p.clientHeight + 2) p.classList.add("clamped"); });
+    if (S.tab === "alts" || S.tab === "notes") fitAltPage();
     if (keepFocus) { const q = document.getElementById("q"); if (q) { q.focus(); q.setSelectionRange(pos, pos); } }
   }
 
@@ -4684,6 +4758,11 @@
     if (el.classList.contains("tab")) { if (el.tagName === "A") ev.preventDefault(); S.tab = el.dataset.tab; MV.more = false; save(); render(); window.scrollTo(0, 0); if (S.tab === "notes") loadNotes(); return; }
     const a = el.dataset.act;
     if ((a === "close" || a === "nclose" || a === "chdclose") && ev.target !== el && el.classList.contains("modal-bg")) return; // 모달 안쪽 클릭
+    if (["del", "pinrec", "reccyc", "rechide", "recunhide", "cycle", "setlv", "add"].includes(a)) {
+      const tid = el.dataset.team || editing, r = el.dataset.role;
+      if (r && !canEditLane(tid, r)) { ev.stopPropagation(); toast(laneLockMsg(r)); return; }
+    }
+    if ((a === "susadd" || a === "susno") && !canConfirmAlt()) { toast("부계정 확정은 팀장만 할 수 있습니다"); return; }
     // 실시간 밴픽 같이 보기: 진행자가 아니면 밴픽을 바꾸는 버튼은 막음
     if (LIVE_ACTS.has(a) && S.tab === "live" && liveOn() && !isHost()) { toast(`진행자(${LIVE.host ? LIVE.host.name : "?"})만 밴픽을 넣을 수 있습니다 — 「진행 맡기」로 넘겨받기`); return; }
     switch (a) {
@@ -4907,6 +4986,13 @@
         save(); shareChanged(t.id, r); renderEditor(); render(); break; }
       case "recunhide": { const t = team(el.dataset.team), r = el.dataset.role, p = t.players[r]; p.hide = (p.hide || []).filter((x) => x !== el.dataset.id);
         save(); shareChanged(t.id, r); renderEditor(); render(); break; }
+      case "setlv": { const p = team(el.dataset.team).players[el.dataset.role]; const i = (p.pool || []).findIndex((x) => x[0] === el.dataset.id); if (i < 0) break;
+        p.pool[i] = el.dataset.v === "one" ? [el.dataset.id, 3, true] : [el.dataset.id, +el.dataset.v];
+        save(); shareChanged(el.dataset.team, el.dataset.role); renderEditor(); render(); break; }
+      case "selane": S.ui.seLane = el.dataset.r; renderEditor(); break;
+      case "obnick": obSaveNick(); break;
+      case "obrole": AUTH.msg = ""; setMemberRole(el.dataset.v).then(() => { S.tab = "our"; save(); render(); }); break;
+      case "obrolelater": S.ui.roleLater = true; save(); render(); break;
       case "cycle": { const p = team(el.dataset.team).players[el.dataset.role]; const e = p.pool.find((x) => x[0] === el.dataset.id);
         if (e[2]) { e[1] = 3; e.length = 2; } else if (e[1] === 1) { e[1] = 3; e[2] = true; } else e[1] = e[1] - 1;
         save(); shareChanged(el.dataset.team, el.dataset.role); renderEditor(); render(); break; }
@@ -5258,7 +5344,7 @@
       const fx = cs.filter((n) => n.kind === "fix").length, gd = cs.length - fx;
       return `<section class="n-col"><div class="n-ch"><span class="l5-r">${ROLE_KO[r]}</span><b>${esc(nick(p.riot) || "—")}</b>
         <span class="n-cnt"><span class="nc-k fix">고칠 점 ${fx}</span><span class="nc-k good">잘한 점 ${gd}</span><button class="nc-add" data-act="nnew" data-who="${r}" aria-label="${ROLE_KO[r]} 노트 쓰기" title="${ROLE_KO[r]} 노트 쓰기">${lbi("plus", 18)}</button></span></div>
-        ${cs.map(card).join("") || `<p class="help">노트 없음</p>`}</section>`;
+        ${cs.map(card).join("") || `<button class="n-empty" data-act="nnew" data-who="${r}">${lbi("plus", 18)}<span>아직 노트가 없습니다</span><small>눌러서 ${ROLE_KO[r]} 노트 쓰기</small></button>`}</section>`;
     }).join("");
     return `<div class="home notes-pc">${bar}${NT.status === "error" ? `<p class="help warn">저장 실패: ${esc(NT.err)}</p>` : ""}${teamSec}<div class="n-cols">${cols}</div></div>`;
   }
