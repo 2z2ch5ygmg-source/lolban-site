@@ -2002,12 +2002,42 @@
     const rec = Object.entries(stats).filter(([id, e]) => !mine.has(id) && !hidden.has(id) && CH[id] && (e.g || e.rg)).sort((a, b) => E.lvScore(b[1]) - E.lvScore(a[1])).slice(0, 12);
     const recT = ([id, e]) => `<span class="pk-t ghost" ${can ? `draggable="true"` : ""} data-id="${id}" data-lv="${e.lv}" data-one="${e.one ? 1 : ""}">${can ? `<button class="pk-tb" data-act="pinrec" data-team="${t.id}" data-role="${r}" data-id="${id}" data-lv="${e.lv}" data-one="${e.one ? 1 : ""}" aria-label="${esc(CH[id].ko)} 넣기">${icon(id, "lg")}</button>` : icon(id, "lg")}<b>${esc(CH[id].ko)}</b><small>${e.g || e.rg}판</small></span>`;
     const tray = `<section class="pk-tray pk-col" data-v="out" aria-label="기록에만 있는 챔프"><span class="pk-ch"><b>기록에만 있음</b>${can ? `<small>끌어 올리면 넣기 · 칸에서 여기로 끌면 빼기</small>` : ""}</span><div class="pk-tl">${rec.map(recT).join("") || `<span class="help">기록에만 있는 챔프 없음</span>`}</div>
-      ${can ? `<span class="pk-find">${lbi("scout", 16)}<input class="input" list="champList" data-add="${r}" placeholder="다른 챔피언 찾기 (Enter = 중)" aria-label="챔피언 찾아 넣기"><input type="hidden" data-addlv="${r}" value="2"></span>` : ""}</section>`;
+      ${can ? `<span class="pk-find">${lbi("scout", 16)}<input class="input" id="pkFind" autocomplete="off" spellcheck="false" placeholder="다른 챔피언 찾기" aria-label="챔피언 찾아 넣기 · 중 칸에 들어감" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pkSug"><div class="pk-sug" id="pkSug" role="listbox" aria-label="찾은 챔피언" hidden></div></span>` : ""}</section>`;
     const lock = can ? "" : `<p class="pk-lockmsg">${lbi("lock", 16)}${esc(laneLockMsg(r))}</p>`;
     return `<div class="pool-pc">${tabs}${head}${lock}${cols}${tray}</div>`;
   }
   const LV_ICON = (k) => k === 4 ? `<svg class="pk-crown" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>`
     : `<span class="pk-bars" aria-hidden="true">${[1, 2, 3].map((i) => `<i class="${i <= k ? "f" : ""}"></i>`).join("")}</span>`;
+  // 챔피언 찾기(11-20 사용자: 목록이 초상화+이름, 누르거나 Enter면 바로 「중」 칸에) — 브라우저 기본 목록(datalist)은 눌러도 안 들어가서 직접 만든 목록
+  const PKF = { i: 0, ids: [] };
+  function pkSug(keepI) {
+    const inp = document.getElementById("pkFind"), box = document.getElementById("pkSug"); if (!inp || !box) return;
+    const q = inp.value.trim(), t = team(S.ourTeam), r = poolLane(t), have = new Set(((t.players[r] || {}).pool || []).map((x) => x[0]));
+    if (!q) { box.hidden = true; inp.setAttribute("aria-expanded", "false"); PKF.ids = []; return; }
+    const nq = q.toLowerCase().replace(/\s+/g, "");
+    const list = window.CHAMPIONS.filter((c) => matches(c, q)).sort((a, b) => (b.ko.replace(/\s+/g, "").startsWith(nq) - a.ko.replace(/\s+/g, "").startsWith(nq)) || (have.has(a.id) - have.has(b.id)) || a.ko.localeCompare(b.ko, "ko")).slice(0, 8);
+    PKF.ids = list.map((c) => c.id); if (!keepI) PKF.i = Math.max(0, PKF.ids.findIndex((id) => !have.has(id)));
+    PKF.i = Math.min(PKF.i, Math.max(0, PKF.ids.length - 1));
+    box.innerHTML = list.length ? list.map((c, k) => `<button type="button" class="pk-sg" role="option" id="pkSg${k}" data-id="${c.id}" aria-selected="${k === PKF.i}" ${have.has(c.id) ? `aria-disabled="true"` : ""}>${icon(c.id, "sm")}<b>${esc(c.ko)}</b><small>${have.has(c.id) ? "이미 있음" : "중 칸에 넣기"}</small></button>`).join("") : `<p class="pk-sg-none">「${esc(q)}」 챔피언이 없습니다</p>`;
+    box.hidden = false; inp.setAttribute("aria-expanded", "true"); inp.setAttribute("aria-activedescendant", list.length ? `pkSg${PKF.i}` : "");
+  }
+  function pkAdd(id) {
+    const t = team(S.ourTeam), r = poolLane(t); if (!id || !t) return;
+    if (((t.players[r] || {}).pool || []).some((x) => x[0] === id)) { toast(`${CH[id] ? CH[id].ko : id}은(는) 이미 챔프폭에 있습니다`); return; }
+    poolDrop(id, "2");
+    const inp = document.getElementById("pkFind"); if (inp) { inp.value = ""; inp.focus(); }
+    toast(`${CH[id] ? CH[id].ko : id} → 중 칸에 넣었습니다 · 끌어서 옮길 수 있음`);
+  }
+  document.addEventListener("input", (ev) => { if (ev.target && ev.target.id === "pkFind") pkSug(); });
+  document.addEventListener("keydown", (ev) => {
+    if (!ev.target || ev.target.id !== "pkFind" || ev.isComposing) return;
+    const n = PKF.ids.length;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { if (!n) return; ev.preventDefault(); PKF.i = (PKF.i + (ev.key === "ArrowDown" ? 1 : n - 1)) % n; pkSug(true); }
+    else if (ev.key === "Enter") { ev.preventDefault(); ev.stopPropagation(); if (n) pkAdd(PKF.ids[PKF.i]); }
+    else if (ev.key === "Escape") { ev.target.value = ""; pkSug(); }
+  }, true);
+  document.addEventListener("mousedown", (ev) => { const b = ev.target.closest && ev.target.closest(".pk-sg"); if (!b) return; ev.preventDefault(); if (b.getAttribute("aria-disabled") !== "true") pkAdd(b.dataset.id); });
+  document.addEventListener("focusout", (ev) => { if (ev.target && ev.target.id === "pkFind") setTimeout(() => { const box = document.getElementById("pkSug"); if (box && document.activeElement !== ev.target) { box.hidden = true; ev.target.setAttribute("aria-expanded", "false"); } }, 0); });
   // 끌어 놓기: 칸(원챔·상·중·하) ↔ 기록 줄
   function poolDrop(id, v) {
     const t = team(S.ourTeam), r = poolLane(t); if (!t || !id) return;
@@ -4927,6 +4957,7 @@
     renderTop();
     const v = document.getElementById("view");
     const keepFocus = document.activeElement && document.activeElement.id === "q";
+    const keepPk = document.activeElement && document.activeElement.id === "pkFind" ? [document.activeElement.value, document.activeElement.selectionStart] : null;
     const pos = keepFocus ? document.activeElement.selectionStart : 0;
     const mob = MOB.matches, mobV = mob && MOB_VIEW[S.tab];
     document.body.classList.toggle("mob", mob); document.body.classList.toggle("mv-on", !!mobV);
@@ -4955,6 +4986,7 @@
     if (S.tab === "notes") v.querySelectorAll(".nbody").forEach((p) => { if (p.scrollHeight > p.clientHeight + 2) p.classList.add("clamped"); });
     if (S.tab === "alts" || S.tab === "notes") fitAltPage();
     if (keepFocus) { const q = document.getElementById("q"); if (q) { q.focus(); q.setSelectionRange(pos, pos); } }
+    if (keepPk) { const f = document.getElementById("pkFind"); if (f) { f.value = keepPk[0]; f.focus(); try { f.setSelectionRange(keepPk[1], keepPk[1]); } catch (e) { /* 무시 */ } if (keepPk[0]) pkSug(true); } }
   }
 
   document.addEventListener("click", (ev) => {
