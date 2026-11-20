@@ -1049,12 +1049,6 @@ html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips { display: flex; flex-wrap: wr
 html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; padding: 3px 9px 3px 6px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.3; white-space: nowrap; background: var(--panel2); color: var(--text); }
 html.pc :is(.live-pc, .enemy-pc) .rec .rc > span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 html.pc :is(.live-pc, .enemy-pc) .rec .rc .lbi { flex: none; }
-html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc-good { background: var(--hi-bg); color: var(--hi); }
-html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc-hot { background: var(--hi); color: var(--on-gold, #fff); font-weight: 800; }
-html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc-threat { background: var(--red); color: #fff; font-weight: 800; }
-html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc-bad { background: var(--red-bg); color: var(--red); }
-html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc-info { background: var(--panel2); color: var(--text); }
-html.pc :is(.live-pc, .enemy-pc) .rec.first .why.rchips > :is(.rc-plain, .rc-info) { background: var(--panel); }
 /* 높이가 낮은 화면: 칩은 두 줄까지(4개), 아주 낮으면 한 줄(2개) — 예전처럼 이유를 통째로 숨기지 않음 */
 @media (max-height: 1000px) {
   html.pc .live-pc .rec .why.rchips > .rc { display: inline-flex; font-size: 11.5px; padding: 2px 8px 2px 5px; }
@@ -1062,8 +1056,8 @@ html.pc :is(.live-pc, .enemy-pc) .rec.first .why.rchips > :is(.rc-plain, .rc-inf
 }
 @media (max-height: 800px) {
   html.pc .live-pc .rec .why.rchips { display: flex; max-height: 42px; }
+  html.pc .live-pc .rec .why.rchips > .rc { order: 2; } html.pc .live-pc .rec .why.rchips > .rc:first-child { order: 0; } html.pc .live-pc .rec .why.rchips > .rc.k-bad { order: 1; }
   /* 두 개만 보일 때는 가장 강한 이유 + 경고(빨강) */
-  html.pc .live-pc .rec .why.rchips > .rc { order: 2; } html.pc .live-pc .rec .why.rchips > .rc:first-child { order: 0; } html.pc .live-pc .rec .why.rchips > .rc-bad { order: 1; }
 }
 /* 사전 밴 후보 카드 = 누르면 자세히 보기 */
 html.pc .enemy-pc .rec { cursor: pointer; }
@@ -1098,3 +1092,26 @@ html.pc .ic.xl { width: 72px; height: 72px; border-radius: 50%; flex: none; }
 .chd .cd-ch > span { display: grid; min-width: 0; } .chd .cd-ch b { font-size: 14px; } .chd .cd-ch small { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chd .cd-g .help { margin: 0; font-size: 13px; }
 @media (max-width: 760px) { .chd .cd-ans { grid-template-columns: minmax(0, 1fr); } }
+
+/* 11-20 사용자 지적: 화면 높이가 낮을 때 초상화가 카드 위로 튀어나감 — 초상화 칸(hero)만 줄고 초상화(.ic.hero, 더 강한 규칙)는 84·100px 그대로였음. 같은 강도로 함께 줄임 */
+@media (max-height: 1000px) {
+  html.pc .live-pc .rec .hero .ic.hero { width: 60px; height: 60px; }
+  html.pc .live-pc .rec.first .hero .ic.hero { width: 70px; height: 70px; }
+}
+@media (max-height: 800px) {
+  html.pc .live-pc .rec .hero .ic.hero { width: 50px; height: 50px; }
+  html.pc .live-pc .rec.first .hero .ic.hero { width: 56px; height: 56px; }
+}
+
+/* 11-20 칩 색 = 뜻(사용자 요청): 조합 파랑 · 카운터 초록 · 숙련도·기록 보라 · 메타 주황 · 주의 빨강. 옅은 바탕 + 같은 색 글자, 기준 넘는 기록은 같은 색으로 꽉 채움 */
+html.pc { --k-comp: #0277B6; --k-ctr: #15803D; --k-rec: #7C3AED; --k-meta: #C2410C; --k-bad: #D42F3C; --k-on: #FFFFFF; }
+@media (prefers-color-scheme: dark) { html.pc:not([data-theme="light"]) { --k-comp: #4CC3F5; --k-ctr: #4FD68C; --k-rec: #B79CFF; --k-meta: #FFA35C; --k-bad: #FF5468; --k-on: #121216; } }
+html.pc[data-theme="dark"] { --k-comp: #4CC3F5; --k-ctr: #4FD68C; --k-rec: #B79CFF; --k-meta: #FFA35C; --k-bad: #FF5468; --k-on: #121216; }
+html.pc .k-comp { --k: var(--k-comp); } html.pc .k-ctr { --k: var(--k-ctr); } html.pc .k-rec { --k: var(--k-rec); } html.pc .k-meta { --k: var(--k-meta); } html.pc .k-bad { --k: var(--k-bad); }
+html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc { background: color-mix(in srgb, var(--k, var(--muted)) 13%, transparent); color: var(--k, var(--text)); }
+html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc.rc-strong { background: var(--k); color: var(--k-on); font-weight: 800; }
+html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc.rc-threat { background: var(--k-bad); color: var(--k-on); }
+/* 카드 바탕이 색(1순위·조합)이어도 칩 색이 묻히지 않게 */
+html.pc :is(.live-pc, .enemy-pc) .rec:is(.first, .comp) .why.rchips > .rc:not(.rc-strong) { background: color-mix(in srgb, var(--k, var(--muted)) 16%, var(--panel)); }
+/* 자세히 보기 모달의 이유 줄도 같은 색 */
+.chd .cd-rs li[class*="k-"] b { color: var(--k); }

@@ -415,15 +415,16 @@
   // 로고(11-19 사용자 결정 「04 두 진영 · A 균형」, tmp/lol-draft-design/DECISIONS.md): 원을 위·아래로 잘라 왼쪽 괄호 = 우리 팀 파랑, 오른쪽 = 상대 빨강, 가운데 점 = 강조색
   // 색은 CSS 변수(--blue·--red·--hi)라 라이트·다크를 그대로 따라감
   const LOGO_MARK = `<svg class="lb-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M19.81 12.50A23 23 0 0 0 19.81 51.50" fill="none" stroke="var(--blue)" stroke-width="9" stroke-linecap="round"/><path d="M44.19 12.50A23 23 0 0 1 44.19 51.50" fill="none" stroke="var(--red)" stroke-width="9" stroke-linecap="round"/><circle cx="32" cy="32" r="7" fill="var(--hi)"/></svg>`;
-  // 라인 아이콘(11-20 사용자 요청: 우세·열세 알약을 글자 대신 아이콘으로) — 맵 네모 위 라인 자리를 칠한 단순 도형
+  // 라인 아이콘: 롤 클라이언트 공식 포지션 아이콘(11-20 사용자 지적 「아이콘 똑바로」 — Community Dragon rcp-fe-lol-static-assets/svg/position-*.svg 모양 그대로)
+  //   색은 알약 글자색(currentColor)을 따르고, 흐린 부분(맵의 나머지)은 원본처럼 반투명
   const LANE_PATH = {
-    T: '<path d="M4 20V4h16" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round"/><rect x="9" y="9" width="11" height="11" rx="1.5" fill="currentColor" opacity=".28"/>',
-    J: '<path d="M7 3c1.2 4.6 1 9.4-2.6 14.6M12.4 3c1.6 5.2 1.4 11.2-1.6 18M18 3.6c1.4 4.6 1 9.6-2 14" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>',
-    M: '<rect x="4" y="4" width="16" height="16" rx="1.5" fill="currentColor" opacity=".28"/><path d="M5 19L19 5" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>',
-    A: '<path d="M20 4v16H4" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round"/><rect x="4" y="4" width="11" height="11" rx="1.5" fill="currentColor" opacity=".28"/>',
-    S: '<path d="M12 3l7 3v5.6c0 4.3-2.9 7.7-7 9.4-4.1-1.7-7-5.1-7-9.4V6z" fill="currentColor"/>',
+    T: '<path opacity=".45" fill-rule="evenodd" d="M21,14H14v7h7V14Zm5-3V26L11.014,26l-4,4H30V7.016Z"/><polygon points="4 4 4.003 28.045 9 23 9 9 23 9 28.045 4.003 4 4"/>',
+    J: '<path fill-rule="evenodd" d="M25,3c-2.128,3.3-5.147,6.851-6.966,11.469A42.373,42.373,0,0,1,20,20a27.7,27.7,0,0,1,1-3C21,12.023,22.856,8.277,25,3ZM13,20c-1.488-4.487-4.76-6.966-9-9,3.868,3.136,4.422,7.52,5,12l3.743,3.312C14.215,27.917,16.527,30.451,17,31c4.555-9.445-3.366-20.8-8-28C11.67,9.573,13.717,13.342,13,20Zm8,5a15.271,15.271,0,0,1,0,2l4-4c0.578-4.48,1.132-8.864,5-12C24.712,13.537,22.134,18.854,21,25Z"/>',
+    M: '<path opacity=".45" fill-rule="evenodd" d="M30,12.968l-4.008,4L26,26H17l-4,4H30ZM16.979,8L21,4H4V20.977L8,17,8,8h8.981Z"/><polygon points="25 4 4 25 4 30 9 30 30 9 30 4 25 4"/>',
+    A: '<path opacity=".45" fill-rule="evenodd" d="M13,20h7V13H13v7ZM4,4V26.984l3.955-4L8,8,22.986,8l4-4H4Z"/><polygon points="29.997 5.955 25 11 25 25 11 25 5.955 29.997 30 30 29.997 5.955"/>',
+    S: '<path fill-rule="evenodd" d="M26,13c3.535,0,8-4,8-4H23l-3,3,2,7,5-2-3-4h2ZM22,5L20.827,3H13.062L12,5l5,6Zm-5,9-1-1L13,28l4,3,4-3L18,13ZM11,9H0s4.465,4,8,4h2L7,17l5,2,2-7Z"/>',
   };
-  const laneIco = (r, z) => `<svg class="lane-ic" width="${z || 16}" height="${z || 16}" viewBox="0 0 24 24" aria-hidden="true">${LANE_PATH[r] || ""}</svg>`;
+  const laneIco = (r, z) => `<svg class="lane-ic" width="${z || 16}" height="${z || 16}" viewBox="0 0 34 34" fill="currentColor" aria-hidden="true">${LANE_PATH[r] || ""}</svg>`;
   function lbi(k, size) {
     const z = size || 22;
     if (k === "draft" || k === "warn") { const [t, bg] = k === "draft" ? ["BP", "var(--hi)"] : ["!", "var(--red)"];
@@ -615,18 +616,27 @@
   }
   // 카드 강조 칩(11-20 사용자 요청: 카드 아래 흰색 상세 줄은 눈에 안 감 → 추천 사유 3~4개를 카드 안에 색 칩으로)
   //   순서: 지금 판 이유(강한 순) → 기준 넘는 기록(강조) → 장점 → 기록(3개까지 채움) → 경고(빨강) 하나
+  // 칩 종류 = 색(11-20 사용자 요청: 색마다 뜻을 두어 한눈에) — 조합 파랑 · 카운터 초록 · 숙련도·기록 보라 · 메타 주황 · 주의 빨강
+  const CHIP_IC = { comp: "comp", ctr: "counter", rec: "mastery", meta: "meta" };
+  function chipKind(t) {
+    t = String(t || "");
+    if (/조합|세트|설계|보강/.test(t)) return "comp";
+    if (/숙련도|원챔|목표|자기평가|기록|연습|함께|챔프폭|시즌|팀원/.test(t)) return "rec";
+    if (/카운터|맞대응|대비|차단|버팀|녹이기|뺏기|견제|대응|상대 강함/.test(t)) return "ctr";
+    return "meta";
+  }
   function recChips(r, muted, fx, lab) {
     let pills = fx;
     if (!pills && r.role) { try { pills = E.cardPills(E.teamOf(S, muted ? "enemy" : "our"), r.role, r.id, r.reasons, !!muted); } catch (e) { pills = null; } }
     const kv = (pills || []).map((x) => String(x.t).match(PILL_K)).filter((m) => m && m[1] !== "자기평가").map((m) => {
       const [lv, why] = kvLevel(m[1], m[2]);
-      return { ic: "mastery", t: `${m[1] === "팀원과" ? "팀원과" : m[1]} ${m[2]}`, c: lv === "hot" ? (muted ? "threat" : "hot") : lv === "weak" && !muted ? "bad" : "", why: why ? `기준: ${why}` : "" };
+      return { k: m[1] === "대회" ? "meta" : "rec", t: `${m[1] === "팀원과" ? "팀원과" : m[1]} ${m[2]}`, c: lv === "hot" ? (muted ? "threat" : "hot") : lv === "weak" && !muted ? "bad" : "", why: why ? `기준: ${why}` : "" };
     });
     const rs = (r.reasons || []).filter((x) => !REASON_SKIP.test(x.t));
-    const pos = rs.filter((x) => x.v > 0).sort((a, b) => b.v - a.v).map((x) => ({ ic: reasonIcon(x.t), t: reasonShort(x), c: muted ? "info" : "good", why: x.d }));
+    const pos = rs.filter((x) => x.v > 0).sort((a, b) => b.v - a.v).map((x) => ({ k: chipKind(x.t), t: reasonShort(x), c: "", why: x.d }));
     const negR = rs.filter((x) => x.v < 0).sort((a, b) => a.v - b.v)[0];
     const neg = negR ? { ic: "warn", t: reasonShort(negR), c: "bad", why: negR.d } : !muted && r.bad && r.bad[0] ? { ic: "warn", t: r.bad[0], c: "bad", why: r.bad[0] } : null;
-    const goods = muted ? [] : (r.good || []).filter((g) => !/조합에 맞음$/.test(g)).map((g) => ({ ic: reasonIcon(g), t: g, c: "good", why: g }));
+    const goods = muted ? [] : (r.good || []).filter((g) => !/조합에 맞음$/.test(g)).map((g) => ({ k: chipKind(g), t: g, c: "", why: g }));
     const hot = kv.filter((k) => k.c === "hot" || k.c === "threat");
     const cap = neg ? 3 : 4, out = [];
     const add = (x) => { if (x && x.t && out.length < cap && x.t !== lab && !out.some((o) => o.t === x.t)) out.push(x); };
@@ -636,7 +646,9 @@
     if (neg) out.push(neg);
     return out;
   }
-  const chipHtml = (x) => `<span class="rc rc-${x.c || "plain"}" ${x.why ? `title="${esc(x.why)}"` : ""}>${x.c === "bad" ? lbi("warn", 14) : lbi(x.ic, 14)}<span>${esc(x.t)}</span></span>`;
+  const CHIP_KO = { comp: "조합", ctr: "카운터", rec: "숙련도·기록", meta: "메타", bad: "주의" };
+  const chipHtml = (x) => { const k = x.c === "bad" ? "bad" : x.k || "meta";
+    return `<span class="rc k-${k} ${x.c === "hot" || x.c === "threat" ? "rc-strong" : ""} ${x.c === "threat" ? "rc-threat" : ""}" title="${esc(CHIP_KO[k] + (x.why ? " · " + x.why : ""))}">${k === "bad" ? lbi("warn", 14) : lbi(CHIP_IC[k], 14)}<span>${esc(x.t)}</span></span>`; };
   // act: 카드를 누르면 할 일(실시간 밴픽 = 기록, 상대 팀 = 자세히 보기 모달)
   function recCardPC(r, type, muted, rank, fx, act) {
     const rs = (r.reasons || []).filter((x) => !REASON_SKIP.test(x.t));
@@ -1816,7 +1828,7 @@
       grp("새로 연습 추천", "hi", st.learn.map((x) => champ(x, "이 챔프 카운터")), "추천할 카운터 없음"),
       grp("우리 챔프 중 주의", "bad", st.risky.map((x) => champ(x, `${ourLv(x)} · 이 챔프에 약함`, "bad")), "이 챔프에 약한 우리 챔프 없음"),
     ].join("") : `<p class="help">이 라인 챔프폭 밖의 챔프입니다.</p>`;
-    const why = reasons.length ? `<ul class="cd-rs">${reasons.map((x) => `<li class="${x.v < 0 ? "bad" : ""}">${lbi(x.v < 0 ? "warn" : reasonIcon(x.t), 16)}<b>${esc(reasonShort(x))}</b><span>${esc(x.d || "")}</span></li>`).join("")}</ul>`
+    const why = reasons.length ? `<ul class="cd-rs">${reasons.map((x) => `<li class="${x.v < 0 ? "bad" : "k-" + chipKind(x.t)}">${lbi(x.v < 0 ? "warn" : CHIP_IC[chipKind(x.t)], 16)}<b>${esc(reasonShort(x))}</b><span>${esc(x.d || "")}</span></li>`).join("")}</ul>`
       : `<p class="help">첫 밴 페이즈 밴 후보 순위 밖입니다.</p>`;
     return `<div class="modal-bg" data-act="chdclose"><div class="modal chd" role="dialog" aria-modal="true" aria-labelledby="chdT">
       <div class="cd-h">${icon(id, "xl")}<div class="cd-hm"><h2 id="chdT">${esc(CH[id].ko)}<span class="pos">${ROLE_KO[role]}</span>${b ? `<span class="cd-rk">밴 후보 ${b.rank}위</span>` : ""}</h2>
