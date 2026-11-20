@@ -439,6 +439,9 @@
   function renderSideNav() {
     const el = document.getElementById("side");
     if (!el) return;
+    // 11-20 사용자 지적: 다시 그릴 때마다(실시간 방·주기 갱신) 상대 팀 목록 스크롤이 맨 위로 — 위치를 기억했다가 되돌림
+    const scOpp = (document.getElementById("sdOpp") || {}).scrollTop || 0, scSide = el.scrollTop;
+    queueMicrotask(() => { const o = document.getElementById("sdOpp"); if (o && scOpp) o.scrollTop = scOpp; if (scSide) el.scrollTop = scSide; });
     const sp = spaceTeamId(), ourT = team(S.ourTeam);
     const our = ourT && !ourT.solo ? ourT : sp ? team(sp) : null;
     const opp = S.teams.filter((t) => !t.solo && (!our || t.id !== our.id));
