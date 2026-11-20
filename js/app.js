@@ -168,7 +168,7 @@
   const rosterCan = () => !!(SPACE && !SPACE.bad && WURL() && SPACE.id !== "subin");
   function rosterOf() {
     const ok = (v) => /^[^#<>"'`\\]{1,32}#[^#<>"'`\\]{1,8}$/.test(String(v || "").trim());
-    return { teams: S.teams.filter((t) => !t.solo).slice(0, 40).map((t) => ({ id: t.id, name: String(t.name || "팀").replace(/[<>"`\\]/g, "").slice(0, 30) || "팀", our: t.id === S.ourTeam, altNo: (t.altNo || []).filter(ok).slice(-30),
+    return { teams: S.teams.filter((t) => !t.solo).slice(0, 40).map((t) => ({ id: t.id, name: String(t.name || "팀").replace(/[<>"`\\]/g, "").slice(0, 30) || "팀", our: t.id === S.ourTeam, altNo: (t.altNo || []).filter((x) => ok(x) || /^[0-9a-f]{16}$/.test(x)).slice(-30),
       players: Object.fromEntries(ROLES.map((r) => { const p = t.players[r] || {}; return [r, { riot: ok(p.riot) ? String(p.riot).trim() : "", alts: (p.alts || []).filter(ok).map((a) => String(a).trim()).slice(0, 2) }]; })) })) };
   }
   function rosterChanged() {
@@ -3056,7 +3056,8 @@
       if (seen.has(key(x.riot))) return; seen.add(key(x.riot));   // 한 계정은 한 번만(앞쪽 = 더 센 쪽, 예전 수집 자료도)
       const have = [p.riot, ...((p.alts || altsOf(t.id, x.role)) || [])].filter(Boolean).map(key);
       const any = S.teams.some((tt) => !tt.solo && ROLES.some((r) => tt.players[r] && [tt.players[r].riot, ...(tt.players[r].alts || [])].filter(Boolean).map(key).includes(key(x.riot))));
-      if (have.includes(key(x.riot)) || any || (t.altNo || []).map(key).includes(key(x.riot))) return;
+      const no = (t.altNo || []).map(key);   // 「아님」: 계정 고유값(닉네임이 바뀌어도 같음) 또는 예전처럼 닉네임
+      if (have.includes(key(x.riot)) || any || no.includes(key(x.riot)) || (x.id && no.includes(x.id))) return;
       out.push({ t, x });
     }); });
     return out.sort((a, b) => (a.t.id === S.ourTeam) - (b.t.id === S.ourTeam) || (a.x.grade !== "high") - (b.x.grade !== "high") || b.x.days.length - a.x.days.length);
@@ -3064,15 +3065,16 @@
   function suspectCard({ t, x }, mini) {
     const p = t.players[x.role], ev = x.ev || {}, hi = x.grade === "high";
     const lines = [
-      `같은 5명이 <b>${x.days.length}일</b>(${x.days.map(esc).join("·")}) ${x.g}판 ${x.w}승 · 대회 계정 ${x.reg}명과 함께`,
+      `같은 5명이 <b>${x.days.length}일</b>(${x.days.map(esc).join("·")}) ${x.g}판 ${x.w}승 · ${x.via && x.via.length ? "등록된 부계정과 함께" : `대회 계정 ${x.reg}명과 함께`}`,
       ev.role ? `주로 ${ROLE_KO[x.role]}(${x.onRole}/${x.g}판)` : `${ROLE_KO[x.role]} 자리가 비어 맞춤 · 주로 ${Object.entries(x.pos || {}).sort((a, b) => b[1] - a[1]).map(([k]) => ROLE_KO[k]).slice(0, 2).join("·") || "?"}`,
       ev.champ ? `본계정 챔프와 겹침: ${x.hit.map((id) => esc((CH[id] || {}).ko || id)).join("·")}` : `쓴 챔프: ${x.champs.map((id) => esc((CH[id] || {}).ko || id)).join("·")}`,
       `본계정 준비 기간 ${x.mainN}판${ev.rest ? " · 거의 안 함" : ""}${x.lvl ? ` · 의심 계정 레벨 ${x.lvl}` : ""}`,
+      ...(x.via && x.via.length ? [`등록된 부계정 <b>${x.via.map(esc).join("·")}</b>를 타고 찾음(대회 본계정 없이 부계정끼리 모인 묶음)`] : []),
     ];
     return `<article class="as-card ${hi ? "hi" : ""}"><div class="as-h"><span class="as-g">${hi ? "부계정 가능성 높음" : "부계정 의심"}</span><span class="as-t">${esc(t.name)} · ${ROLE_KO[x.role]}</span></div>
       <div class="as-who"><span class="as-main" title="${esc(p.riot)}">${esc(nick(p.riot) || "—")}</span><span class="as-ar" aria-hidden="true">→</span><a class="as-sus" href="${opgg(x.riot)}" target="_blank" rel="noopener">${esc(nick(x.riot))}<small>#${esc(String(x.riot).split("#")[1] || "")}</small></a></div>
       ${mini ? "" : `<ul class="as-ev">${lines.map((l) => `<li>${l}</li>`).join("")}</ul><p class="help as-note">용병(아무나 구해서 낀 판)일 수도 있습니다 · 같은 시간에 본계정이 다른 게임 중이던 계정은 이미 뺐습니다</p>`}
-      <div class="as-act"><button class="btn sm primary" data-act="susadd" data-tid="${esc(t.id)}" data-r="${x.role}" data-riot="${esc(x.riot)}" ${((p.alts || []).filter(Boolean).length >= 2) ? `disabled title="부계정은 라인당 2개까지"` : ""}>부계정으로 추가</button><button class="btn sm ghost" data-act="susno" data-tid="${esc(t.id)}" data-riot="${esc(x.riot)}">아님</button></div></article>`;
+      <div class="as-act"><button class="btn sm primary" data-act="susadd" data-tid="${esc(t.id)}" data-r="${x.role}" data-riot="${esc(x.riot)}" ${((p.alts || []).filter(Boolean).length >= 2) ? `disabled title="부계정은 라인당 2개까지"` : ""}>부계정으로 추가</button><button class="btn sm ghost" data-act="susno" data-tid="${esc(t.id)}" data-riot="${esc(x.riot)}" data-id="${esc(x.id || "")}">아님</button></div></article>`;
   }
   // 찾는 중 안내(11-20 사용자): 명단 등록 작업이 도는 중이면 그 남은 시간, 0시 수집이 도는 중이면 시작 시각 + 약 1시간
   function altFindWait() {
@@ -3127,9 +3129,9 @@
     toast(`${t.name} ${ROLE_KO[r]} 부계정 ${id} 추가 — 챔프폭 받는 중`);
     try { await quickPools([[tid, r]], true); } finally { delete ALTQ[k]; if (editing) renderEditor(); render(); }
   }
-  function suspectNo(tid, riot) {
-    const t = team(tid); if (!t) return;
-    t.altNo = [...(t.altNo || []).filter((x) => x !== riot), riot].slice(-30); save(); render();
+  function suspectNo(tid, riot, id) {
+    const t = team(tid); if (!t) return; const v = /^[0-9a-f]{16}$/.test(id || "") ? id : riot;
+    t.altNo = [...(t.altNo || []).filter((x) => x !== v), v].slice(-30); save(); render();
     toast(`${riot} — 부계정 아님으로 표시(팀원 모두에게 숨김)`);
   }
   // 사이드바 사람+ 버튼(11-20 사용자): 대회마다 팀이 다른 사람이 다른 팀 초대 코드를 넣어 들어가고, 내 다른 팀으로 바로 바꿈
@@ -4653,7 +4655,7 @@
       case "invite": copyInvite(); break;
       case "joinpop": joinPop(); break;
       case "susadd": suspectAdd(el.dataset.tid, el.dataset.r, el.dataset.riot); break;
-      case "susno": suspectNo(el.dataset.tid, el.dataset.riot); break;
+      case "susno": suspectNo(el.dataset.tid, el.dataset.riot, el.dataset.id); break;
       case "altview": S.ui.altView = el.dataset.v; save(); render(); break;
       case "altteam": S.ui.altTeam = el.dataset.v; save(); render(); break;
       case "altsel": S.ui.altSel = S.ui.altSel === el.dataset.v ? "" : el.dataset.v; save(); render(); break;
