@@ -953,7 +953,11 @@ html.pc :is(.live-pc, .enemy-pc) .rec :is(.rl, .ans) { align-items: flex-start; 
 .mr-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .mr-n { display: inline-flex; align-items: center; gap: 6px; min-width: 0; } .mr-n b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mr-n small { font-size: 11px; padding: 1px 6px; border-radius: 999px; background: var(--bg2); color: var(--muted); } .mr-n .mr-own { background: var(--hi-bg); color: var(--hi); }
-.mr-sel { width: 96px; height: 34px; padding: 0 8px; } .mr-r { font-size: 14px; font-weight: 600; color: var(--muted); }
+.mr-sel { width: 96px; height: 34px; padding: 0 8px; }
+.mr-act { display: inline-flex; align-items: center; gap: 6px; }
+.mr-kick { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
+.mr-kick-sp { width: 30px; flex: none; }
+.mr-kick:hover, .mr-kick:focus-visible { color: var(--bad, #d14343); border-color: currentColor; } .mr-r { font-size: 14px; font-weight: 600; color: var(--muted); }
 .tv-l { display: grid; gap: 2px; } .tv-mem { font-size: 11px; font-weight: 600; color: var(--hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 56px; }
 
 /* 상대 챔프폭 편집 창: 부계정(11-20) */

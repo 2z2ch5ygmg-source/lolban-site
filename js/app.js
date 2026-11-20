@@ -1891,7 +1891,7 @@
       LIVE.ws = ws;
       ws.onopen = () => { LIVE.retry = 0; ws.send(JSON.stringify({ t: "hello", cid: CID, name: liveName() })); };
       ws.onmessage = (ev) => liveMsg(ev.data);
-      ws.onclose = () => { if (LIVE.ws === ws) LIVE.ws = null; liveRetry(); };
+      ws.onclose = (ev) => { if (LIVE.ws === ws) LIVE.ws = null; if (ev && ev.code === 4003) { LIVE.status = "off"; liveBarUpdate(); loadMe(); return; } liveRetry(); };
     } catch (e) { LIVE.ws = null; liveRetry(); }
   }
   function liveRetry() {
@@ -2904,6 +2904,16 @@
     try { await authPost("team/role", { space: SPACE.id, role, ...(mid ? { mid } : {}) }); TM2.list = null; toast(role ? `${mid ? "팀원" : "내"} 포지션: ${mroleKo(role)}` : "포지션을 비웠습니다"); await loadMe(); loadMembers(true); }
     catch (e) { toast(e.message || String(e)); }
   }
+  // 팀장: 팀원 내보내기 — 서버가 명단·포지션·소속·초대 코드를 지우고 실시간 방 연결도 끊음
+  async function kickMember(mid, nickName) {
+    if (!SPACE || !SPACE.isOwner || !mid) return;
+    if (!confirm(`「${nickName}」 님을 「${SPACE.name}」 팀에서 내보낼까요?\n\n· 바로 팀 자료와 실시간 밴픽에 못 들어옵니다\n· 지금 초대 코드는 무효가 됩니다(필요하면 새로 만들기)`)) return;
+    try {
+      const d = await authPost("team/kick", { space: SPACE.id, mid });
+      TM2.list = null; toast(`「${nickName}」 님을 내보냈습니다${d.codeCleared ? " — 초대 코드도 새로 만들어야 합니다" : ""}`);
+      await loadMe(); loadMembers(true);
+    } catch (e) { toast(e.message || String(e)); }
+  }
   // 홈 맨 위: 아직 포지션을 안 고른 팀원에게
   function rolePickCard() {
     if (!SESS || !SPACE || !SPACE.viaLogin || SPACE.myRole) return "";
@@ -2917,7 +2927,7 @@
     if (!TM2.list || TM2.sp !== SPACE.id) { loadMembers(); return `<section class="sd-card"><h3>팀원</h3><p class="help">불러오는 중…</p></section>`; }
     const sel = (m) => `<select class="input mr-sel" data-act="mrole" data-mid="${m.me ? "" : esc(m.mid)}" aria-label="${esc(m.nick)} 포지션"><option value="" ${m.role ? "" : "selected"}>미정</option>${MROLE.map(([k, n]) => `<option value="${k}" ${m.role === k ? "selected" : ""}>${n}</option>`).join("")}</select>`;
     const order = (r) => { const i = MROLE.findIndex(([k]) => k === r); return i < 0 ? 99 : i; };
-    return `<section class="sd-card"><h3>팀원 <small class="dim">${TM2.list.length}명</small></h3><ul class="mr-list">${TM2.list.slice().sort((a, b) => order(a.role) - order(b.role)).map((m) => `<li><span class="mr-n"><b>${esc(m.nick)}</b>${m.me ? `<small>나</small>` : ""}${m.owner ? `<small class="mr-own">팀장</small>` : ""}</span>${m.me || SPACE.isOwner ? sel(m) : `<span class="mr-r">${mroleKo(m.role)}</span>`}</li>`).join("")}</ul></section>`;
+    return `<section class="sd-card"><h3>팀원 <small class="dim">${TM2.list.length}명</small></h3><ul class="mr-list">${TM2.list.slice().sort((a, b) => order(a.role) - order(b.role)).map((m) => `<li><span class="mr-n"><b>${esc(m.nick)}</b>${m.me ? `<small>나</small>` : ""}${m.owner ? `<small class="mr-own">팀장</small>` : ""}</span><span class="mr-act">${m.me || SPACE.isOwner ? sel(m) : `<span class="mr-r">${mroleKo(m.role)}</span>`}${SPACE.isOwner && !m.me && !m.owner ? `<button class="mr-kick" data-act="mkick" data-mid="${esc(m.mid)}" data-nick="${esc(m.nick)}" title="${esc(m.nick)} 내보내기" aria-label="${esc(m.nick)} 팀에서 내보내기">${ico("x")}</button>` : SPACE.isOwner ? `<span class="mr-kick-sp" aria-hidden="true"></span>` : ""}</span></li>`).join("")}</ul></section>`;
   }
   async function loadMe() {
     if (!SESS || !WURL()) return;
@@ -2929,6 +2939,12 @@
       AUTH.user = d.user; AUTH.spaces = d.spaces || [];
       try { localStorage.setItem(KEY_AUTH, JSON.stringify({ user: AUTH.user, spaces: AUTH.spaces })); } catch (e) { /* 이번만 */ }
       const before = SPACE && SPACE.id, ls = loginSpace();
+      // 보던 로그인 팀이 내 소속에서 사라짐(팀장이 내보냄 등) → 알리고 그 팀 연결을 정리
+      if (SPACE && SPACE.viaLogin && !AUTH.spaces.some((x) => x.id === SPACE.id)) {
+        const gone = SPACE.name; SH.url = ""; NT.list = null; TM2.list = null; if (LIVE && LIVE.ws) try { LIVE.ws.close(); } catch (e) { /* 이미 닫힘 */ }
+        try { if (localStorage.getItem("lolban.space.v1") === before) localStorage.removeItem("lolban.space.v1"); } catch (e) { /* 무시 */ }
+        AUTH.msg = `「${gone}」 팀에서 빠졌습니다 — 팀장이 내보냈거나 팀을 나왔습니다`; toast(AUTH.msg);
+      }
       if (ls) { SPACE = ls; if (before !== ls.id) { spaceJoined(); return; } }
       else if (SPACE && SPACE.viaLogin) SPACE = null;
       render();
@@ -4497,6 +4513,7 @@
         save(); render(); toast(`「${t.name}」 팀을 지웠습니다`); break; }
       case "lglogin": startLogin(el.dataset.k); break;
       case "myrole": setMemberRole(el.dataset.v); break;
+      case "mkick": kickMember(el.dataset.mid, el.dataset.nick || "팀원"); break;
       case "lgnew": case "lgjoin": case "lgcode": case "lgleave": case "lgout": case "lgcopy": case "lgdel": authAction(a, el); break;
       case "lgswitch": try { localStorage.setItem("lolban.space.v1", el.dataset.id); } catch (e) { /* 이번만 */ } SPACE = loginSpace(); spaceJoined(); break;
       case "vsopen": S.ui.vsOpen = S.ui.vsOpen === el.dataset.k ? "" : el.dataset.k; renderHead(); { const f = document.querySelector(".vs-pop [aria-selected=true]") || document.querySelector(".vs-pop button"); if (f && S.ui.vsOpen) f.focus(); } break;
