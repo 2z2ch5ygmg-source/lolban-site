@@ -798,8 +798,8 @@
       body = `<div class="recs">${list.map((r, i) => recCard(r, type, who === "enemy", who === "our" || !MOB.matches ? i + 1 : 0, fxOf(r))).join("")}</div>`;
     }
     else body = `<div class="empty-recs">${who === "enemy" && !E.teamHasPools(t) ? "상대 챔프폭이 비어 있어 예상이 어렵습니다. 「상대팀 분석」에서 챔프폭을 넣으면 예상이 나옵니다." : "추천할 챔프가 없습니다. 아래에서 직접 고르세요."}</div>`;
-    const altSeg = who === "enemy" && type === "ban" && ourHasAlts() ? `<div class="seg alt-seg" role="group" aria-label="상대가 본 우리 기록" data-hint="상대가 우리 부계정 기록까지 분석했다고 볼지 — 대회 본계정만이면 부계정에서만 한 챔프는 덜 위험하게 봄"><span class="alt-seg-l">상대 분석</span><button data-act="oppalts" data-v="all" aria-pressed="${S.ui.oppAlts !== "main"}">부계정 포함</button><button data-act="oppalts" data-v="main" aria-pressed="${S.ui.oppAlts === "main"}">대회 본계정만</button></div>` : "";
-    NOW_HEAD = { step: title, tabs: roleTabs + altSeg, dir: dirTxt };
+    const altSeg = who === "enemy" && type === "ban" && ourHasAlts() ? `<div class="seg alt-seg" role="group" aria-label="상대가 본 우리 기록" data-hint="상대가 우리 부계정 기록까지 분석했다고 볼지 — 대회 본계정만이면 부계정에서만 한 챔프는 덜 위험하게 봄"><span class="alt-seg-l">상대 분석</span><button data-act="oppalts" data-v="all" aria-pressed="${S.ui.oppAlts !== "main"}">부계정 포함</button><button data-act="oppalts" data-v="main" aria-pressed="${S.ui.oppAlts === "main"}">본계정만</button></div>` : "";
+    NOW_HEAD = { step: title, tabs: roleTabs, alt: altSeg, dir: dirTxt };
     if (split) return `<div class="now-box">${body}</div>`;
     return `<div class="now-box"><div class="now-h"><span class="what ${side}">${who === "our" ? "추천 순서" : "상대 예상"}</span><span class="step">${title}</span>${roleTabs}<span class="dir">${dirTxt}</span></div>${body}</div>`;
   }
@@ -1181,7 +1181,37 @@
     return `<button class="ib mh-ib" data-act="resetGame" aria-label="이번 세트 다시">${lbi("undo", 22)}</button>
       <button class="ib mh-ib" data-act="resetSeries" aria-label="시리즈 처음부터">${lbi("refresh", 22)}</button>
       ${S.ui.endAsk ? `<span class="end-ask" role="group" aria-label="${S.series.game}세트 결과"><button class="soft-b res-w" data-act="endGame" data-v="W">승</button><button class="soft-b res-l" data-act="endGame" data-v="L">패</button><button class="soft-b" data-act="endCancel">취소</button></span>`
-        : `<button class="soft-b" data-act="nextGame">세트 종료 → 다음 세트</button>`}`;
+        : `<button class="soft-b" data-act="nextGame">세트 종료 → 다음 세트</button>`}<span class="lv-roomslot">${liveRoomPC()}</span>`;
+  }
+  // 팀 방(B안 11-20 사용자): 상단바 버튼 하나(상태 점 · 진행자 · 사람 첫 글자 ▾), 누르면 사람 이름 목록과 진행 요청·넘기기·혼자 하기
+  function liveRoomPC() {
+    if (!liveCan()) return "";
+    const open = !!LIVE.popOpen, h = LIVE.host, hon = liveHostOn(), rq = LIVE.req, mine = rq && rq.cid === CID;
+    let label, dot = "on", avs = "";
+    const seen = new Map(); LIVE.people.forEach((p) => { const k = p.mid || p.cid, e = seen.get(k) || { name: p.name, host: false, me: false, n: 0 }; e.n++; if (h && p.cid === h.cid) e.host = true; if (p.cid === CID) e.me = true; seen.set(k, e); });
+    const ppl = [...seen.values()].sort((x, y) => y.host - x.host || y.me - x.me);
+    if (S.ui.soloDraft) { label = "혼자 하는 중"; dot = "off"; }
+    else if (LIVE.status === "retry") { label = "연결 끊김"; dot = "bad"; }
+    else if (LIVE.status !== "on") { label = "연결 중…"; dot = "wait"; }
+    else {
+      label = isHost() ? "내가 진행" : h ? (hon ? `진행 ${h.name}` : "진행자 나감") : "진행자 없음"; dot = isHost() || hon ? "on" : "bad";
+      avs = `<span class="lvps" aria-hidden="true">${ppl.slice(0, 4).map((e) => `<span class="lvp ${e.host ? "host" : ""} ${e.me ? "me" : ""}">${esc([...String(e.name || "?")][0])}</span>`).join("")}${ppl.length > 4 ? `<span class="lvp more">+${ppl.length - 4}</span>` : ""}</span>`;
+    }
+    const badge = rq && isHost() ? `<i class="lvr-badge" aria-label="진행 요청 1개"></i>` : "";
+    const btn = `<button class="lv-roomb" data-act="liveroom" aria-haspopup="dialog" aria-expanded="${open}" title="팀 방 · ${esc(label)}${ppl.length ? ` · ${ppl.map((e) => e.name).join(", ")}` : ""}"><i class="lvb-dot ${dot}" aria-hidden="true"></i><span class="lv-rl">${esc(label)}</span>${avs}${badge}<svg class="vs-car" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>`;
+    if (!open) return `<span class="lv-room-w">${btn}</span>`;
+    const A = (act, txt, ic, extra, cls) => `<button class="lvr-a ${cls || ""}" data-act="${act}" ${extra || ""}>${lbi(ic, 16)}<span>${txt}</span></button>`;
+    let acts = "";
+    if (S.ui.soloDraft) acts = A("livesolo", "팀과 같이 보기", "invite", 'data-v="0"', "pri");
+    else if (LIVE.status === "retry") acts = A("liveretry", "다시 연결", "refresh", "", "pri") + A("livesolo", "혼자 하기 (팀 방에서 나가기)", "lock", 'data-v="1"');
+    else if (LIVE.status === "on") {
+      if (isHost() && rq) acts += `<div class="lvr-req"><p><b>${esc(rq.name)}</b>님이 진행을 요청했습니다</p><span>${A("livegive", "넘기기", "check", "", "pri")}${A("livedeny", "거절", "undo")}</span></div>`;
+      else if (mine) acts += A("livecancel", "진행 요청 취소", "undo");
+      else if (!isHost()) acts += A("livetake", liveOwner() || !hon ? "진행 맡기" : "진행 요청", "draft", "", "pri");
+      acts += A("livesolo", "혼자 하기 (팀 방에서 나가기)", "lock", 'data-v="1"');
+    }
+    const list = ppl.length ? `<ul class="lvr-ppl">${ppl.map((e) => `<li><span class="lvp ${e.host ? "host" : ""}">${esc([...String(e.name || "?")][0])}</span><b>${esc(e.name)}</b>${e.me ? `<i>나</i>` : ""}${e.n > 1 ? `<i>${e.n}곳</i>` : ""}${e.host ? `<em>진행</em>` : ""}</li>`).join("")}</ul>` : `<p class="help">${S.ui.soloDraft ? "팀 방과 연결을 끊고 이 브라우저에서만 밴픽 중" : "아직 들어온 사람이 없습니다"}</p>`;
+    return `<span class="lv-room-w">${btn}<div class="lvr-pop" role="dialog" aria-label="팀 방"><small>팀 방${ppl.length ? ` · ${ppl.length}명` : ""}</small>${list}<div class="lvr-acts">${acts}</div></div></span>`;
   }
   // 목표 챔프 + 밴픽 설계 한 줄: 설계는 조합 이름 + 우리 남은 픽 초상화만(지금 차례 고리)
   function goalLinePC() {
@@ -1201,10 +1231,10 @@
     NOW_HEAD = null;
     const now = renderNow(true), H = NOW_HEAD || {}, G = goalLinePC(), st = curStep();
     // 팀과 같이 보기(11-20): 가운데 칸이 좁아 사람·요청 버튼이 목표 챔프와 겹쳐서 → 라인 칸 아래 따로 얇은 한 줄
-    const row = `<div class="lv-ctrl"><span class="lc-l">${H.tabs || ""}</span><span class="lc-c"></span><span class="lc-r">${G.goal}</span></div>`;
+    const row = `<div class="lv-ctrl"><span class="lc-l">${H.tabs || ""}</span><span class="lc-c"></span><span class="lc-r">${H.alt ? `${H.alt}<span class="lc-div" aria-hidden="true"></span>` : ""}${G.goal}</span></div>`;
     const plan = G.plan ? `<div class="gline">${G.plan}</div>` : "";   // 「우리 조합 방향」은 뺌(11-20 사용자: 왼쪽 밴픽 설계에 이미 나옴)
     const rqh = liveReqHtml();
-    const room = liveCan() ? `<div class="lv-room"><span class="livebar" aria-live="polite">${liveBarHtml()}</span><span class="livereq" role="status" ${rqh ? "" : "hidden"}>${rqh}</span></div>` : "";
+    const room = liveCan() ? `<div class="lv-room" ${rqh ? "" : "hidden"}><span class="livereq" role="status" ${rqh ? "" : "hidden"}>${rqh}</span></div>` : "";
     return row + room + plan + now;
   }
   const DOCK_PC = [["grid", "챔프 고르기"], ["comps", "추천 조합"], ["strat", "운영 전략"], ["threat", "요주의 인물"], ["prac", "상대 연습 픽"], ["plan", "픽 순서"], ["series", "피어리스·저장"]];
@@ -2005,10 +2035,11 @@
     const mine = new Set(pool.map((x) => x[0])), hidden = new Set(p.hide || []);
     const rec = Object.entries(stats).filter(([id, e]) => !mine.has(id) && !hidden.has(id) && CH[id] && (e.g || e.rg)).sort((a, b) => E.lvScore(b[1]) - E.lvScore(a[1])).slice(0, 12);
     const recT = ([id, e]) => `<span class="pk-t ghost" ${can ? `draggable="true"` : ""} data-id="${id}" data-lv="${e.lv}" data-one="${e.one ? 1 : ""}">${can ? `<button class="pk-tb" data-act="pinrec" data-team="${t.id}" data-role="${r}" data-id="${id}" data-lv="${e.lv}" data-one="${e.one ? 1 : ""}" aria-label="${esc(CH[id].ko)} 넣기">${icon(id, "lg")}</button>` : icon(id, "lg")}<b>${esc(CH[id].ko)}</b><small>${e.g || e.rg}판</small></span>`;
-    const tray = `<section class="pk-tray pk-col" data-v="out" aria-label="기록에만 있는 챔프"><span class="pk-ch"><b>기록에만 있음</b>${can ? `<small>끌어 올리면 넣기 · 칸에서 여기로 끌면 빼기</small>` : ""}</span><div class="pk-tl">${rec.map(recT).join("") || emptyBox("check", "기록에만 있는 챔프 없음", "", true)}</div>
-      ${can ? `<span class="pk-find">${lbi("scout", 16)}<input class="input" id="pkFind" autocomplete="off" spellcheck="false" placeholder="다른 챔피언 찾기" aria-label="챔피언 찾아 넣기 · 중 칸에 들어감" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pkSug"><div class="pk-sug" id="pkSug" role="listbox" aria-label="찾은 챔피언" hidden></div></span>` : ""}</section>`;
+    // 전적 추천 픽(11-20 사용자: 「기록에만 있음」 → 전적 검색으로 고른 추천 느낌, 찾기 칸과 함께 칸들 위로)
+    const tray = `<section class="pk-tray pk-col" data-v="out" aria-label="전적 추천 픽"><span class="pk-ch"><b>전적 추천 픽</b><small>${can ? "최근 전적에서 많이 한 챔프 · 아래 칸으로 끌면 넣기 · 칸에서 여기로 끌면 빼기" : "최근 전적에서 많이 한 챔프"}</small></span><div class="pk-tl">${rec.map(recT).join("") || emptyBox("check", "더 추천할 전적 챔프가 없습니다", "", true)}</div>
+      ${can ? `<span class="pk-find">${lbi("scout", 16)}<input class="input" id="pkFind" autocomplete="off" spellcheck="false" placeholder="챔피언 찾아서 넣기" aria-label="챔피언 찾아 넣기 · 중 칸에 들어감" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pkSug"><div class="pk-sug" id="pkSug" role="listbox" aria-label="찾은 챔피언" hidden></div></span>` : ""}</section>`;
     const lock = can ? "" : `<p class="pk-lockmsg">${lbi("lock", 16)}${esc(laneLockMsg(r))}</p>`;
-    return `<div class="pool-pc">${tabs}${head}${lock}${cols}${tray}</div>`;
+    return `<div class="pool-pc">${tabs}${head}${lock}${tray}${cols}</div>`;
   }
   const LV_ICON = (k) => k === 4 ? `<svg class="pk-crown" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>`
     : `<span class="pk-bars" aria-hidden="true">${[1, 2, 3].map((i) => `<i class="${i <= k ? "f" : ""}"></i>`).join("")}</span>`;
@@ -2258,7 +2289,7 @@
     if (rq.cid === CID) return `<span class="lvq-t">진행 요청을 보냈습니다 — 진행자(${esc(LIVE.host ? LIVE.host.name : "?")})가 수락하면 넘어옵니다</span><button class="lvb-b" data-act="livecancel">요청 취소</button>`;
     return "";
   }
-  function liveBarUpdate() { document.querySelectorAll(".livebar").forEach((b) => { b.innerHTML = liveBarHtml(); }); document.querySelectorAll(".livereq").forEach((b) => { const h = liveReqHtml(); b.innerHTML = h; b.hidden = !h; }); }
+  function liveBarUpdate() { document.querySelectorAll(".livebar").forEach((b) => { b.innerHTML = liveBarHtml(); }); document.querySelectorAll(".livereq").forEach((b) => { const h = liveReqHtml(); b.innerHTML = h; b.hidden = !h; if (b.parentElement && b.parentElement.classList.contains("lv-room")) b.parentElement.hidden = !h; }); document.querySelectorAll(".lv-roomslot").forEach((b) => { b.innerHTML = liveRoomPC(); }); }
   // 화면을 그릴 때: 실시간 밴픽이면 자동 연결(혼자 하기가 아니면), 지금 보는 화면 기억
   function liveTick() {
     if (S.tab === "live" && !S.ui.soloDraft && !LIVE.ws && LIVE.status !== "retry" && liveCan()) liveConnect();
@@ -2267,6 +2298,9 @@
   }
   // 연결 유지(11-20): 25초마다 확인 신호(가만히 있어도 중간 장치가 끊지 않게), 다른 탭에 있다 돌아오면 끊긴 연결을 바로 다시
   setInterval(() => { if (LIVE.ws && LIVE.ws.readyState === 1) try { LIVE.ws.send('{"t":"ping"}'); } catch (e) { /* 닫히면 onclose가 처리 */ } }, 25000);
+  // 팀 방 창: 바깥을 누르거나 Esc면 닫힘
+  document.addEventListener("click", (ev) => { if (LIVE.popOpen && !(ev.target.closest && ev.target.closest(".lv-room-w"))) { LIVE.popOpen = false; liveBarUpdate(); } }, true);
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && LIVE.popOpen) { LIVE.popOpen = false; liveBarUpdate(); const b = document.querySelector(".lv-roomb"); if (b) b.focus(); } });
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !LIVE.ws && !S.ui.soloDraft && liveCan() && (S.tab === "live" || LIVE.status !== "off")) { LIVE.retry = 0; liveConnect(); } });
   const LIVE_ACTS = new Set(["pick", "skip", "undo", "resetGame", "nextGame", "endGame", "resetSeries", "side", "mode", "scen", "goaladd", "goaldel", "goalclr"]);
   const liveLocked = () => S.tab === "live" && liveOn() && !isHost();
@@ -5060,11 +5094,12 @@
     // 실시간 밴픽 같이 보기: 진행자가 아니면 밴픽을 바꾸는 버튼은 막음
     if (LIVE_ACTS.has(a) && liveLocked()) { toast(liveLockMsg()); return; }
     switch (a) {
-      case "livetake": liveTake(); break;
-      case "livegive": liveReply(true); break;
-      case "livedeny": liveReply(false); break;
-      case "livecancel": if (LIVE.ws && LIVE.ws.readyState === 1) LIVE.ws.send('{"t":"cancel"}'); break;
-      case "livesolo": liveSolo(el.dataset.v === "1"); break;
+      case "liveroom": LIVE.popOpen = !LIVE.popOpen; liveBarUpdate(); break;
+      case "livetake": LIVE.popOpen = false; liveTake(); liveBarUpdate(); break;
+      case "livegive": LIVE.popOpen = false; liveReply(true); liveBarUpdate(); break;
+      case "livedeny": LIVE.popOpen = false; liveReply(false); liveBarUpdate(); break;
+      case "livecancel": LIVE.popOpen = false; if (LIVE.ws && LIVE.ws.readyState === 1) LIVE.ws.send('{"t":"cancel"}'); liveBarUpdate(); break;
+      case "livesolo": LIVE.popOpen = false; liveSolo(el.dataset.v === "1"); liveBarUpdate(); break;
       case "liveretry": LIVE.retry = 0; clearTimeout(LIVE.timer); LIVE.status = "connecting"; liveBarUpdate(); liveConnect(); break;
       case "pick": choose(el.dataset.id, el.dataset.role); break;
       case "chdet": openChampDetail(el.dataset.id, el.dataset.role, el); break;

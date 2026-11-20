@@ -1559,3 +1559,36 @@ html.pc:has(#view .live-pc) #mhead .mh-s { display: block; }
 /* 운영 전략·시나리오 글씨가 라이트 모드에서 안 보이던 것(11-20 사용자): 예전 다크 전용 연한 색(#cfd6e4) → 본문 색 */
 html.pc :is(.pp-sum, .sc-sum, .plan dd, .vtip, .lcore p) { color: var(--text); line-height: 1.6; }
 html.pc .plan dd { font-size: 13.5px; }
+/* 실시간 밴픽 B안(11-20 사용자): 상단바 「팀 방」 버튼 + 창, 가운데는 라인 / 상대 분석·목표 챔프 */
+.lv-roomslot { display: inline-flex; }
+.lv-room-w { position: relative; display: inline-flex; }
+.lv-roomb { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 700; white-space: nowrap; position: relative; }
+.lv-roomb:hover { border-color: var(--dim); } .lv-roomb[aria-expanded="true"] { border-color: var(--hi); box-shadow: 0 0 0 3px var(--hi-bg); }
+.lv-roomb .lvp { width: 24px; height: 24px; border-color: var(--panel); }
+.lv-roomb .vs-car { color: var(--muted); }
+.lv-roomb .lvb-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px var(--good-bg); flex: none; }
+.lv-roomb .lvb-dot.bad { background: var(--red); box-shadow: 0 0 0 3px var(--red-bg); } .lv-roomb .lvb-dot.wait { background: var(--dim); box-shadow: none; } .lv-roomb .lvb-dot.off { background: var(--line); box-shadow: none; }
+.lvr-badge { position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; border-radius: 50%; background: var(--red); border: 2px solid var(--bg); }
+.lvr-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; width: 300px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,.18); padding: 12px; display: grid; gap: 8px; text-align: left; }
+.lvr-pop > small { font-size: 12px; font-weight: 700; color: var(--muted); padding: 0 4px; }
+.lvr-ppl { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.lvr-ppl li { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-radius: 9px; font-size: 13.5px; }
+.lvr-ppl li .lvp { width: 26px; height: 26px; margin: 0; border: 0; } .lvr-ppl li b { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lvr-ppl li i { font-style: normal; font-size: 12px; color: var(--muted); } .lvr-ppl li em { font-style: normal; margin-left: auto; font-size: 11.5px; font-weight: 800; color: var(--hi); background: var(--hi-bg); padding: 2px 8px; border-radius: 999px; }
+.lvr-acts { display: grid; gap: 2px; border-top: 1px solid var(--bg2); padding-top: 8px; }
+.lvr-a { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; text-align: left; }
+.lvr-a:hover { background: var(--bg2); color: var(--text); } .lvr-a.pri { color: var(--hi); } .lvr-a.pri:hover { background: var(--hi-bg); }
+.lvr-req { display: grid; gap: 6px; padding: 8px; border-radius: 10px; background: var(--hi-bg); font-size: 13px; } .lvr-req b { color: var(--hi); } .lvr-req span { display: flex; gap: 4px; } .lvr-req .lvr-a { width: auto; background: var(--panel); }
+.lc-div { width: 1px; height: 22px; background: var(--line); margin: 0 4px; flex: none; }
+html.pc .live-pc .lc-r { display: flex; align-items: center; gap: 10px; }
+.lv-room[hidden] { display: none !important; }
+.lvr-req p { margin: 0; }
+html.pc #mhead .vs-btn > span { white-space: nowrap; }
+@media (max-width: 1560px) { .lv-roomb .lv-rl { display: none; } .lv-roomb { padding-left: 10px; } }
+@media (max-width: 1400px) { html.pc #mhead .mh-t .vs-btn > span { max-width: 180px; overflow: hidden; text-overflow: ellipsis; } }
+/* 선수·챔프폭: 전적 추천 픽 줄을 칸들 위로, 찾기 칸은 그 줄 오른쪽 위(11-20 사용자) — 목록은 아래로 펼침 */
+.pk-tray { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "h f" "l l"; row-gap: 10px; }
+.pk-tray > .pk-ch { grid-area: h; } .pk-tray > .pk-tl { grid-area: l; } .pk-tray > .pk-find { grid-area: f; align-self: start; width: 300px; }
+.pk-tray .pk-ch { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; } .pk-tray .pk-ch b { font-size: 14px; }
+.pk-sug { bottom: auto; top: calc(100% + 6px); }
+.pk-find { border-color: var(--hi); background: var(--panel); } .pk-find .lbi { color: var(--hi); }
