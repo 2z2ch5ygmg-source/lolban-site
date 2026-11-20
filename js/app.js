@@ -257,7 +257,7 @@
     if (!writeSaved(list.slice(0, 200))) { if (!quiet) alert("이 브라우저 저장소에 쓰지 못했습니다."); return; }
     if (rec.final) S.series.finalSaved = rec.sid;
     save(); S.ui.savedOpen = rec.sid; render();
-    if (quiet) toast(`시리즈 끝 · ${finalTxt(rec.final)} — 「피어리스·저장」의 저장한 밴픽에 기록했습니다`);
+    if (quiet) { if (rec.final) toast(`시리즈 끝 · ${finalTxt(rec.final)} — 「피어리스·저장」의 저장한 밴픽에 기록했습니다`); }
     else alert(`${games.length}세트 밴픽을 저장했습니다. 아래 「저장한 밴픽」에서 볼 수 있습니다.`);
   }
 
@@ -861,6 +861,24 @@
     return `<div class="card" style="margin-top:12px"><h3>피어리스 잠금 · ${S.series.mode === "hard" ? "양 팀 모두 사용 불가" : S.series.mode === "soft" ? "자기 팀만 사용 불가" : "꺼짐"}</h3><div class="fearless">${rows}</div></div>`;
   }
 
+  // PC 「피어리스·저장」 탭 맨 위: 지금 시리즈 세트별 결과 + 밴픽 저장(세트 결과를 고르면 자동 저장, 중간 저장은 버튼)
+  function seriesBarPC() {
+    const g = (S.series.games || []).filter((x) => x.result).sort((a, b) => a.game - b.game), ov = seriesOver(S.series);
+    return `<div class="sv-bar"><b>지금 시리즈 · ${esc(teamName(S.enemyTeam))}</b><span class="sv-dots">${g.map((x) => `<i class="${x.result === "W" ? "w" : "l"}" title="${x.game}세트 ${x.result === "W" ? "승" : "패"}">${x.result === "W" ? "승" : "패"}</i>`).join("") || `<span class="help">아직 끝난 세트 없음</span>`}</span>${ov ? `<b class="sv-fin ${ov.r === "W" ? "w" : "l"}">${finalTxt(ov)}</b>` : ""}<span class="n-sp"></span><span class="help">세트 결과(승·패)를 고르면 자동 저장</span><button class="soft-b" data-act="saveSeries">${lbi("check", 16)}지금까지 저장</button></div>`;
+  }
+  // 상대 분석: 우리 팀과 한 연습 결과(11-21 사용자) — 이 브라우저에 저장한 시리즈(세트 결과·양 팀 픽)
+  function vsRecordPC(en) {
+    const list = loadSaved().filter((r) => r.enemyTeam === en.id && (!r.ourTeam || r.ourTeam === S.ourTeam));
+    const head = `<h3 class="h-h">우리 팀과 한 연습 결과<small>${list.length ? `${list.length}번 · 이 브라우저에 저장한 시리즈` : "실시간 밴픽 기록"}</small></h3>`;
+    if (!list.length) return `<section class="h-sec">${head}${emptyBox("draft", "아직 우리 팀과 한 연습 기록이 없습니다", "실시간 밴픽에서 세트 결과(승·패)를 고르면 여기에 쌓입니다")}</section>`;
+    const tot = list.reduce((a, r) => { const f = r.final || seriesOver({ games: r.games }); if (f) a[f.r]++; r.games.forEach((g) => { if (g.result) a["g" + g.result]++; }); return a; }, { W: 0, L: 0, gW: 0, gL: 0 });
+    const picks = (g, who) => { const ids = g.partial ? g.picks.filter((x) => x.who === who).map((x) => x.id) : (g.steps || []).filter((s) => s.t === "pick" && s.champ && (s.side === g.ourSide) === (who === "our")).map((s) => s.champ);
+      return ids.filter((id) => CH[id]).map((id) => `<span title="${esc(CH[id].ko)}">${icon(id, "xs")}</span>`).join(""); };
+    const rows = list.slice(0, 8).map((r) => { const f = r.final || seriesOver({ games: r.games });
+      return `<div class="vr"><span class="vr-h"><b>${esc(r.at)}</b>${f ? `<b class="sv-fin ${f.r === "W" ? "w" : "l"}">${finalTxt(f)}</b>` : `<span class="help">진행 중 저장</span>`}</span>
+        <div class="vr-gs">${r.games.map((g) => `<span class="vr-g"><i class="${g.result === "W" ? "w" : g.result === "L" ? "l" : ""}">${g.game}</i><span class="vr-p our">${picks(g, "our")}</span><small>vs</small><span class="vr-p">${picks(g, "enemy")}</span></span>`).join("")}</div></div>`; }).join("");
+    return `<section class="h-sec">${head}<div class="vr-sum"><span>시리즈 <b class="w">${tot.W}승</b> <b class="l">${tot.L}패</b></span><span>세트 <b class="w">${tot.gW}승</b> <b class="l">${tot.gL}패</b></span></div><div class="vr-list">${rows}</div></section>`;
+  }
   // 저장한 밴픽: 시리즈마다 접었다 펴기, 세트마다 우리·상대 밴과 픽(라인)
   function renderSaved() {
     // 지금 고른 상대와 한 시리즈만(다른 상대 기록은 그 상대를 고르면 보임)
@@ -1253,7 +1271,7 @@
   const DOCK_PC = [["grid", "챔프 고르기"], ["comps", "추천 조합"], ["strat", "운영 전략"], ["threat", "요주의 인물"], ["prac", "상대 연습 픽"], ["plan", "픽 순서"], ["series", "피어리스·저장"]];
   function renderDockPC() {
     const key = S.ui.dock && S.ui.dockAt === S.draft.idx && DOCK_PC.some((d) => d[0] === S.ui.dock) ? S.ui.dock : "grid";
-    const body = { grid: renderGrid, comps: renderLiveCompsPC, threat: () => renderThreat(true), prac: renderPractice, plan: renderPlan, strat: renderStratPC, series: () => renderFearless() + renderSaved() }[key]();
+    const body = { grid: renderGrid, comps: renderLiveCompsPC, threat: () => renderThreat(true), prac: renderPractice, plan: renderPlan, strat: renderStratPC, series: () => seriesBarPC() + renderFearless() + renderSaved() }[key]();
     const tabs = DOCK_PC.map(([k, n]) => `<button role="tab" data-act="dock" data-k="${k}" aria-selected="${k === key}">${n}</button>`).join("");
     return `<section class="dock-pc"><div class="seg dock-tabs" role="tablist" aria-label="밴픽 도움 정보">${tabs}</div><div class="dock-body ${key === "grid" ? "is-grid" : ""}">${body || emptyBox("draft", "지금 보여 줄 내용이 없습니다", esc((DOCK_PC.find((d) => d[0] === key) || ["", ""])[1]))}</div></section>`;
   }
@@ -2460,7 +2478,7 @@
     // 예상 조합: 지금 시리즈 설정(피어리스·세트) 기준, 우리 밴은 반영 안 함
     const comps = has ? `<section class="h-sec"><h3 class="h-h">예상 조합<small>상대가 나올 만한 조합 · 가능성 순 · 카드에 마우스를 올리면 우리 대응</small><button class="ec-more" data-act="ecopen">상황별 전체 보기 ${lbi("chev", 16)}</button></h3>
       <div class="ec-grid">${ecomps(ours, en, ecOpt(false), false).list.filter((x) => x.kind !== "other").slice(0, 6).map((x) => ecCard(x)).join("")}</div></section>` : "";
-    return `<div class="home enemy-pc">${collectBanner()}${summary}${bans}${lanes}${comps}${homeGamesPC(en, true)}</div>`;
+    return `<div class="home enemy-pc">${collectBanner()}${summary}${bans}${lanes}${comps}${homeGamesPC(en, true)}${vsRecordPC(en)}</div>`;
   }
 
   // ---------- opponent ----------
@@ -5178,7 +5196,7 @@
         const ov = seriesOver(S.series);
         if (!ov) S.series.game++;
         S.draft.steps = emptySteps(); S.draft.idx = 0; save(); render(); window.scrollTo(0, 0);
-        if (ov) saveSeries(true);
+        saveSeries(true);   // 세트 결과를 고를 때마다 저장(11-21 사용자: PC엔 「밴픽 저장」 버튼이 없어 3세트가 안 남았음)
         break;
       }
       case "savedRes": { const list = loadSaved(), r = list.find((x) => x.sid === el.dataset.sid), g = r && r.games.find((x) => String(x.game) === el.dataset.g);
