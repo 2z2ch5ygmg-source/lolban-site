@@ -676,7 +676,7 @@
     if (!pills && r.role) { try { pills = E.cardPills(E.teamOf(S, muted ? "enemy" : "our"), r.role, r.id, r.reasons, !!muted); } catch (e) { pills = null; } }
     const kv = (pills || []).map((x) => String(x.t).match(PILL_K)).filter((m) => m && m[1] !== "자기평가").map((m) => {
       const [lv, why] = kvLevel(m[1], m[2]);
-      return { k: m[1] === "대회" ? "meta" : "rec", t: `${m[1] === "대회" ? "프로 밴픽" : m[1]} ${m[2]}`, c: lv === "hot" ? (muted ? "threat" : "hot") : lv === "weak" && !muted ? "bad" : "", why: why ? `기준: ${why}` : "" };
+      return { k: m[1] === "대회" ? "meta" : "rec", t: `${m[1]} ${m[2]}`, c: lv === "hot" ? (muted ? "threat" : "hot") : lv === "weak" && !muted ? "bad" : "", why: why ? `기준: ${why}` : "" };
     });
     const rs = (r.reasons || []).filter((x) => !REASON_SKIP.test(x.t));
     const pos = rs.filter((x) => x.v > 0).sort((a, b) => b.v - a.v).map((x) => ({ k: chipKind(x.t), t: reasonShort(x), c: "", why: x.d }));
@@ -697,7 +697,7 @@
   function hintOf(t, why) {
     t = String(t || "");
     const H = [
-      [/^프로 밴픽/, "2026 프로 대회 전체(LCK·LPL·국제대회 등, gol.gg) 밴픽 우선도 — 높을수록 프로가 자주 쓰거나 밴하는 챔프"],
+      [/^(프로 밴픽|대회 \d)/, "2026 프로 대회 전체(LCK·LPL·국제대회 등, gol.gg) 밴픽 우선도 — 높을수록 프로가 자주 쓰거나 밴하는 챔프"],
       [/^시즌 /, "이번 시즌 랭크 기록(판수·승률) — 0시 수집 기준"],
       [/^연습 \d/, "대회 준비 시작일 이후 이 챔프로 한 기록(판수·승)"],
       [/^연습 중/, "최근 팀원들과 연습 중인 픽입니다"],
@@ -1238,7 +1238,7 @@
   function liveSetBarPC() {
     return `<button class="ib mh-ib" data-act="resetGame" aria-label="이번 세트 다시">${lbi("undo", 22)}</button>
       <button class="ib mh-ib" data-act="resetSeries" aria-label="시리즈 처음부터">${lbi("refresh", 22)}</button>
-      ${S.ui.endAsk ? `<span class="end-ask" role="group" aria-label="${S.series.game}세트 결과"><button class="soft-b res-w" data-act="endGame" data-v="W">승</button><button class="soft-b res-l" data-act="endGame" data-v="L">패</button><button class="soft-b" data-act="endCancel">취소</button></span>`
+      ${S.ui.endAsk ? `<span class="end-ask" role="group" aria-label="${S.series.game}세트 결과"><span class="end-ask-l">${S.series.game}세트 결과</span><button class="soft-b res-w" data-act="endGame" data-v="W">승</button><button class="soft-b res-l" data-act="endGame" data-v="L">패</button><button class="soft-b" data-act="endCancel">취소</button></span>`
         : seriesOver(S.series) ? `<button class="soft-b" data-act="resetSeries">새 시리즈 시작</button>` : `<button class="soft-b" data-act="nextGame">세트 종료 → 다음 세트</button>`}<span class="lv-roomslot">${liveRoomPC()}</span>`;
   }
   // 팀 방(B안 11-20 사용자): 상단바 버튼 하나(상태 점 · 진행자 · 사람 첫 글자 ▾), 누르면 사람 이름 목록과 진행 요청·넘기기·혼자 하기
@@ -1821,7 +1821,7 @@
     const rec = x && x.n ? `${x.n}판 ${Math.round((x.w / x.n) * 100)}%` : "";
     const tier = pt.t ? `<span class="l5-t">${tierImg(pt.t, 18)}<b>${esc(v)}</b><span class="l5-q">${fl ? "자랭" : "솔랭"}</span></span>` : v ? `<span>${esc(v)}</span>` : "";
     if (!tier && !rec) return "&nbsp;";
-    return tier + (tier && rec ? `<span class="l5-dot" aria-hidden="true">·</span>` : "") + (rec ? `<span>${esc(rec)}</span>` : "");
+    return tier + (rec ? `<span class="l5-rec">${esc(rec)}</span>` : "");   // 11-21 QA: 줄이 바뀌면 「· 43판」처럼 점으로 시작했음 → 점 없이 간격만
   }
   // ---------- 홈(PC 새 디자인 A) ----------
   // 기존 계산(poolMap·recentOf·actualRole·fearlessPlan·groupsOf·thin 보강)을 그대로 쓰고 모양만 바꾼다
@@ -2481,7 +2481,7 @@
       <span class="e-k"><small>티어 점수 합</small><b><span class="tb">${sum(ours)}</span> : <span class="tr">${sum(en)}</span></b></span>
       <span class="e-k"><small>라인 우세 · 열세</small><span class="e-lanes">${gaps.map((x) => `<span class="pill lane-pill ${x.g >= 15 ? "good" : x.g <= -15 ? "bad" : ""}" title="${ROLE_KO[x.r]} ${x.g > 0 ? "+" : ""}${x.g}">${laneIco(x.r, 18)}<span class="sr-only">${ROLE_KO[x.r]}</span>${x.g > 0 ? "+" : ""}${x.g}</span>`).join("")}</span></span>
       <span class="e-k e-dir"><small>운영 방향</small><b>${esc(weak.length ? `${weak.join("·")}은 버티는 픽, 정글이 커버` : "라인전 무난")}${strong.length ? ` · ${esc(strong.join("·"))} 주도권으로 동선 시작` : ""}</b></span>
-      ${thr.length ? `<span class="e-thr">${thr.map((t, i) => `<span class="e-t">${icon(t.champ, "md")}<span><small class="${i ? "" : "bad"}">요주의 · ${ROLE_KO[t.r]}</small><b>${esc(nick(t.p.riot))}</b><small>${esc(CH[t.champ].ko)}${t.why && t.why[0] ? " · " + esc(t.why[0]) : ""}</small></span></span>`).join("")}</span>` : ""}
+      ${thr.length ? `<span class="e-thr">${thr.map((t, i) => `<span class="e-t" title="${esc(`${nick(t.p.riot)} · ${CH[t.champ].ko}${t.why && t.why[0] ? " · " + t.why[0] : ""}`)}">${icon(t.champ, "md")}<span><small class="${i ? "" : "bad"}">요주의 · ${ROLE_KO[t.r]}</small><b>${esc(nick(t.p.riot))}</b><small>${esc(CH[t.champ].ko)}${t.why && t.why[0] ? " · " + esc(String(t.why[0]).startsWith(CH[t.champ].ko) ? String(t.why[0]).slice(CH[t.champ].ko.length).trim() : t.why[0]) : ""}</small></span></span>`).join("")}</span>` : ""}
     </section>`;
     // 사전 밴 후보(운영과 같은 virtual 밴픽)
     const virtual = Object.assign({}, S, { enemyTeam: en.id, draft: { ourSide: "B", steps: emptySteps(), idx: 0 }, series: { game: 1, mode: "off", locked: [] } });
@@ -5037,7 +5037,8 @@
   const AP = { team: "", code: "", nick: null };
   function authMsg() {
     const m = AUTH.msg || (LOGIN_ERR ? { cancel: "로그인을 취소했습니다", state: "로그인 시간이 지났습니다 — 다시 눌러 주세요", provider: "로그인 공급자 응답에 문제가 있었습니다 — 잠시 뒤 다시", not_ready: "그 로그인은 아직 준비 중입니다" }[LOGIN_ERR] || "로그인하지 못했습니다" : "");
-    return m ? `<p class="ap-msg" role="status">${esc(m)}</p>` : "";
+    const ok = !!AUTH.msg && /만들었습니다|들어왔습니다|팀에서 나왔습니다|새 초대 코드|복사 —|^초대 코드:/.test(AUTH.msg);   // 11-21 QA: 성공 안내가 빨간 오류 모양이었음
+    return m ? `<p class="ap-msg${ok ? " ok" : ""}" role="status">${esc(m)}</p>` : "";
   }
   const AP_FOOT = `<div class="ap-foot"><a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a> · <a href="mailto:wonseo151@naver.com">문의</a></div>`;
   // 처음 들어오기(11-20 사용자): 초대 코드 → 이름 → 포지션을 홈 없이 차례로. 이름은 팀원 목록에 쓰고, 포지션은 처음 한 번만 직접(이후 팀장)
@@ -5055,7 +5056,7 @@
       const t = team(SPACE.id), acc = (r) => { const pl = t && t.players[r]; return pl && pl.riot ? `<small>${esc(nick(pl.riot))}</small>` : ""; };
       const opts = MROLE.filter(([k]) => k !== "coach" || SPACE.isOwner);
       body = `${step(3, esc(SPACE.name))}<h1>내 포지션을 골라 주세요</h1><p class="ap-sub">${SPACE.isOwner ? "팀장은 나중에 팀원 목록에서 언제든 바꿀 수 있습니다" : "처음 한 번만 직접 고르고, 바꾸는 건 팀장이 합니다"}</p>
-        <div class="ob-roles">${opts.map(([k, n]) => `<button class="ob-role" data-act="obrole" data-v="${k}" ${AUTH.busy ? "disabled" : ""}><b>${n}</b>${ROLES.includes(k) ? acc(k) : `<small>${k === "sub" ? "출전 라인 없음" : "모든 라인 자기평가 편집"}</small>`}</button>`).join("")}</div>
+        <div class="ob-roles">${opts.map(([k, n]) => `<button class="ob-role" data-act="obrole" data-v="${k}" ${AUTH.busy ? "disabled" : ""}><b>${ROLES.includes(k) ? laneIco(k, 20) : ""}${n}</b>${ROLES.includes(k) ? acc(k) : `<small>${k === "sub" ? "출전 라인 없음" : "모든 라인 자기평가 편집"}</small>`}</button>`).join("")}</div>
         ${SPACE.isOwner ? `<button class="ap-skip" data-act="obrolelater">나중에 고르기 <span aria-hidden="true">→</span></button>` : ""}`;
     }
     return `<div class="ap ap-first">${top}<section class="ap-wrap ob-wrap" aria-label="처음 설정">${body}${authMsg()}</section>${AP_FOOT}</div>`;
@@ -5871,8 +5872,10 @@
     const v = (id) => (document.getElementById(id) || {}).value || "";
     const msg = document.getElementById("nfMsg");
     const ch = findChamp(v("nfChamp"));
-    if (v("nfChamp").trim() && !ch) { msg.textContent = "챔프 이름을 찾지 못했습니다."; return; }
-    if (!v("nfTitle").trim()) { msg.textContent = "제목을 적어 주세요."; return; }
+    // 11-21 QA: 안내가 작은 회색 글씨라 못 보고 지나쳤음 → 빨간 글씨 + 그 칸 표시·커서
+    const bad = (id, m) => { msg.textContent = m; msg.classList.add("nf-bad"); const el = document.getElementById(id); if (el) { el.setAttribute("aria-invalid", "true"); el.focus(); el.addEventListener("input", () => el.removeAttribute("aria-invalid"), { once: true }); } };
+    if (v("nfChamp").trim() && !ch) return bad("nfChamp", "챔프 이름을 찾지 못했습니다.");
+    if (!v("nfTitle").trim()) return bad("nfTitle", "제목을 적어 주세요.");
     const link = document.getElementById("nfLink");
     const g = NT.form.game || (NT.form.note && NT.form.note.game) || null;
     // 상태는 보드에서 눌러 바꾼다(새 고칠 점은 「고칠 점」으로 시작, 고칠 때는 그대로 둠)

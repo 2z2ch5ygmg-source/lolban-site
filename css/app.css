@@ -975,6 +975,8 @@ footer a, .mv-legal a { color: var(--muted); text-decoration: underline; text-un
 .toast.on { opacity: 1; transform: translate(-50%, 0); }
 @media (max-width: 760px) { .toast { bottom: calc(76px + env(safe-area-inset-bottom)); max-width: calc(100% - 32px); } .tm-flow { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+/* 11-21 QA: 휴대폰 밴픽 화면에서 알림이 「밴할 챔프 고르기」 버튼을 가렸음 → 아래 버튼 줄 위로 */
+@media (max-width: 760px) { body:has(.mv-act) .toast { bottom: calc(150px + env(safe-area-inset-bottom)); } }
 
 .noteam { display: grid; gap: 10px; justify-items: start; padding: 28px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--panel); }
 .noteam h2 { margin: 0; font-size: 18px; } .noteam .dnav { margin: 4px 0 0; }

@@ -151,6 +151,10 @@ html.pc .live-pc + * { display: none; }
 .mh-ib { background: none; border: 0; color: var(--muted); display: inline-flex; padding: 4px; border-radius: 8px; }
 .mh-ib:hover { color: var(--text); }
 .end-ask { display: inline-flex; gap: 6px; }
+/* 11-21 QA: 머리줄에서 승·패·취소가 세로로 쌓여 위로 잘렸음(app.css의 줄바꿈) → 한 줄 고정 */
+html.pc .end-ask { flex-wrap: nowrap; flex: none; align-items: center; white-space: nowrap; }
+html.pc .end-ask-l { font-size: 13px; font-weight: 700; color: var(--muted); margin-right: 2px; }
+html.pc .end-ask .res-w { color: var(--blue); } html.pc .end-ask .res-l { color: var(--red); }
 
 /* 양 팀 칸: 위아래 끝까지, 다섯 칸 고르게, 선수 이름은 초상화 아래 */
 html.pc .live-pc .side { display: grid; grid-template-rows: auto auto repeat(5, minmax(0, 1fr)); gap: 8px; height: 100%; background: none; border: 0; padding: 0; min-width: 0; }
@@ -1522,8 +1526,8 @@ button.tc-n { cursor: pointer; } button.tc-n:hover { text-decoration: underline;
 .lvps { display: inline-flex; align-items: center; flex: none; }
 .lvp { position: relative; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--bg2); color: var(--text); font-size: 11.5px; font-weight: 800; border: 2px solid var(--bg); margin-left: -5px; }
 .lvp:first-child { margin-left: 0; }
-.lvp.host { background: var(--hi); color: var(--panel); }
-.lvp.me::after { content: ""; position: absolute; bottom: -4px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--hi); }
+.lvp.host { background: var(--hi, var(--gold)); color: var(--panel); }   /* 11-21 QA: 휴대폰(--hi 없음)에서 진행자 동그라미가 안 보였음 */
+.lvp.me::after { content: ""; position: absolute; bottom: -4px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--hi, var(--gold)); }
 .lvp.more { width: auto; padding: 0 6px; border-radius: 999px; color: var(--muted); font-weight: 700; }
 .lv-room { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 32px; }
 .lv-room .livebar { justify-content: flex-start; }
@@ -1671,3 +1675,34 @@ button.cr-row:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px;
 .vr-g small { color: var(--dim); font-weight: 700; font-size: 11px; }
 .vr-p { display: inline-flex; gap: 2px; } .vr-p .ic.xs { width: 22px; height: 22px; border-radius: 50%; }
 .vr-p.our .ic.xs { box-shadow: 0 0 0 1.5px var(--blue); } .vr-p:not(.our) .ic.xs { box-shadow: 0 0 0 1.5px var(--red); }
+
+/* ---- 11-21 전체 QA 화면 수리 ---- */
+.ap-msg.ok { background: var(--good-bg); color: var(--good); }
+.ob-roles { grid-auto-rows: 1fr; }
+.ob-role { align-content: start; }
+.ob-role b { display: inline-flex; align-items: center; gap: 8px; }
+.ob-role b .lane-ic { flex: none; color: var(--muted); }
+/* 사이드바: 긴 팀 이름이 칸을 밀고 나가 테두리에 붙었음(그리드 항목 최소 너비) */
+.sd-opp > *, .sd-opp .sd-tmw { min-width: 0; }
+/* 밴 카드 이름: 「누누와 윌럼 / 프」·「정 / 글」로 쪼개지던 것 → 한 줄 + 말줄임 */
+html.pc :is(.live-pc, .enemy-pc) .rec .nm { max-width: 100%; padding: 0 4px; box-sizing: border-box; }
+html.pc :is(.live-pc, .enemy-pc) .rec .nm > * { white-space: nowrap; flex: none; }
+html.pc :is(.live-pc, .enemy-pc) .rec .nm > .cn { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* 좁은 화면(1366 등): 밴 카드 알약 아이콘은 빼고 글자만(색으로 종류 구분) */
+@media (max-width: 1599px) {
+  html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc { padding: 2px 7px; gap: 0; }
+  html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc .lbi { display: none; }
+}
+/* 로스터·상대 라인 칸: 1366에서 챔프 이름이 「키...」처럼 1~2글자만 보였음 → 이름 한 줄, 숙련도 알약은 그 아래 */
+@media (max-width: 1699px) {
+  html.pc .lane5 .l5-c { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 10px; row-gap: 3px; align-items: center; }
+  html.pc .lane5 .l5-c > .ic { grid-row: 1 / 3; }
+  html.pc .lane5 .l5-c > b { align-self: end; }
+  html.pc .lane5 .l5-c > .lv { justify-self: start; align-self: start; height: 18px; padding: 0 7px; font-size: 11px; }
+}
+/* 티어 줄: 「자 / 랭」 세로 쪼개짐 */
+.l5-t, .l5-q { white-space: nowrap; flex: none; }
+.empty-box small { max-width: 52ch; text-wrap: balance; }
+
+.nf-bad { color: var(--red, #D42F3C) !important; font-weight: 600; }
+#nmodal .input[aria-invalid="true"] { border-color: var(--red, #D42F3C); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red, #D42F3C) 18%, transparent); }
