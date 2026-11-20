@@ -1371,7 +1371,7 @@
     }
     if (got && !window.RECENT) window.RECENT = { status: "ok", season: {}, players: {}, groups: {}, stacks: {} };
     if (got) { mergeQuick(); render(); }
-    if (!quiet || fail || added.length) toast(got ? `${got}명 챔프폭 반영(부계정 포함 · 최근 랭크 30판 · 0시 수집 때 100판으로)${added.length ? ` · 부계정 챔프를 챔프폭에 넣음: ${added.join("·")}` : ""}${fail ? ` · ${fail}개 계정은 못 받음` : ""}` : "챔프폭을 받지 못했습니다 — 잠시 뒤 「기록 갱신」을 다시 눌러 주세요");
+    if (!quiet || fail || added.length) toast(got ? `${got}명 챔프폭 반영(부계정 포함 · 최근 랭크 30판 · 0시 수집 때 200판으로)${added.length ? ` · 부계정 챔프를 챔프폭에 넣음: ${added.join("·")}` : ""}${fail ? ` · ${fail}개 계정은 못 받음` : ""}` : "챔프폭을 받지 못했습니다 — 잠시 뒤 「기록 갱신」을 다시 눌러 주세요");
   }
   // 우리 팀 부계정 챔프를 챔프폭(자기평가 목록)에 넣기(11-20 사용자 요청: 부계정 등록 즉시 밴픽·우리 팀 자료에 반영)
   //   우리 팀은 자기평가 목록만 밴픽에 쓰므로, 기록만 합치면 목록 밖 챔프는 반영이 안 됐음.
@@ -2482,7 +2482,7 @@
         wait: () => { IQ.pWaited = true; IQ.waitUntil = Date.now() + 61000; iqShow(); setTimeout(() => { IQ.waitUntil = 0; }, 61000); },
         each: (k) => { q.doneP.push(k); iqSave(q); } });
     } finally { iqSave(null); IQ.on = false; iqShow(); }
-    toast(`명단 등록 끝 — 계정 ${q.done.length}개 티어, 최근 랭크 경기·챔프폭까지 반영했습니다${miss ? ` · ${miss}개 계정은 못 받음` : ""} (0시 수집 때 100판으로 늘어남)`);
+    toast(`명단 등록 끝 — 계정 ${q.done.length}개 티어, 최근 랭크 경기·챔프폭까지 반영했습니다${miss ? ` · ${miss}개 계정은 못 받음` : ""} (0시 수집 때 200판으로 늘어남)`);
   }
   // ---- 명단 등록 서버 작업(11-20 사용자 결정: 창을 닫아도 서버에서 계속) — Worker ImportJob이 받고, 페이지는 진행을 보여 주고 결과를 반영 ----
   //   서버가 옛 판이면(주소 없음) 위의 브라우저 방식(startImportFetch)으로
@@ -2517,7 +2517,7 @@
       iqShow(); SJ.timer = setTimeout(sjPoll, 3000);
     } else if (IQ.on && IQ.server) {
       IQ.on = false; IQ.server = false; iqShow(); render();
-      const j = SJ.job; if (j) toast(`명단 등록 끝 — 계정 ${j.n}개 티어, 최근 랭크 경기·챔프폭까지 반영했습니다 (0시 수집 때 100판으로 늘어남)`);
+      const j = SJ.job; if (j) toast(`명단 등록 끝 — 계정 ${j.n}개 티어, 최근 랭크 경기·챔프폭까지 반영했습니다 (0시 수집 때 200판으로 늘어남)`);
     }
   }
   // 서버 결과 반영(한 번 반영한 것은 다시 안 함, 작업마다 기록)
