@@ -1245,28 +1245,37 @@
     return `<section class="dock-pc"><div class="seg dock-tabs" role="tablist" aria-label="밴픽 도움 정보">${tabs}</div><div class="dock-body ${key === "grid" ? "is-grid" : ""}">${body || emptyBox("draft", "지금 보여 줄 내용이 없습니다", esc((DOCK_PC.find((d) => d[0] === key) || ["", ""])[1]))}</div></section>`;
   }
   // 추천 조합 탭(PC): 1~6위 한 줄 순위 · 상대 대비 · 방향 한 줄 · 다섯 칸(확정/목표/예정) · 근거·대체 픽 한 줄. 운영 글은 「운영 전략」 탭
+  // 추천 조합(B안 11-20 사용자): 설계에 쓰는 조합(없으면 1위)을 크게 — 숙련도·조합 적합·상대 대비 막대 + 추천 이유 알약, 나머지는 한 줄씩(이름·작은 초상화·이유 하나·고르기)
   function renderLiveCompsPC() {
     const t = team(S.ourTeam);
-    if (!t || !E.teamHasPools(t)) return `<p class="help">우리 팀 챔프폭을 넣으면 조합을 추천합니다.</p>`;
+    if (!t || !E.teamHasPools(t)) return emptyBox("comp", "추천 조합이 아직 없습니다", "우리 팀 챔프폭을 넣으면 나옵니다");
     const list = E.scenarios(S, "our", true) || [];
     if (!list.length) return emptyBox("comp", "남은 라인이 없습니다");
-    const GP = goalPlanNow(), selId = GP ? GP.sel.id : "";
-    const od = list[0].oppDir;
-    const VS = { 유리: "good", 보통: "", 불리: "bad" };
-    const cards = list.map((sc, i) => {
-      const C = COMPS[sc.key], short = od ? COMPS[od].short : "";
-      const dir = (sc.vs === "유리" ? `상대 ${short} 조합을 잡는 방향` : sc.vs === "불리" ? `상대 ${short} 조합에 약함` : od ? `상대 ${short} 조합과 대등` : C.name);
-      const why = sc.why.filter((w) => !/잡는 방향|에 약함/.test(w)).map((w) => esc(w.replace(/ — .*$/, "")));
-      const alts = ROLES.filter((r) => sc.slots[r] && !sc.slots[r].done && (sc.slots[r].alts || []).length).map((r) => `${ROLE_KO[r]} ${sc.slots[r].alts.map((a) => esc(CH[a.id].ko)).join("·")}`);
-      const base = [sc.tag || "", ...why, alts.length ? "대체 픽 " + alts.join(" / ") : ""].filter(Boolean).join(" · ");
-      return `<button class="cc ${sc.id === selId ? "on" : ""}" data-act="scen" data-k="${sc.id}" aria-pressed="${sc.id === selId}">
-        <span class="cc-h"><b class="cc-n">${i + 1}</b><b class="cc-t">${esc(sc.name.replace(/ 조합$/, ""))}</b>${sc.vs ? `<span class="cc-vs ${VS[sc.vs]}">상대 대비 ${sc.vs}</span>` : ""}${sc.id === selId ? `<span class="cc-on">설계에 씀</span>` : ""}</span>
-        ${String(dir).replace(/<[^>]+>/g, "").replace(/\s*조합\s*$/, "").trim() === sc.name.replace(/\s*조합$/, "").trim() ? "" : `<span class="cc-d ${VS[sc.vs] || ""}">${sc.vs === "불리" ? lbi("warn", 16) : lbi("comp", 16)}${dir}</span>`}
-        <span class="cc-5">${ROLES.map((r) => { const x = sc.slots[r]; return `<span class="cc-s"><span class="cc-r">${ROLE_KO[r]}</span>${x && x.id ? icon(x.id, "md") : `<span class="ic md"></span>`}<span class="cc-cn">${x && x.id ? esc(CH[x.id].ko) : "—"}</span><span class="cc-st ${x && x.done ? "done" : x && x.goal ? "goal" : ""}">${x && x.done ? "확정" : x && x.goal ? "목표" : x && x.id ? "예정" : "챔프폭 없음"}</span></span>`; }).join("")}</span>
-        ${base ? `<span class="cc-b">${base}</span>` : ""}</button>`;
-    }).join("");
-    return `<div class="cc-top">${od ? `<span>상대 방향 <b>${esc(COMPS[od].short)}</b></span>` : ""}<span class="dim">순위 = 숙련도 합 + 조합 적합도 + 상대 대비 상성 − 차단·빈 라인 · 누르면 그 조합으로 밴픽 설계 · 운영 방법은 「운영 전략」</span></div><div class="cc-g">${cards}</div>`;
+    const GP = goalPlanNow(), selId = GP ? GP.sel.id : "", sel = list.find((x) => x.id === selId) || list[0];
+    const od = list[0].oppDir, maxFit = Math.max(1, ...list.map((x) => x.fitScore || 0));
+    const LVK = (v) => (v >= 2.6 ? "상" : v >= 1.8 ? "중" : v > 0 ? "하" : "—");
+    const comfortOf = (sc) => { const ls = ROLES.map((r) => sc.slots[r]).filter((x) => x && x.id && !x.done && typeof x.lv === "number"); return ls.length ? ls.reduce((a, x) => a + x.lv, 0) / ls.length : 0; };
+    const bad = (w) => /약함|위험|막음|없음|불리|잘림/.test(w);
+    const reasons = (sc) => { const out = []; if (sc.tag) out.push({ t: sc.tag, c: "" });
+      sc.why.forEach((w) => { const s = String(w).replace(/ — .*$/, ""); if (!s || out.some((x) => x.t === s)) return; out.push({ t: s.length > 26 ? s.slice(0, 25) + "…" : s, full: s, c: bad(s) ? "bad" : /잡는|유리|뺏기|가져가기/.test(s) ? "good" : "" }); });
+      return out; };
+    const chip = (x) => `<span class="cr-chip ${x.c}" ${x.full && x.full !== x.t ? `title="${esc(x.full)}"` : ""}>${esc(x.t)}</span>`;
+    const altN = (sc) => ROLES.reduce((a, r) => a + (sc.slots[r] && !sc.slots[r].done ? (sc.slots[r].alts || []).length : 0), 0);
+    const rank = (sc) => list.indexOf(sc) + 1;
+    const VSW = { 유리: [80, "good", "유리"], 보통: [50, "", "보통"], 불리: [25, "bad", "불리"] };
+    const bar = (lab, pct, val, cls) => `<span class="cr-bar ${cls || ""}"><span>${lab}</span><i style="--w:${Math.round(pct)}%"></i><b>${val}</b></span>`;
+    const five = (sc, big) => `<span class="cr-5 ${big ? "big" : ""}">${ROLES.map((r) => { const x = sc.slots[r]; return `<span class="cr-s">${big ? `<small>${ROLE_KO[r]}</small>` : ""}${x && x.id ? icon(x.id, big ? "lg" : "sm") : `<span class="ic ${big ? "lg" : "sm"}"></span>`}${big ? `<b title="${x && x.id ? esc(CH[x.id].ko) : ""}">${x && x.id ? esc(CH[x.id].ko) : "—"}</b>${x && (x.done || x.goal) ? `<em>${x.done ? "확정" : "목표"}</em>` : ""}` : ""}</span>`; }).join("")}</span>`;
+    const cf = comfortOf(sel), vs = VSW[sel.vs];
+    const rs = reasons(sel), n = altN(sel);
+    const hero = `<section class="cr-hero"><div class="cr-hl"><span class="cr-k">추천 ${rank(sel)}위${sel.id === selId ? " · 밴픽 설계에 쓰는 중" : ""}</span><h3>${esc(sel.name.replace(/ 조합$/, ""))}</h3><p class="cr-win">${esc(sel.win || COMPS[sel.key].win || "")}</p>${five(sel, true)}</div>
+      <div class="cr-hr"><div class="cr-bars">${bar("숙련도", (cf / 3) * 100, LVK(cf))}${bar("조합 적합", ((sel.fitScore || 0) / maxFit) * 100, (sel.fitScore || 0) >= maxFit * 0.8 ? "좋음" : (sel.fitScore || 0) >= maxFit * 0.5 ? "보통" : "낮음")}${vs ? bar("상대 대비", vs[0], vs[2], vs[1]) : bar("상대 대비", 0, "모름")}</div>
+        <div class="cr-chips">${rs.slice(0, 4).map(chip).join("")}${n ? `<span class="cr-chip">대체 픽 ${n}개</span>` : ""}</div>
+        ${sel.id === selId && S.ui.scen ? `<button class="soft-b cr-btn" data-act="scen" data-k="${sel.id}">설계를 1위로 되돌리기</button>` : ""}</div></section>`;
+    const rows = list.filter((x) => x !== sel).map((sc) => { const r1 = reasons(sc).sort((a, b) => (b.c === "bad") - (a.c === "bad"))[0] || (VSW[sc.vs] ? { t: `상대 대비 ${sc.vs}`, c: VSW[sc.vs][1] } : null);
+      return `<div class="cr-row"><b class="cr-n">${rank(sc)}</b><b class="cr-t" title="${esc(sc.name)}">${esc(sc.name.replace(/ 조합$/, ""))}</b>${five(sc)}<span class="cr-sp"></span>${r1 ? chip(r1) : ""}<button class="soft-b" data-act="scen" data-k="${sc.id}">고르기</button></div>`; }).join("");
+    return `<div class="cr-top">${od ? `<span>상대 방향 <b>${esc(COMPS[od].short)}</b></span>` : ""}<span class="dim">고르면 그 조합으로 밴픽 설계 · 운영 방법은 「운영 전략」</span></div>${hero}${rows ? `<div class="cr-rows">${rows}</div>` : ""}`;
   }
+
   // 차례가 바뀌면 강조(소리 대신, 사용자 요청 11-19): 우리 차례 보라 두 번 번쩍·점 물결·빈 칸 숨쉬기, 상대 차례 빨강 한 번. 탭 제목에도 표시
   let lastTurnKey = "", titleBlink = null;
   const BASE_TITLE = document.title;

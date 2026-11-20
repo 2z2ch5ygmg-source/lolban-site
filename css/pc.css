@@ -1603,3 +1603,35 @@ html.pc .tl-c.open.pick { background: transparent; border: 1.5px dashed var(--li
 html.pc .tl-c.open.pick.b span { color: var(--blue); } html.pc .tl-c.open.pick.r span { color: var(--red); }
 html.pc .tl-c.now { outline: 2px solid var(--hi); outline-offset: 1px; }
 html.pc .tl-key .k.ban { background: var(--bg2); } html.pc .tl-key .k.now { outline-color: var(--hi); }
+/* 상대 분석 라인 챔프: 마우스를 올린 상자가 칸 경계까지 튀어나가던 것 → 내용만큼만(11-20 사용자) */
+html.pc .l5 button.l5-c { width: fit-content; max-width: 100%; margin: -4px 0; padding: 4px 10px 4px 4px; }
+/* 추천 조합 B안(11-20 사용자): 크게 보는 조합 + 한 줄 목록 */
+.cr-top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; font-size: 13px; margin-bottom: 12px; }
+.cr-hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 28px; background: var(--panel); border-radius: 18px; padding: 20px 22px; box-shadow: inset 0 0 0 2px var(--hi); }
+.cr-k { font-size: 12px; font-weight: 800; color: var(--hi); }
+.cr-hero h3 { margin: 2px 0 4px; font-size: 22px; font-weight: 800; }
+.cr-win { margin: 0 0 14px; font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+.cr-5 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.cr-5:not(.big) { display: inline-flex; gap: 4px; } .cr-5:not(.big) .ic.sm { width: 30px; height: 30px; border-radius: 50%; }
+.cr-s { display: grid; justify-items: center; gap: 4px; min-width: 0; text-align: center; }
+.cr-s small { font-size: 11.5px; color: var(--dim); font-weight: 700; }
+.cr-s .ic.lg { width: 56px; height: 56px; border-radius: 50%; }
+.cr-s b { font-size: 12.5px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cr-s em { font-style: normal; font-size: 10.5px; font-weight: 800; color: var(--hi); background: var(--hi-bg); padding: 0 6px; border-radius: 999px; }
+.cr-hr { display: grid; gap: 14px; align-content: center; }
+.cr-bars { display: grid; gap: 10px; }
+.cr-bar { display: grid; grid-template-columns: 72px minmax(0, 1fr) 44px; align-items: center; gap: 10px; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.cr-bar i { height: 8px; border-radius: 4px; background: var(--bg2); position: relative; overflow: hidden; }
+.cr-bar i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--hi); border-radius: 4px; }
+.cr-bar.good i::after { background: var(--good); } .cr-bar.bad i::after { background: var(--red); }
+.cr-bar b { text-align: right; color: var(--text); }
+.cr-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.cr-chip { display: inline-flex; align-items: center; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--bg2); color: var(--muted); white-space: nowrap; }
+.cr-chip.good { background: var(--good-bg); color: var(--good); } .cr-chip.bad { background: var(--red-bg); color: var(--red); }
+.cr-btn { justify-self: start; }
+.cr-rows { display: grid; gap: 6px; margin-top: 10px; }
+.cr-row { display: flex; align-items: center; gap: 14px; background: var(--panel); border-radius: 12px; padding: 10px 14px; min-width: 0; }
+.cr-n { width: 18px; color: var(--dim); font-size: 15px; font-weight: 800; flex: none; }
+.cr-t { width: 230px; flex: none; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cr-sp { flex: 1; }
+.cr-row .cr-chip { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
