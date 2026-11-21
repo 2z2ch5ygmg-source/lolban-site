@@ -1664,6 +1664,15 @@ window.Engine = (function () {
         add(c, w * (t.goal ? 1.5 : 1) * (Object.keys(at).some((k) => at[k] === t && Number(k) > i) ? 1.2 : 0.8), t);
       }));
       threatBans.forEach((c, k) => { if (!usedBan.has(c) && !ourIds.has(c) && oppAvail.has(c)) add(c, (0.6 - k * 0.08) * (cand[c] ? 0.5 : 1), null); });
+      // 미리 밴(state.ui.banGoal, 11-22 사용자): 넣은 순서대로, 아직 남아 있고 우리 목표 픽이 아닌 첫 챔프를 이 밴에 씀
+      const pre = ((state.ui && state.ui.banGoal && state.ui.banGoal.ids) || []).find((c) => CH[c] && !usedBan.has(c) && !ourIds.has(c) && oppAvail.has(c));
+      if (pre) {
+        usedBan.add(pre);
+        const h = enemyHold(pre), notes = [{ t: "미리 정한 밴", c: "gold" }];
+        if (h) notes.push({ t: `상대 ${ROLE_KO[h.r]} ${lvKo(h.e)}`, c: "" });
+        steps.push({ i, who: "our", kind, id: pre, pre: true, notes, er: h ? h.r : null });
+        continue;
+      }
       const best = Object.values(cand).sort((a, b) => b.v - a.v)[0];
       if (!best) { steps.push({ i, who: "our", kind }); continue; }
       usedBan.add(best.c);

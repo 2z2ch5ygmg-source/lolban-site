@@ -749,13 +749,8 @@
   }
 
   let NOW_HEAD = null;   // PC: 머리 줄(차례 제목·라인 칸·조합 방향)을 따로 두려고
-  // 상대 밴 차례(상대가 우리를 밴): 상대가 우리 부계정까지 분석했는지 모르니 고르게(11-20 사용자) — 「대회 본계정만」이면 우리 팀은 본계정 기록만으로 계산
-  const ourHasAlts = () => { const t = team(S.ourTeam); return !!t && !t.solo && ROLES.some((r) => ((t.players[r] || {}).alts || []).some((a) => /#/.test(a || ""))); };
-  function renderNow(split) {
-    const st = curStep(), mo = !!st && st[1] === "ban" && E.whoOfSide(S, st[0]) === "enemy" && S.ui.oppAlts === "main" && ourHasAlts();
-    if (mo) E.setMainOnly([S.ourTeam]);
-    try { return renderNowInner(split); } finally { if (mo) E.setMainOnly([]); }
-  }
+  // 상대 밴 차례(상대가 우리를 밴)도 우리 부계정 기록까지 포함해 계산(11-22 사용자: 「부계정 포함/본계정만」 고르는 칸은 필요 없음)
+  function renderNow(split) { return renderNowInner(split); }
   function renderNowInner(split) {
     const st = curStep();
     if (!st) return `<div class="now-box"><div class="now-h"><span class="what">밴픽 완료</span><span class="step">아래 전략을 확인하세요</span></div></div>`;
@@ -792,9 +787,10 @@
       const ps = GP && GP.steps.find((x) => x.i === S.draft.idx && x.who === "our" && x.id);
       if (ps) {
         let card = list.find((x) => x.id === ps.id);
-        if (!card) card = { id: ps.id, tgt: ps.er, reasons: [{ t: "밴픽 설계", d: ps.notes.map((x) => x.t).join(" · "), v: 1 }] };
+        const lab = ps.pre ? "미리 정한 밴" : "밴픽 설계";
+        if (!card) card = { id: ps.id, tgt: ps.er, reasons: [{ t: lab, d: ps.notes.map((x) => x.t).join(" · "), v: 1 }] };
         list = [card].concat(list.filter((x) => x !== card)).slice(0, recN);   // 6개로 잘라서 우리 밴 차례만 카드가 적었음(11-20 사용자) — 다른 차례와 같게
-        card.comp = "밴픽 설계";
+        card.comp = lab;
       }
     }
     // 우리 쪽 방향 = 추천 조합 카드에서 고른 조합(없으면 1순위) — 밴픽 설계·추천 순서와 같은 조합
@@ -835,8 +831,7 @@
       body = `<div class="recs">${list.map((r, i) => recCard(r, type, who === "enemy", who === "our" || !MOB.matches ? i + 1 : 0, fxOf(r))).join("")}</div>`;
     }
     else body = `<div class="empty-recs">${who === "enemy" && !E.teamHasPools(t) ? "상대 챔프폭이 비어 있어 예상이 어렵습니다. 「상대팀 분석」에서 챔프폭을 넣으면 예상이 나옵니다." : "추천할 챔프가 없습니다. 아래에서 직접 고르세요."}</div>`;
-    const altSeg = who === "enemy" && type === "ban" && ourHasAlts() ? `<div class="seg alt-seg" role="group" aria-label="상대가 본 우리 기록" data-hint="상대가 우리 부계정 기록까지 분석했다고 볼지 — 대회 본계정만이면 부계정에서만 한 챔프는 덜 위험하게 봄"><span class="alt-seg-l">상대 분석</span><button data-act="oppalts" data-v="all" aria-pressed="${S.ui.oppAlts !== "main"}">부계정 포함</button><button data-act="oppalts" data-v="main" aria-pressed="${S.ui.oppAlts === "main"}">본계정만</button></div>` : "";
-    NOW_HEAD = { step: title, tabs: roleTabs, alt: altSeg, dir: dirTxt };
+    NOW_HEAD = { step: title, tabs: roleTabs, dir: dirTxt };
     if (split) return `<div class="now-box">${body}</div>`;
     return `<div class="now-box"><div class="now-h"><span class="what ${side}">${who === "our" ? "추천 순서" : "상대 예상"}</span><span class="step">${title}</span>${roleTabs}<span class="dir">${dirTxt}</span></div>${body}</div>`;
   }
@@ -1018,11 +1013,17 @@
   let GPC;   // 한 번 그릴 때 한 번만 계산
   const goalPlanNow = () => (GPC === undefined ? (GPC = E.goalPlan(S)) : GPC);
   const XICO = `<svg class="ico-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
-  function goalBar() {
-    const g = ((S.ui.goal && S.ui.goal.ids) || []).filter((id) => CH[id]);
-    const chips = g.map((id) => `<span class="chip gl-chip">${icon(id, "sm")}${esc(CH[id].ko)}<button class="gl-x" data-act="goaldel" data-id="${id}" aria-label="${esc(CH[id].ko)} 목표에서 빼기">${XICO}</button></span>`).join("");
-    return `<div class="gl-bar"><span class="gl-l">목표 챔프</span>${chips}<span class="gl-add"><input class="input" id="goalIn" list="champList" placeholder="${g.length ? "더 넣기" : "뽑고 싶은 챔프 (예: 블리츠)"}" autocomplete="off" enterkeyhint="done" aria-label="목표 챔프 넣기"><button class="ib btn sm" data-act="goaladd" aria-label="넣기" title="넣기">${ico("plus")}</button></span>
-      ${g.length ? `<button class="ib btn sm ghost" data-act="goalclr" aria-label="비우기" title="비우기">${ico("trash")}</button>` : `<span class="help gl-help">넣으면 그 챔프를 뽑는 밴·픽 순서를 짭니다</span>`}<span class="help" id="goalMsg" role="status"></span></div>`;
+  // 목표 챔프(미리 픽)·미리 밴(11-22 사용자: 「미리 픽할 것 고르기처럼 미리 밴할 것도」) — 같은 모양 칸 두 개
+  const GL = {
+    goal: { key: "goal", label: "목표 챔프", inp: "goalIn", msg: "goalMsg", add: "goaladd", del: "goaldel", clr: "goalclr", max: 3, ph: "뽑고 싶은 챔프 (예: 블리츠)", phPC: "예: 블리츠", help: "넣으면 그 챔프를 뽑는 밴·픽 순서를 짭니다", out: "목표에서 빼기" },
+    ban: { key: "banGoal", label: "미리 밴", inp: "banIn", msg: "banMsg", add: "banadd", del: "bandel", clr: "banclr", max: 5, ph: "밴할 챔프 (예: 리 신)", phPC: "예: 리 신", help: "넣은 순서대로 우리 밴 차례에 먼저 씁니다", out: "미리 밴에서 빼기" },
+  };
+  const glIds = (k) => ((S.ui[GL[k].key] && S.ui[GL[k].key].ids) || []).filter((id) => CH[id]);
+  function goalBar(k = "goal") {
+    const c = GL[k], g = glIds(k);
+    const chips = g.map((id) => `<span class="chip gl-chip">${icon(id, "sm")}${esc(CH[id].ko)}<button class="gl-x" data-act="${c.del}" data-id="${id}" aria-label="${esc(CH[id].ko)} ${c.out}">${XICO}</button></span>`).join("");
+    return `<div class="gl-bar ${k === "ban" ? "gl-ban" : ""}"><span class="gl-l">${c.label}</span>${chips}<span class="gl-add"><input class="input" id="${c.inp}" list="champList" placeholder="${g.length ? "더 넣기" : c.ph}" autocomplete="off" enterkeyhint="done" aria-label="${c.label} 넣기"><button class="ib btn sm" data-act="${c.add}" aria-label="넣기" title="넣기">${ico("plus")}</button></span>
+      ${g.length ? `<button class="ib btn sm ghost" data-act="${c.clr}" aria-label="비우기" title="비우기">${ico("trash")}</button>` : `<span class="help gl-help">${c.help}</span>`}<span class="help" id="${c.msg}" role="status"></span></div>`;
   }
   function goalPlanHtml(P) {
     const st = curStep();
@@ -1049,7 +1050,7 @@
     if (n >= 5) { const fin = E.liveComps(S)[0]; return fin ? `<section class="live-comps"><div class="section-title"><h2>우리 조합</h2><p>픽 완료 · 운영 방향은 「운영 전략」 탭</p></div>
       <div class="comps">${compCard(fin, null, `<span class="pill gold">확정</span>`)}</div></section>` : ""; }
     const list = E.scenarios(S, "our", true) || [];
-    if (!list.length) return goalBar();
+    if (!list.length) return goalBar() + goalBar("ban");
     const GP = goalPlanNow();
     const selId = GP ? GP.sel.id : "";
     const st = curStep();
@@ -1065,7 +1066,7 @@
         <div class="dnav"><button class="btn sm ${on ? "primary" : "ghost"}" data-act="scen" data-k="${sc.id}" aria-pressed="${S.ui.scen === sc.id}">${on ? "이 조합으로 밴픽 설계 중" : "이 조합으로 밴픽 설계"}</button></div>`;
       return `<div class="ct-card ${on ? "on" : ""}">${compCard(c, sc.name, `<span class="pill ${i === 0 ? "gold" : ""}">${i === 0 ? "주력" : "대안 " + i}</span>${sc.tag ? `<span class="pill">${esc(sc.tag)}</span>` : ""}`, true, false, extra)}</div>`;
     }).join("");
-    return `<section class="live-comps">${goalBar()}${GP ? goalPlanHtml(GP) : ""}
+    return `<section class="live-comps">${goalBar()}${goalBar("ban")}${GP ? goalPlanHtml(GP) : ""}
       <div class="section-title"><h2>추천 조합</h2><p>${n ? `우리 픽 ${n}개 고정 · ` : ""}${list.length}개 · 옆으로 끌어서 넘김 · 고른 조합으로 위 밴픽 설계가 바뀝니다</p></div>
       <div class="ctrack-wrap"><button class="ct-nav prev" data-act="ctnav" data-d="-1" aria-label="이전 조합">‹</button><div class="comps ctrack drag-x" id="ctrack">${cards}</div><button class="ct-nav next" data-act="ctnav" data-d="1" aria-label="다음 조합">›</button></div></section>`;
   }
@@ -1275,7 +1276,9 @@
   function goalLinePC() {
     const g = ((S.ui.goal && S.ui.goal.ids) || []).filter((id) => CH[id]);
     const GP = goalPlanNow();
-    const goal = `<span class="gl-pc"><b>목표 챔프</b>${g.map((id) => `<span class="gl-c">${icon(id, "xs")}${esc(CH[id].ko)}<button class="gl-x" data-act="goaldel" data-id="${id}" aria-label="${esc(CH[id].ko)} 목표에서 빼기">×</button></span>`).join("")}<input class="input gl-in" id="goalIn" list="champList" placeholder="${g.length ? "더 넣기" : "예: 블리츠"}" autocomplete="off" aria-label="목표 챔프 넣기"><button class="ib mh-ib gl-addb" data-act="goaladd" aria-label="목표 챔프 넣기">${lbi("plus", 18)}</button></span>`;
+    const pc = (k) => { const c = GL[k], ids = glIds(k);
+      return `<span class="gl-pc ${k === "ban" ? "gl-ban" : ""}"><b>${c.label}</b>${ids.map((id) => `<span class="gl-c">${icon(id, "xs")}${esc(CH[id].ko)}<button class="gl-x" data-act="${c.del}" data-id="${id}" aria-label="${esc(CH[id].ko)} ${c.out}">×</button></span>`).join("")}<input class="input gl-in" id="${c.inp}" list="champList" placeholder="${ids.length ? "더 넣기" : c.phPC}" autocomplete="off" aria-label="${c.label} 넣기"><button class="ib mh-ib gl-addb" data-act="${c.add}" aria-label="${c.label} 넣기">${lbi("plus", 18)}</button></span>`; };
+    const goal = pc("ban") + `<span class="lc-div" aria-hidden="true"></span>` + pc("goal");
     let plan = "";
     if (GP) {
       const mine = GP.steps.filter((x) => x.who === "our" && x.kind === "pick" && x.id && x.i >= S.draft.idx);
@@ -1289,7 +1292,7 @@
     NOW_HEAD = null;
     const now = renderNow(true), H = NOW_HEAD || {}, G = goalLinePC(), st = curStep();
     // 팀과 같이 보기(11-20): 가운데 칸이 좁아 사람·요청 버튼이 목표 챔프와 겹쳐서 → 라인 칸 아래 따로 얇은 한 줄
-    const row = `<div class="lv-ctrl"><span class="lc-l">${H.tabs || ""}</span><span class="lc-c"></span><span class="lc-r">${H.alt ? `${H.alt}<span class="lc-div" aria-hidden="true"></span>` : ""}${G.goal}</span></div>`;
+    const row = `<div class="lv-ctrl"><span class="lc-l">${H.tabs || ""}</span><span class="lc-c"></span><span class="lc-r">${G.goal}</span></div>`;
     const plan = G.plan ? `<div class="gline">${G.plan}</div>` : "";   // 「우리 조합 방향」은 뺌(11-20 사용자: 왼쪽 밴픽 설계에 이미 나옴)
     const rqh = liveReqHtml();
     const room = liveCan() ? `<div class="lv-room" ${rqh ? "" : "hidden"}><span class="livereq" role="status" ${rqh ? "" : "hidden"}>${rqh}</span></div>` : "";
@@ -1562,6 +1565,7 @@
   const kstMs = (s) => Date.parse(String(s).replace(" ", "T") + ":00+09:00");
   let gTimer = null;
   let chainEnemy = false;   // 우리팀 「갱신하기」: 우리 팀 다음에 상대도
+  let rCb = null;   // 홈 「기록 갱신」(전체): 우리 팀이 끝나면 상대 팀들로 이어감
   function refreshRecent(auto) {
     if (refreshing && !auto) return;
     clearTimeout(gTimer);
@@ -1582,6 +1586,7 @@
         return;
       }
       chainEnemy = false; refreshing = false; S.ui.rState = { msg }; render();
+      const c = rCb; rCb = null; if (c) c(msg);
     };
     const reload = (why) => {
       const end = (msg) => done((why ? why + " — " : "") + msg);
@@ -1671,9 +1676,9 @@
     return PG;
   }
   let pTimer = null, pCb = null, NIGHTSTAT = null;   // NIGHTSTAT: 0시 수집 랭크 집계(새 경기를 더하기 전 원본)   // pCb: 우리팀 「갱신하기」가 이어서 부를 때 {progress(msg), done(msg)}
-  async function refreshPractice(auto, cb) {
+  async function refreshPractice(auto, cb, tid) {
     if (cb) pCb = cb;
-    const t = E.teamOf(S, "enemy"), R = window.RECENT;
+    const t = tid ? team(tid) : E.teamOf(S, "enemy"), R = window.RECENT;
     if ((prefreshing && !auto) || !t || t.solo || !R || R.status !== "ok" || !window.Practice) { if (cb && pCb === cb) { pCb = null; cb.done("상대 갱신 건너뜀"); } return; }
     clearTimeout(pTimer);
     if (!SPACE) { S.ui.pState = { team: t.id, msg: "실시간 갱신은 팀 공간에 들어온 뒤(「팀 공간」)" }; const c = pCb; pCb = null; if (c) c.done("팀 공간 필요"); render(); return; }
@@ -1692,7 +1697,7 @@
         if (j.pending) {
           const wait = Math.max(3, j.retryIn || 30);
           const msg = `상대 경기 ${j.games.length}개 읽음 · 남은 ${j.pending}경기는 ${wait}초 뒤 자동으로 이어 읽음(Riot 한도: 2분 100회)`;
-          if (E.teamOf(S, "enemy").id === t.id) { pTimer = setTimeout(() => refreshPractice(true), wait * 1000); if (pCb) pCb.progress(msg); }
+          if (tid || E.teamOf(S, "enemy").id === t.id) { pTimer = setTimeout(() => refreshPractice(true, undefined, tid), wait * 1000); if (pCb) pCb.progress(msg); }
           else { const c = pCb; pCb = null; if (c) c.done("상대가 바뀌어 멈춤"); }
           prefreshing = false; S.ui.pState = { team: t.id, msg }; render(); return;
         }
@@ -1995,6 +2000,38 @@
   }
   const NEWS_TAG = { new: "new", alt: "", cross: "red", swap: "", games: "" };
   const newsLine = (x) => `<span class="nw-l">${x.r ? `<span class="nw-r" title="${ROLE_KO[x.r]}">${laneIco(x.r, 15)}</span>` : `<span class="nw-r">${lbi("comp", 15)}</span>`}${x.id ? icon(x.id, "xs") : ""}<span class="nw-t">${esc(x.t)}</span></span>`;
+  // 홈 「기록 갱신」 칸(11-22 사용자: 다음 상대 오른쪽에 위젯처럼, 누르면 전체를 새로) — 우리 팀 → 상대 팀 전부를 차례로(Riot 한도를 나눠 쓰지 않게)
+  const ALLR = { on: false, msg: "" };
+  function relTime(at) {
+    const ms = kstMs(at); if (!Number.isFinite(ms)) return "";
+    const d = Date.now() - ms;
+    if (d < 60e3) return "방금";
+    if (d < 3600e3) return `${Math.floor(d / 60e3)}분 전`;
+    if (d < 86400e3) return `${Math.floor(d / 3600e3)}시간 전`;
+    if (d < 7 * 86400e3) return `${Math.floor(d / 86400e3)}일 전`;
+    const m = String(at).match(/^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2})/); return m ? `${+m[1]}/${+m[2]} ${m[3]}` : String(at);
+  }
+  function refreshTile() {
+    const R = window.RECENT, busy = refreshing || prefreshing || ALLR.on;
+    const lives = Object.values((R && R.live) || {}).map((x) => x && x.at).filter(Boolean).sort();
+    const last = lives[lives.length - 1] || "", when = last || (R && R.status === "ok" && R.at) || "";
+    const md = (x) => { const m = String(x).match(/^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2})/); return m ? `${+m[1]}/${+m[2]} ${m[3]}` : ""; };
+    const sub = busy ? ALLR.msg || "받는 중…" : last ? `Riot에서 바로 · ${md(last)}` : when ? `0시 자동 수집 · ${md(when)}` : "누르면 Riot에서 받음";
+    return `<button class="nx-d${busy ? " busy" : ""}" data-act="refreshall" ${busy ? "disabled" : ""} aria-label="기록 전체 갱신 · 우리 팀과 상대 팀 모두${when ? ` · 마지막 ${esc(relTime(when))}` : ""}">
+      <span class="nx-d-h">${lbi("refresh", 18)}<span>기록 갱신</span></span><b class="nx-d-t">${busy ? "갱신 중" : esc(when ? relTime(when) : "-")}</b><small role="status">${esc(sub)}</small></button>`;
+  }
+  function refreshAll() {
+    if (refreshing || prefreshing || ALLR.on) return;
+    const ens = S.teams.filter((t) => !t.solo && t.id !== S.ourTeam);
+    ALLR.on = true; ALLR.msg = "우리 팀 받는 중…"; render();
+    const next = (i) => {
+      if (i >= ens.length) { ALLR.on = false; ALLR.msg = ""; render(); toast(`기록 갱신 끝 · 우리 팀과 상대 ${ens.length}팀`); return; }
+      const t = ens[i]; ALLR.msg = `상대 ${i + 1}/${ens.length} · ${t.name}`; render();
+      refreshPractice(false, { progress: () => { ALLR.msg = `상대 ${i + 1}/${ens.length} · ${t.name} · Riot 한도로 잠시 대기`; render(); }, done: () => next(i + 1) }, t.id);
+    };
+    chainEnemy = false; rCb = () => next(0);
+    refreshRecent(false);
+  }
   function nextHero(ours) {
     const nx = nextOpp(), can = canSetNext(), opp = S.teams.filter((t) => !t.solo && t.id !== ours.id);
     const pop = NX.open && can ? nxPop(opp) : "";
@@ -2017,7 +2054,7 @@
         <span class="nx-comp">${comp}${g ? `<span class="nx-sub">함께 한 경기 ${g.length}판</span>` : ""}</span>
         <span class="nx-btns"><button class="n-new" data-act="nxlive" data-id="${esc(en.id)}">${lbi("draft", 18)}실시간 밴픽 준비</button><button class="nx-soft" data-act="pickenemy" data-id="${esc(en.id)}">상대 분석</button></span></div>
       <div class="nx-b"><span class="nx-k">먼저 밴할 3개</span>${bans.length ? `<div class="nx-bans">${bans.map((b) => `<span class="nx-ban">${icon(b.id, "lg")}<b>${esc(CH[b.id].ko)}</b><small>${esc(why(b))}</small></span>`).join("")}</div>` : emptyBox("scout", "상대 챔프폭이 들어오면 나옵니다", "", true)}</div>
-      <div class="nx-c"><span class="nx-k">새로 생긴 것</span>${news.length ? `<div class="nx-news">${news.map((x) => `<span class="nx-nl">${newsLine(x)}<span class="nx-tg ${NEWS_TAG[x.k]}">${x.tag}</span></span>`).join("")}</div>` : emptyBox("check", "최근 바뀐 것 없음", "", true)}</div>${pop}</section>`;
+      <div class="nx-c"><span class="nx-k">새로 생긴 것</span>${news.length ? `<div class="nx-news">${news.map((x) => `<span class="nx-nl">${newsLine(x)}<span class="nx-tg ${NEWS_TAG[x.k]}">${x.tag}</span></span>`).join("")}</div>` : emptyBox("check", "최근 바뀐 것 없음", "", true)}</div>${refreshTile()}${pop}</section>`;
   }
   function nxPop(opp) {
     const n = CFG.next || {}, sel = NX.tid || n.tid || (opp[0] || {}).id || "";
@@ -2267,7 +2304,7 @@
     return JSON.stringify({ draft: { ourSide: S.draft.ourSide, steps: S.draft.steps, idx: S.draft.idx }, series: { game: sr.game, mode: sr.mode, locked: sr.locked || [], games: sr.games || [] },
       enemyTeam: S.tab === "live" || !LIVE.data ? S.enemyTeam : LIVE.data.enemyTeam,
       // 고른 추천 조합·목표 챔프(11-20 사용자: 브라우저마다 추천이 달랐음 — 팀원이 각자 고른 조합으로 계산됐기 때문). 진행자 것으로 모두 같게
-      plan: { scen: S.ui.scen || "", goals: ((S.ui.goal && S.ui.goal.ids) || []).filter((id) => CH[id]).slice(0, 3) } });
+      plan: { scen: S.ui.scen || "", goals: glIds("goal").slice(0, 3), bans: glIds("ban").slice(0, 5) } });
   }
   function liveSend() {
     if (!LIVE.ws || LIVE.ws.readyState !== 1 || !isHost()) return;
@@ -2287,7 +2324,7 @@
       const sr = d.series || {};
       S.series.game = sr.game || 1; S.series.mode = sr.mode === "off" ? "off" : "hard";
       S.series.locked = (sr.locked || []).filter((x) => CH[x.id]); S.series.games = sr.games || [];
-      if (d.plan && typeof d.plan === "object") { S.ui.scen = typeof d.plan.scen === "string" ? d.plan.scen : ""; S.ui.goal = { ids: (Array.isArray(d.plan.goals) ? d.plan.goals : []).filter((id) => CH[id]).slice(0, 3) }; }
+      if (d.plan && typeof d.plan === "object") { S.ui.scen = typeof d.plan.scen === "string" ? d.plan.scen : ""; S.ui.goal = { ids: (Array.isArray(d.plan.goals) ? d.plan.goals : []).filter((id) => CH[id]).slice(0, 3) }; S.ui.banGoal = { ids: (Array.isArray(d.plan.bans) ? d.plan.bans : []).filter((id) => CH[id]).slice(0, 5) }; }
       LIVE.last = liveSnap();
       save();
     } finally { LIVE.applying = false; }
@@ -2472,9 +2509,9 @@
   document.addEventListener("click", (ev) => { if (LIVE.popOpen && !(ev.target.closest && ev.target.closest(".lv-room-w"))) { LIVE.popOpen = false; liveBarUpdate(); } }, true);
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && LIVE.popOpen) { LIVE.popOpen = false; liveBarUpdate(); const b = document.querySelector(".lv-roomb"); if (b) b.focus(); } });
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && LIVE.entry === "done" && !LIVE.ws && !S.ui.soloDraft && liveCan() && (S.tab === "live" || LIVE.status !== "off")) { LIVE.retry = 0; liveConnect(); } });
-  const LIVE_ACTS = new Set(["pick", "skip", "undo", "resetGame", "nextGame", "endGame", "resetSeries", "side", "mode", "scen", "goaladd", "goaldel", "goalclr"]);
+  const LIVE_ACTS = new Set(["pick", "skip", "undo", "resetGame", "nextGame", "endGame", "resetSeries", "side", "mode", "scen", "goaladd", "goaldel", "goalclr", "banadd", "bandel", "banclr"]);
   const liveLocked = () => S.tab === "live" && liveOn() && !isHost();
-  const liveLockMsg = () => `진행자(${LIVE.host ? LIVE.host.name : "?"})만 밴픽·조합·목표 챔프를 바꿀 수 있습니다 — ${liveOwner() ? "「진행 맡기」" : "「진행 요청」"}`;
+  const liveLockMsg = () => `진행자(${LIVE.host ? LIVE.host.name : "?"})만 밴픽·조합·목표 챔프·미리 밴을 바꿀 수 있습니다 — ${liveOwner() ? "「진행 맡기」" : "「진행 요청」"}`;
 
   // ---------- 상대 챔프 자세히 보기 모달(11-20 사용자 요청: 상대 팀 화면의 사전 밴 후보·라인별 상대 챔프를 누르면) ----------
   //   기록(강조 기준은 카드와 같음) · 밴 이유 전부 · 우리 대응(라인 연습 포인트와 같은 계산 laneStudy)
@@ -5338,7 +5375,8 @@
         S.series.games = (S.series.games || []).filter((g) => g.game !== S.series.game).concat([Object.assign(gameRecord(S.series.game), { result: el.dataset.v })]);
         S.series.locked = S.series.locked.concat(ps);
         const ov = seriesOver(S.series);
-        if (!ov) S.series.game++;
+        // 다음 세트는 진영을 바꿔서 시작(11-22 사용자: 1세트에 블루·레드를 정하면 다음 세트는 자동으로 반대 진영, 누르면 다시 바꿀 수 있음) — 솔랭·자랭은 그대로
+        if (!ov) { S.series.game++; if (ORDER.kind !== "ranked") S.draft.ourSide = S.draft.ourSide === "B" ? "R" : "B"; }
         S.draft.steps = emptySteps(); S.draft.idx = 0; save(); render(); window.scrollTo(0, 0);
         saveSeries(true);   // 세트 결과를 고를 때마다 저장(11-21 사용자: PC엔 「밴픽 저장」 버튼이 없어 3세트가 안 남았음)
         break;
@@ -5397,7 +5435,6 @@
       case "susadd": suspectAdd(el.dataset.tid, el.dataset.r, el.dataset.riot); break;
       case "susno": suspectNo(el.dataset.tid, el.dataset.riot, el.dataset.id); break;
       case "altview": S.ui.altView = el.dataset.v; save(); render(); break;
-      case "oppalts": S.ui.oppAlts = el.dataset.v; save(); render(); break;
       case "ptsave": ptsSave(false); break;
       case "ptreset": ptsSave(true); break;
       case "altteam": S.ui.altTeam = el.dataset.v; save(); render(); break;
@@ -5472,6 +5509,10 @@
       case "setmode": saveTierMode(el.dataset.v); break;
       case "setedit": { const v = (document.getElementById("setEnemy") || {}).value; if (v) { editing = v; renderEditor(); pullShared(); } break; }
       case "goaladd": addGoal(); break;
+      case "banadd": addGoal("ban"); break;
+      case "refreshall": refreshAll(); break;
+      case "bandel": S.ui.banGoal = { ids: glIds("ban").filter((x) => x !== el.dataset.id) }; save(); render(); break;
+      case "banclr": S.ui.banGoal = { ids: [] }; save(); render(); break;
       case "goaldel": S.ui.goal = { ids: ((S.ui.goal && S.ui.goal.ids) || []).filter((x) => x !== el.dataset.id) }; save(); render(); break;
       case "goalclr": S.ui.goal = { ids: [] }; save(); render(); break;
       case "ctnav": { const tr = document.getElementById("ctrack"); if (tr) { const w = (tr.firstElementChild || {}).offsetWidth || 300; tr.scrollBy({ left: Number(el.dataset.d) * (w + 12), behavior: "smooth" }); } break; }
@@ -5588,15 +5629,20 @@
       case "wipe": if (confirm("모든 입력(챔프폭·밴픽·피어리스)을 처음 상태로 되돌릴까요?")) { S = fresh(); E.setOurTeam(S.ourTeam); save(); render(); } break;
     }
   });
-  function addGoal() {
-    const inp = document.getElementById("goalIn"), msg = document.getElementById("goalMsg");
+  function addGoal(k = "goal") {
+    const cf = GL[k], inp = document.getElementById(cf.inp), msg = document.getElementById(cf.msg);
     if (liveLocked()) { if (inp) inp.value = ""; toast(liveLockMsg()); return; }
     const c = inp && findChamp(inp.value);
     if (!c) { const t = inp && inp.value.trim() ? "챔프 이름을 찾지 못했습니다." : "챔프 이름을 넣어 주세요."; if (msg) msg.textContent = t; else toast(t); return; }
-    const ids = ((S.ui.goal && S.ui.goal.ids) || []).filter((x) => x !== c.id).concat([c.id]).slice(-3);
-    S.ui.goal = { ids }; save(); render();
-    const n = document.getElementById("goalIn"); if (n && !MOB.matches) n.focus();
+    const ids = glIds(k).filter((x) => x !== c.id).concat([c.id]).slice(-cf.max);
+    S.ui[cf.key] = { ids };
+    // 같은 챔프를 뽑을 목표이자 밴할 챔프로 둘 수는 없음: 나중에 넣은 쪽으로
+    const other = k === "ban" ? "goal" : "ban";
+    S.ui[GL[other].key] = { ids: glIds(other).filter((x) => x !== c.id) };
+    save(); render();
+    const n = document.getElementById(cf.inp); if (n && !MOB.matches) n.focus();
   }
+
   // PC: 추천 조합·밴픽 설계 띠는 마우스로 끌어서 넘김(휴대폰은 손가락으로 밀기)
   let drag = null, dragEat = false;
   document.addEventListener("pointerdown", (ev) => {
@@ -5649,7 +5695,7 @@
     const t = ev.target;
     if (t.id === "ipText") { IMP.text = t.value; return; }
     // 목표 챔프: 목록에서 고르면(정확한 이름) 바로 넣음 — 예전엔 Enter를 눌러야만 들어가서 「골라도 안 들어감」(사용자 지적 11-19)
-    if (t.id === "goalIn" && (ev.inputType === "insertReplacementText" || ev.inputType == null) && window.CHAMPIONS.some((c) => c.ko === t.value.trim() || c.id === t.value.trim())) { addGoal(); return; }
+    if ((t.id === "goalIn" || t.id === "banIn") && (ev.inputType === "insertReplacementText" || ev.inputType == null) && window.CHAMPIONS.some((c) => c.ko === t.value.trim() || c.id === t.value.trim())) { addGoal(t.id === "banIn" ? "ban" : "goal"); return; }
     if (t.id === "ipTeam") { IMP.team = t.value; return; }
     if (t.id === "q") { S.ui.q = t.value; const box = document.getElementById("champs"); if (box) box.innerHTML = champButtons(); else render();
       const sh = document.querySelector(".mv-pick"); if (sh) sh.classList.toggle("searching", !!t.value.trim()); return; }
@@ -5694,7 +5740,7 @@
   });
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "Enter" && ev.target.dataset && ev.target.dataset.add) { ev.preventDefault(); addChamp(ev.target.dataset.add); }
-    else if (ev.key === "Enter" && ev.target.id === "goalIn") { ev.preventDefault(); addGoal(); }
+    else if (ev.key === "Enter" && (ev.target.id === "goalIn" || ev.target.id === "banIn")) { ev.preventDefault(); addGoal(ev.target.id === "banIn" ? "ban" : "goal"); }
     else if (ev.key === "Enter" && ev.target.id === "q") { const first = document.querySelector("#champs .cbtn:not([disabled])"); if (first) choose(first.dataset.id); }
     else if (ev.key === "Escape" && closeChampDetail()) { /* 상대 챔프 자세히 보기 닫음 */ }
     else if (ev.key === "Escape" && editing) { editing = null; renderEditor(); }

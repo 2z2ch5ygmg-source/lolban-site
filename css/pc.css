@@ -1417,7 +1417,18 @@ html.pc .notes-pc .n-col { display: flex; flex-direction: column; gap: 10px; }
 
 /* ---------- 홈(11-20 시안 C 위 + B 아래): 다음 상대 띠 + 상대 팀 카드 + 우리 팀 할 일 ---------- */
 .home-new { gap: 18px; }
-.nx { position: relative; background: #15171C; color: #EDEDF0; border-radius: 20px; padding: 22px 26px; display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 26px; }
+.nx { position: relative; background: #15171C; color: #EDEDF0; border-radius: 20px; padding: 22px 26px; display: grid; grid-template-columns: 1.25fr 1fr 1fr 132px; gap: 26px; }
+/* 홈 「기록 갱신」 칸(11-22): 다음 상대 오른쪽 정사각형 — 마지막으로 받은 때 · 누르면 우리 팀과 상대 팀 전부 */
+.nx-d { all: unset; box-sizing: border-box; cursor: pointer; align-self: start; width: 132px; aspect-ratio: 1; display: grid; align-content: space-between; padding: 14px; border-radius: 16px; background: #2a2c33; color: #EDEDF0; }
+.nx-d:hover { background: #363944; }
+.nx-d:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
+.nx-d-h { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #cfd0d6; }
+.nx-d-t { font-size: 21px; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; }
+.nx-d small { font-size: 11.5px; color: #9a9ca5; line-height: 1.35; }
+.nx-d.busy { cursor: progress; }
+.nx-d.busy .nx-d-h svg { animation: nxspin .9s linear infinite; }
+@keyframes nxspin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .nx-d.busy .nx-d-h svg { animation: none; } }
 @media (prefers-color-scheme: dark) { html.pc:not([data-theme="light"]) .nx { background: var(--panel2); } }
 html.pc[data-theme="dark"] .nx { background: var(--panel2); }
 .nx-k { color: #9a9ca5; font-size: 12.5px; font-weight: 700; }
@@ -1724,3 +1735,7 @@ html.pc :is(.live-pc, .enemy-pc) .rec .nm > .cn { flex: 0 1 auto; min-width: 0; 
 #lventry .lve-b.ghost { background: transparent; color: var(--muted); height: 40px; font-weight: 700; }
 #lventry .lve-b:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
 @media (max-width: 760px) { #lventry .lve { top: auto; bottom: 0; left: 0; transform: none; width: 100%; border-radius: 22px 22px 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom)); } }
+/* 11-22 「미리 밴」 칸이 더해져 1366 폭에서 목표 챔프가 잘렸음 → 한 줄에 안 들어가면 오른쪽 칸을 다음 줄 오른쪽으로 */
+html.pc .live-pc .lv-ctrl { flex-wrap: wrap; row-gap: 8px; }
+html.pc .live-pc .lv-ctrl .lc-r { margin-left: auto; flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; }
+html.pc .live-pc .lc-r .gl-in { width: 104px; }

@@ -1506,6 +1506,9 @@ html.guest .tabs .tab:not([data-tab="live"]):not([data-tab="our"]) { display: no
   .mv-home .home { display: grid; gap: 12px; }
   .mv-home .nx { padding: 16px; border-radius: 18px; grid-template-columns: 1fr; }
   .mv-home .nx h2 { font-size: 22px; }
+  .mv-home .nx-d { width: auto; aspect-ratio: auto; display: flex; align-items: center; gap: 10px; padding: 12px 14px; min-height: 48px; border-radius: 14px; }
+  .mv-home .nx-d-t { font-size: 15px; }
+  .mv-home .nx-d small { margin-left: auto; text-align: right; }
   .mv-home .tcards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .mv-home .tcards > * { grid-column: 1 / -1; }   /* PC에서 두 칸 차지하는 「우리 팀 할 일」이 휴대폰에서 칸을 둘로 쪼갰음 */
   /* 우리 팀 · 상대 · 노트 카드 */
