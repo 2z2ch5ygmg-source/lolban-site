@@ -1794,3 +1794,14 @@ html.nd-on body { overflow: hidden; }
   .nd-sc { margin: 0 -16px; padding: 0 16px calc(20px + env(safe-area-inset-bottom)); }
 }
 @media (prefers-reduced-motion: reduce) { .nd.in, .nd-bg.in { animation: none; } }
+/* 11-22 사용자: 흰 카드·다음 상대 칸 자체를 누르면 그 팀 변동 모달 */
+.tc-click, .nx-click { cursor: pointer; transition: box-shadow .16s ease-out, transform .16s ease-out; }
+.tc-click:hover { box-shadow: 0 0 0 1.5px var(--line), 0 6px 18px rgba(0, 0, 0, .06); }
+.tc-click:active, .nx-click:active { transform: scale(.995); }
+.tc-click:focus-visible, .nx-click:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
+.tc-click .tc-n { font-weight: 800; }
+.nd-row { cursor: default; } .nd-row:hover { background: none; }
+.nd-ex { color: var(--muted); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.nd-gr .nd-q { flex: 1; } .nd-gr b { width: 22px; text-align: right; } .nd-gr .w { color: var(--good); } .nd-gr .l { color: var(--red); }
+.nd-stats { margin: 4px 0 8px; } .nd-stats em { font-style: normal; color: var(--muted); font-size: 11.5px; }
+@media (prefers-reduced-motion: reduce) { .tc-click, .nx-click { transition: none; } .tc-click:active, .nx-click:active { transform: none; } }

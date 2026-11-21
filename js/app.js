@@ -1751,7 +1751,7 @@
   function stacksHtml(t, mine) {
     const R = window.RECENT;
     const rs = S.ui.rState || {};
-    const refresh = mine ? `<div class="g-refresh"><button class="ib btn sm primary g-btn${refreshing ? " busy" : ""}" data-act="grefresh" title="갱신하기 · 우리 팀과 지금 상대" aria-label="갱신하기 · 우리 팀과 지금 상대" ${refreshing ? "disabled" : ""}>${REFRESH_ICO}<span class="sr-only">${refreshing ? "갱신 중" : "갱신하기"}</span></button><span class="help" role="status">${esc((otherBusy() && !refreshing ? busyText(otherBusy()) : "") || rs.msg || (liveOf(t) ? `Riot에서 바로 가져옴 · ${liveOf(t).at}` : R && R.at ? `매일 0시 자동 수집 ${R.at} · 누르면 Riot에서 바로 가져옵니다` : ""))}</span></div>` : "";
+    const refresh = mine ? `<div class="g-refresh"><span class="help" role="status">${esc((otherBusy() && !refreshing ? busyText(otherBusy()) : "") || (refreshing ? "갱신 중…" : liveOf(t) ? `Riot에서 바로 가져옴 · ${liveOf(t).at}` : R && R.at ? `매일 0시 자동 수집 ${R.at}` : ""))}</span></div>` : "";
     const head = `<div class="section-title"><h2>${mine ? "우리 팀 함께 한 경기" : "상대 팀 함께 한 경기"}</h2><p>같은 팀 선수 2명 이상이 같은 편이었던 경기(자랭 등) · ${R && R.since ? esc(R.since) : "11/10"} 이후</p>${refresh}</div>`;
     if (!R || R.status !== "ok") return head + `<div class="note">${esc(recWhy())}</div>`;
     const st = E.groupsOf(t);
@@ -1901,7 +1901,7 @@
   }
   function homeGamesPC(t, theirs) {
     const R = window.RECENT, rs = S.ui.rState || {}, pk = theirs ? "enemy" : "our";
-    const refresh = theirs ? "" : `<button class="hg-ref ${refreshing ? "busy" : ""}" data-act="grefresh" ${refreshing ? "disabled" : ""} aria-label="갱신하기 · 우리 팀과 지금 상대" title="갱신하기 · 우리 팀과 지금 상대">${lbi("refresh", 22)}</button><span class="help" role="status">${esc((otherBusy() && !refreshing ? busyText(otherBusy()) : "") || rs.msg || (liveOf(t) ? `Riot에서 바로 가져옴 · ${liveOf(t).at}` : ""))}</span>`;
+    const refresh = theirs ? "" : `<span class="help" role="status">${esc((otherBusy() && !refreshing ? busyText(otherBusy()) : "") || rs.msg || (liveOf(t) ? `Riot에서 바로 가져옴 · ${liveOf(t).at}` : ""))}</span>`;
     const st = R && R.status === "ok" ? E.groupsOf(t) : null;
     const head = (sub) => `<h3 class="h-h">${theirs ? esc(t.name) + " " : ""}함께 한 경기<small>${sub}</small>${refresh}</h3>`;
     if (!st) return `<section class="h-sec">${head("")}${emptyBox("refresh", R && R.status === "ok" ? "이 팀 경기 자료가 없습니다" : "아직 경기 기록이 없습니다", R && R.status === "ok" ? "" : esc(recWhy()))}</section>`;
@@ -2096,12 +2096,11 @@
     chainEnemy = false; rCb = () => next(0);
     refreshRecent(false);
   }
-  // ---- 상대 팀 소식 자세히(11-22 사용자: 시안 B+C) ----
-  // 소식 줄을 누르면 오른쪽 서랍(휴대폰은 아래에서 올라옴): 6팀 소식을 팀별로·종류로 거르기(C), 줄을 누르면 서랍 안에서 그 항목 자세히(B)
-  const ND = { open: false, f: "all", tid: null, sel: null };   // tid = 보는 팀, sel = 그 팀 소식 번호(자세히)
-  const ND_KINDS = [["all", "전체"], ["new", "새 픽"], ["cross", "교차 출전"], ["swap", "라인 바꿈"], ["alt", "부계정"], ["games", "함께 한 경기"]];
-  const LIVE_GAMES = {};   // 기록 갱신으로 합친 상대 경기(자세히의 경기 줄)
-  const newsBtn = (t, x, i, cls) => `<button class="nw-btn ${cls || ""}" data-act="news" data-tid="${esc(t.id)}" data-i="${i}" aria-label="${esc(t.name)} · ${esc(x.t)} 자세히">${newsLine(x)}${cls ? `<span class="nx-tg ${NEWS_TAG[x.k]}">${x.tag}</span>` : ""}</button>`;
+  // ---- 상대 팀 변동 모달(11-22 사용자: 팀 카드·다음 상대 칸을 누르면 그 팀 변동을 날짜별로 · 위에 요약) ----
+  // PC는 가운데 모달, 휴대폰은 아래에서 올라오는 창. 위 팀 칩으로 다른 팀, 종류로 거르기. 줄은 누르지 않고 한눈에(필요한 숫자는 줄 오른쪽에)
+  const ND = { open: false, f: "all", tid: null };
+  const ND_KINDS = [["all", "전체"], ["new", "새 픽"], ["games", "함께 한 경기"], ["cross", "교차 출전"], ["swap", "라인 바꿈"], ["alt", "부계정"]];
+  const LIVE_GAMES = {};   // 기록 갱신으로 합친 상대 경기
   const gamesFor = (tid) => LIVE_GAMES[tid] || (PG && PG.teams && PG.teams[tid]) || [];
   const qName = (q) => (q === 440 ? "자유랭" : q === 420 ? "솔랭" : "일반");
   // 날짜 묶기(11-22 사용자: 날짜는 C처럼 묶어서): 오늘 · 어제 · 11/19
@@ -2115,12 +2114,6 @@
     return groups.map((g) => `<h5 class="nd-day">${g.lab}${head ? `<small>${head(g.items)}</small>` : ""}</h5>${g.items.map(row).join("")}`).join("");
   }
   const wl = (items, win) => { const w = items.filter(win).length; return `${items.length}판 · ${w}승 ${items.length - w}패`; };
-  function ndGames(tid, r, champ) {
-    const gs = gamesFor(tid).filter((g) => g.p && g.p[r] && (!champ || g.p[r][2] === champ)).sort((a, b) => b.t - a.t).slice(0, 12);
-    if (!gs.length) return `<p class="help">경기 줄은 「기록 갱신」 뒤에 보입니다</p>`;
-    return `<div class="nd-games">${byDay(gs, (g) => g.t, (g) => { const p = g.p[r], mates = Object.values(g.p).filter((y) => y[0] === p[0]).length;
-      return `<div class="nd-g">${champ ? "" : CH[p[2]] ? icon(p[2], "xs") : ""}<span class="nd-q">${qName(g.q)}${mates > 1 ? ` · ${mates}명 함께` : ""}</span><span class="nd-kda">${p[4]}/${p[5]}/${p[6]}</span><b class="${p[1] ? "w" : "l"}">${p[1] ? "승" : "패"}</b></div>`; }, (it) => wl(it, (g) => g.p[r][1]))}</div>`;
-  }
   // 소식 하나가 언제 일인지(목록 날짜 묶기): 새 픽은 그 챔프 마지막 경기, 교차·라인은 그 선수 마지막 경기, 함께 한 경기는 마지막 판
   function newsMs(t, x) {
     const gs = gamesFor(t.id), mx = (a) => a.reduce((m, v) => (v > m ? v : m), 0);
@@ -2129,59 +2122,54 @@
     if (x.k === "games") return mx((E.groupsOf(t) || []).map((g) => grpMs(g.date)));
     return 0;
   }
-  function ndDetail(t, x) {
-    const P = E.practiceOf(t), pl = x.r && t.players[x.r], nick = pl ? String(pl.riot || "").split("#")[0] : "";
-    const head = `<div class="nd-dh"><button class="ib btn sm ghost" data-act="ndback" aria-label="${esc(t.name)} 소식 목록으로">${ico("left")}</button><span class="nd-who">${crestOf(t, "r")}<b>${esc(t.name)}</b>${x.r ? `<span class="dim">${ROLE_KO[x.r]}${nick ? ` · ${esc(nick)}` : ""}</span>` : ""}</span><button class="ib btn sm ghost nd-x" data-act="ndclose" aria-label="닫기">${ico("x")}</button></div>`;
-    const act = (extra) => `<div class="nd-act">${extra || ""}<button class="nx-soft nd-soft" data-act="pickenemy" data-id="${esc(t.id)}">상대 분석에서 보기</button></div>`;
-    let body = "";
-    if (x.k === "new") {
-      const pk = ((P && P.players[x.r] && P.players[x.r].picks) || []).find((y) => y.id === x.id) || {}, g = pk.g || 0, w = pk.w || 0;
-      body = `<div class="nd-hero">${icon(x.id, "lg")}<div><b class="nd-t">${esc(CH[x.id].ko)}</b><span class="dim">새로 연습 ${g}판 · ${w}승 ${Math.max(0, g - w)}패</span></div><span class="tag new">새 픽</span></div>
-        <div class="nd-stats"><span><small>승률</small><b>${g ? Math.round((w / g) * 100) : 0}%</b></span><span><small>평균 KDA</small><b>${pk.kda ?? "-"}</b></span><span><small>팀원과 함께</small><b>${pk.tg || 0}판</b></span></div>
-        <h4 class="nd-h4">경기</h4>${ndGames(t.id, x.r, x.id)}${act(`<button class="n-new sm" data-act="ndban" data-id="${x.id}">${lbi("plus", 16)}미리 밴에 넣기</button>`)}`;
-    } else if (x.k === "cross") {
-      const cx = E.crossOf(t, x.r) || {};
-      body = `<div class="nd-hero"><span class="nd-lane">${laneIco(cx.main || x.r, 30)}</span><div><b class="nd-t">교차 출전</b><span class="dim">등록 ${ROLE_KO[x.r]} · 최근 ${cx.tot || "?"}판 중 ${ROLE_KO[cx.main] || "-"} ${cx.share || "?"}%</span></div><span class="tag red">주의</span></div>
-        <p class="nd-p">대회에서 ${ROLE_KO[cx.main] || "다른"} 자리로 나올 수 있어요. 그 라인 챔프도 같이 대비하세요.</p><h4 class="nd-h4">최근 경기</h4>${ndGames(t.id, x.r)}${act()}`;
-    } else if (x.k === "swap") {
-      const sw = ((P && P.swaps) || []).find((y) => y.r === x.r) || {};
-      body = `<div class="nd-hero"><span class="nd-lane">${laneIco(sw.to || x.r, 30)}</span><div><b class="nd-t">라인 바꿔서 연습</b><span class="dim">${ROLE_KO[x.r]} 선수가 ${ROLE_KO[sw.to] || "-"}에서 ${sw.g || 0}/${sw.of || 0}판${sw.tg ? ` · 팀원과 ${sw.tg}판` : ""}</span></div><span class="tag">라인</span></div>
-        ${(sw.ids || []).length ? `<h4 class="nd-h4">그 라인에서 한 챔프</h4><div class="nd-champs">${sw.ids.filter((c) => CH[c]).map((c) => `<span>${icon(c, "md")}<small>${esc(CH[c].ko)}</small></span>`).join("")}</div>` : ""}
-        <h4 class="nd-h4">최근 경기</h4>${ndGames(t.id, x.r)}${act()}`;
-    } else if (x.k === "alt") {
-      const it = suspectList().find((y) => y.t.id === t.id && y.x.role === x.r), sx = it ? it.x : {};
-      body = `<div class="nd-hero"><span class="nd-lane">${lbi("scout", 30)}</span><div><b class="nd-t">부계정 의심</b><span class="dim">${esc(SUS_GRADE[sx.grade] || "의심")}${sx.days ? ` · 같은 팀원과 ${sx.days.length}일` : ""}</span></div><span class="tag">부계정</span></div>
-        ${sx.riot ? `<p class="nd-p">의심 계정 <b>${esc(sx.riot)}</b></p>` : ""}${act(`<button class="n-new sm tab" data-tab="alts">부계정 찾기에서 보기</button>`)}`;
-    } else {
-      const wk = Date.now() - 7 * 86400e3, gs = (E.groupsOf(t) || []).filter((g) => { const ms = Date.parse(String(g.date).replace(" ", "T") + ":00+09:00"); return !Number.isFinite(ms) || ms >= wk; });
-      const win = gs.filter((g) => g.win).length;
-      body = `<div class="nd-hero"><span class="nd-lane">${lbi("comp", 30)}</span><div><b class="nd-t">함께 한 경기</b><span class="dim">최근 7일 ${gs.length}판 · ${win}승 ${gs.length - win}패</span></div><span class="tag">팀 경기</span></div>
-        <div class="nd-games">${byDay(gs.slice(0, 14), (g) => grpMs(g.date), (g) => `<div class="nd-g nd-tg"><span class="nd-five">${ROLES.map((r) => (g.picks && g.picks[r] && CH[g.picks[r]] ? icon(g.picks[r], "xs") : "")).join("")}</span><span class="nd-q">${typeof g.queue === "number" ? qName(g.queue) : esc(g.queue || "")}${g.n ? ` · ${g.n}명 함께` : ""}</span><b class="${g.win ? "w" : "l"}">${g.win ? "승" : "패"}</b></div>`, (it) => wl(it, (g) => g.win))}</div>${act()}`;
-    }
-    return `${head}<div class="nd-sc">${body}</div>`;
+  const WEEK = () => Date.now() - 7 * 86400e3;
+  // 위 요약: 최근 7일 팀 경기 승률 · 개인 경기 평균 KDA · 팀원끼리 한 판
+  function ndSummary(t) {
+    const gs = (E.groupsOf(t) || []).filter((g) => { const ms = grpMs(g.date); return !ms || ms >= WEEK(); }), w = gs.filter((g) => g.win).length;
+    let k = 0, d = 0, a = 0, n = 0; gamesFor(t.id).filter((g) => g.t >= WEEK()).forEach((g) => ROLES.forEach((r) => { const p = g.p && g.p[r]; if (p) { k += p[4]; d += p[5]; a += p[6]; n++; } }));
+    const nw = teamNews(t).filter((x) => x.k === "new").length;
+    return `<div class="nd-stats"><span><small>팀 경기 승률</small><b>${gs.length ? Math.round((w / gs.length) * 100) + "%" : "-"}</b><em>${gs.length ? `${gs.length}판 ${w}승` : "7일"}</em></span><span><small>평균 KDA</small><b>${n ? Math.round(((k + a) / Math.max(1, d)) * 10) / 10 : "-"}</b><em>${n ? `개인 ${n}판` : "기록 갱신 뒤"}</em></span><span><small>팀원과 함께</small><b>${gs.length}판</b><em>${nw ? `새 픽 ${nw}개` : "새 픽 없음"}</em></span></div>`;
   }
-  function ndList() {
+  function ndFeed(t) {
+    const P = E.practiceOf(t), out = [];
+    teamNews(t).forEach((x) => {
+      if (x.k === "games") return;
+      let ex = "";
+      if (x.k === "new") { const pk = ((P && P.players[x.r] && P.players[x.r].picks) || []).find((y) => y.id === x.id); if (pk) ex = `${pk.w}승 ${pk.g - pk.w}패 · KDA ${pk.kda}`; }
+      else if (x.k === "cross") { const cx = E.crossOf(t, x.r); if (cx) ex = `${cx.tot}판 중 ${cx.share}%`; }
+      else if (x.k === "swap") { const sw = ((P && P.swaps) || []).find((y) => y.r === x.r); if (sw) ex = `${sw.g}/${sw.of}판`; }
+      out.push({ k: x.k, ms: newsMs(t, x), html: `<div class="nd-row">${newsLine(x)}${ex ? `<span class="nd-ex">${esc(ex)}</span>` : ""}<span class="tag ${NEWS_TAG[x.k]}">${x.tag}</span></div>` });
+    });
+    (E.groupsOf(t) || []).forEach((g) => { const ms = grpMs(g.date);
+      out.push({ k: "games", ms, html: `<div class="nd-row nd-gr"><span class="nw-r">${lbi("comp", 15)}</span><span class="nd-five">${ROLES.map((r) => (g.picks && g.picks[r] && CH[g.picks[r]] ? icon(g.picks[r], "xs") : "")).join("")}</span><span class="nd-q">${typeof g.queue === "number" ? qName(g.queue) : esc(g.queue || "")}${g.n ? ` · ${g.n}명 함께` : ""}</span><b class="${g.win ? "w" : "l"}">${g.win ? "승" : "패"}</b></div>` }); });
+    return out.sort((x, y) => y.ms - x.ms);
+  }
+  // 언제 자료인지: 이 팀을 Riot에서 바로 받은 시각, 아니면 매일 0시 수집 시각
+  const ndStamp = (t) => { const R = window.RECENT, lv = R && R.live && R.live[t.id] && R.live[t.id].at; return lv ? `${relTime(lv)} 갱신` : R && R.at ? `${relTime(R.at)} 수집 기준` : ""; };
+  function ndTeam() {
     const opp = S.teams.filter((t) => !t.solo && t.id !== S.ourTeam), t = team(ND.tid) || opp[0];
     if (!t) return "";
-    const all = teamNews(t), items = all.map((x, i) => ({ x, i, ms: newsMs(t, x) })).filter((o) => ND.f === "all" || o.x.k === ND.f).sort((a, b) => b.ms - a.ms);
-    const row = (o) => `<button class="nd-row" data-act="news" data-tid="${esc(t.id)}" data-i="${o.i}">${newsLine(o.x)}<span class="tag ${NEWS_TAG[o.x.k]}">${o.x.tag}</span>${lbi("right", 14)}</button>`;
-    return `<div class="nd-hd">${crestOf(t, "r")}<b>${esc(t.name)}</b><span class="dim">최근 7일 변동 ${all.length}개</span><button class="ib btn sm ghost nd-x" data-act="ndclose" aria-label="닫기">${ico("x")}</button></div>
+    const nx = nextOpp(), items = ndFeed(t).filter((o) => ND.f === "all" || o.k === ND.f);
+    return `<div class="nd-hd">${crestOf(t, "r")}<b>${esc(t.name)}</b>${nx && nx.t.id === t.id ? `<span class="tag new">다음 상대</span>` : ""}<span class="dim">${esc(ndStamp(t))}</span><button class="ib btn sm ghost nd-x" data-act="ndclose" aria-label="닫기">${ico("x")}</button></div>
       ${opp.length > 1 ? `<div class="nd-teams" role="group" aria-label="팀 고르기">${opp.map((o) => `<button data-act="ndteam" data-tid="${esc(o.id)}" aria-pressed="${o.id === t.id}">${crestOf(o, "r")}<span>${esc(o.name)}</span></button>`).join("")}</div>` : ""}
-      <div class="nd-f" role="group" aria-label="종류로 거르기">${ND_KINDS.map(([k, n]) => `<button data-act="ndf" data-k="${k}" aria-pressed="${ND.f === k}">${n}</button>`).join("")}</div>
-      <div class="nd-sc">${items.length ? byDay(items, (o) => o.ms, row) : emptyBox("check", "이 종류의 소식이 없습니다", "", true)}</div>`;
+      <div class="nd-sc">${ndSummary(t)}
+        <div class="nd-f" role="group" aria-label="종류로 거르기">${ND_KINDS.map(([k, n]) => `<button data-act="ndf" data-k="${k}" aria-pressed="${ND.f === k}">${n}</button>`).join("")}</div>
+        ${items.length ? byDay(items, (o) => o.ms, (o) => o.html) : emptyBox("check", "아직 변동 기록이 없습니다", "", true)}
+        <div class="nd-act"><button class="nx-soft nd-soft" data-act="pickenemy" data-id="${esc(t.id)}">상대 분석 열기</button></div></div>`;
   }
   function renderNews(focus) {
-    if (ND.open && S.tab !== "our") { ND.open = false; ND.sel = null; }
+    if (ND.open && S.tab !== "our") ND.open = false;
     let root = document.getElementById("ndRoot");
     if (!ND.open) { if (root) root.innerHTML = ""; document.documentElement.classList.remove("nd-on"); return; }
     if (!root) { root = document.createElement("div"); root.id = "ndRoot"; document.body.appendChild(root); }
-    const t = team(ND.tid), x = t && ND.sel != null ? teamNews(t)[ND.sel] : null;
+
     const fresh = !root.firstChild;
-    root.innerHTML = `<div class="nd-bg ${fresh ? "in" : ""}" data-act="ndclose"></div><aside class="nd ${fresh ? "in" : ""}" role="dialog" aria-modal="true" aria-label="상대 팀 소식" tabindex="-1">${t && x ? ndDetail(t, x) : ndList()}</aside>`;
+    root.innerHTML = `<div class="nd-bg ${fresh ? "in" : ""}" data-act="ndclose"></div><aside class="nd ${fresh ? "in" : ""}" role="dialog" aria-modal="true" aria-label="상대 팀 변동" tabindex="-1">${ndTeam()}</aside>`;
     document.documentElement.classList.add("nd-on");
     if (focus) { const a = root.querySelector(".nd"); if (a) a.focus(); }
   }
-  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && ND.open) { ev.preventDefault(); if (ND.sel != null) ND.sel = null; else ND.open = false; renderNews(true); } });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && ND.open) { ev.preventDefault(); ND.open = false; renderNews(); }
+    else if ((ev.key === "Enter" || ev.key === " ") && ev.target.matches && ev.target.matches("[data-act=teamnews]")) { ev.preventDefault(); ev.target.click(); } });
   function nextHero(ours) {
     const nx = nextOpp(), can = canSetNext(), opp = S.teams.filter((t) => !t.solo && t.id !== ours.id);
     const pop = NX.open && can ? nxPop(opp) : "";
@@ -2198,13 +2186,13 @@
     let bans = []; try { bans = E.teamHasPools(en) ? E.recommendBan(virtual, "our", 3) : []; } catch (e) { bans = []; }
     const why = (b) => { const x = (b.reasons || []).slice().sort((a, c) => (c.v || 0) - (a.v || 0))[0]; return x && x.t ? x.t : b.tgt ? ROLE_KO[b.tgt] : ""; };
     const news = teamNews(en).slice(0, 3);
-    return `<section class="nx"><div class="nx-a"><span class="nx-k">다음 상대</span>
+    return `<section class="nx nx-click" data-act="teamnews" data-tid="${esc(en.id)}" aria-label="${esc(en.name)} 최근 변동 날짜별로 보기"><div class="nx-a"><span class="nx-k">다음 상대</span>
         <h2><button class="nx-name" data-act="pickenemy" data-id="${esc(en.id)}" title="상대 분석 열기">${esc(en.name)}</button>${can ? `<button class="nx-pick" data-act="nxopen" aria-expanded="${NX.open}">${ico("swap")}바꾸기</button>` : ""}</h2>
         ${nxWhen(nx.at, nx.ms)}
         <span class="nx-comp">${comp}${g ? `<span class="nx-sub">함께 한 경기 ${g.length}판</span>` : ""}</span>
         <span class="nx-btns"><button class="n-new" data-act="nxlive" data-id="${esc(en.id)}">${lbi("draft", 18)}실시간 밴픽 준비</button><button class="nx-soft" data-act="pickenemy" data-id="${esc(en.id)}">상대 분석</button></span></div>
       <div class="nx-b"><span class="nx-k">먼저 밴할 3개</span>${bans.length ? `<div class="nx-bans">${bans.map((b) => `<span class="nx-ban">${icon(b.id, "lg")}<b>${esc(CH[b.id].ko)}</b><small>${esc(why(b))}</small></span>`).join("")}</div>` : emptyBox("scout", "상대 챔프폭이 들어오면 나옵니다", "", true)}</div>
-      <div class="nx-c"><span class="nx-k">새로 생긴 것</span>${news.length ? `<div class="nx-news">${news.map((x, i) => newsBtn(en, x, i, "nx-nl")).join("")}</div>` : emptyBox("check", "최근 바뀐 것 없음", "", true)}</div>${refreshTile()}${pop}</section>`;
+      <div class="nx-c"><span class="nx-k">새로 생긴 것</span>${news.length ? `<div class="nx-news">${news.map((x) => `<span class="nx-nl">${newsLine(x)}<span class="nx-tg ${NEWS_TAG[x.k]}">${x.tag}</span></span>`).join("")}</div>` : emptyBox("check", "최근 바뀐 것 없음", "", true)}</div>${refreshTile()}${pop}</section>`;
   }
   function nxPop(opp) {
     const n = CFG.next || {}, sel = NX.tid || n.tid || (opp[0] || {}).id || "";
@@ -2237,10 +2225,11 @@
     nxSave({ tid, at: d ? `${d}T${tm || "20:00"}` : "" });
   }
   function homeTeamCards(ours) {
-    const opp = S.teams.filter((t) => !t.solo && t.id !== ours.id && (!nextOpp() || t.id !== nextOpp().t.id));
-    const cards = opp.map((t) => { const nw = teamNews(t), top = nw[0];
-      return `<article class="tcard"><span class="tc-h">${crestOf(t, "r")}<button class="tc-n" data-act="pickenemy" data-id="${esc(t.id)}">${esc(t.name)}</button>${top ? `<span class="tag ${NEWS_TAG[top.k]}">${top.tag}</span>` : `<span class="tag">조용함</span>`}</span>
-        ${nw.length ? nw.slice(0, 3).map((x, i) => newsBtn(t, x, i)).join("") : emptyBox("check", "최근 바뀐 것 없음", "", true)}</article>`; });
+    // 11-22 사용자 「등록한 팀이 다 안 뜸」: 다음 상대 팀은 위 칸에만 있고 카드에서 빠져 하나 적어 보였음 → 카드에도 「다음 상대」로
+    const nx = nextOpp(), opp = S.teams.filter((t) => !t.solo && t.id !== ours.id);
+    const cards = opp.map((t) => { const nw = teamNews(t), top = nw[0], isNx = nx && nx.t.id === t.id;
+      return `<article class="tcard tc-click" data-act="teamnews" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.name)} 최근 변동 날짜별로 보기"><span class="tc-h">${crestOf(t, "r")}<b class="tc-n">${esc(t.name)}</b>${isNx ? `<span class="tag new">다음 상대</span>` : top ? `<span class="tag ${NEWS_TAG[top.k]}">${top.tag}</span>` : `<span class="tag">조용함</span>`}</span>
+        ${nw.length ? nw.slice(0, 3).map(newsLine).join("") : emptyBox("check", "최근 바뀐 것 없음", "", true)}</article>`; });
     return cards.join("") + homeTodo(ours);
   }
   function homeTodo(t) {
@@ -5171,7 +5160,7 @@
   function mvGames(t, mine) {
     const R = window.RECENT;
     const rs = S.ui.rState || {};
-    const refresh = mine ? `<button class="ib btn sm g-btn${refreshing ? " busy" : ""}" data-act="grefresh" title="갱신하기 · 우리 팀과 지금 상대" aria-label="갱신하기 · 우리 팀과 지금 상대" ${refreshing ? "disabled" : ""}>${REFRESH_ICO}<span class="sr-only">${refreshing ? "갱신 중" : "갱신하기"}</span></button>` : "";
+    const refresh = "";   // 11-22 사용자: 홈에 「기록 갱신」 칸이 생겨 함께 한 경기 옆 갱신 버튼은 뺌
     const head = (sub) => `<div class="mv-gh"><b>함께 한 경기</b><span class="help" role="status">${sub}</span>${refresh}</div>`;
     const st = R && R.status === "ok" ? E.groupsOf(t) : null;
     if (!st) return head(rs.msg ? esc(rs.msg) : "미확보") + `<p class="help">${R && R.status === "ok" ? "Riot 경기 수집 전이거나 이 팀 자료가 없습니다." : esc(recWhy())}</p>`;
@@ -5590,7 +5579,7 @@
       case "altteam": S.ui.altTeam = el.dataset.v; save(); render(); break;
       case "altsel": S.ui.altSel = S.ui.altSel === el.dataset.v ? "" : el.dataset.v; save(); render(); break;
       case "jpgo": joinByCode(); break;
-      case "pickenemy": if (el.dataset.id && team(el.dataset.id)) { ND.open = false; ND.sel = null; S.enemyTeam = el.dataset.id; syncQueue(true); S.tab = "enemy"; MV.more = false; save(); render(); window.scrollTo(0, 0); } break;
+      case "pickenemy": if (el.dataset.id && team(el.dataset.id)) { ND.open = false; S.enemyTeam = el.dataset.id; syncQueue(true); S.tab = "enemy"; MV.more = false; save(); render(); window.scrollTo(0, 0); } break;
       case "gotab": S.tab = el.dataset.k; MV.more = false; save(); render(); window.scrollTo(0, 0); if (S.tab === "notes") loadNotes(); break;
       case "a2hsGo": if (A2HS.ev) { const ev = A2HS.ev; A2HS.ev = null; ev.prompt(); ev.userChoice.finally(() => render()); } break;
       case "a2hsHow": A2HS.iosHow = true; render(); break;
@@ -5661,14 +5650,10 @@
       case "goaladd": addGoal(); break;
       case "banadd": addGoal("ban"); break;
       case "refreshall": refreshAll(); break;
-      case "news": ND.open = true; ND.tid = el.dataset.tid || ND.tid; ND.sel = el.dataset.i != null ? Number(el.dataset.i) || 0 : null; renderNews(true); practiceGames().then(() => { if (ND.open) renderNews(); }); break;
-      case "ndteam": ND.tid = el.dataset.tid; ND.sel = null; renderNews(); break;
-      case "ndback": ND.sel = null; renderNews(true); break;
-      case "ndclose": ND.open = false; ND.sel = null; renderNews(); break;
+      case "teamnews": if (ev.target.closest(".nx-pop")) break; ND.open = true; ND.tid = el.dataset.tid; renderNews(true); practiceGames().then(() => { if (ND.open) renderNews(); }); break;
+      case "ndteam": ND.tid = el.dataset.tid; renderNews(); break;
+      case "ndclose": ND.open = false; renderNews(); break;
       case "ndf": ND.f = el.dataset.k || "all"; renderNews(); break;
-      case "ndban": { if (liveLocked()) { toast(liveLockMsg()); break; } const id = el.dataset.id; if (!CH[id]) break;
-        S.ui.banGoal = { ids: glIds("ban").filter((x) => x !== id).concat([id]).slice(-5) }; S.ui.goal = { ids: glIds("goal").filter((x) => x !== id) }; save();
-        toast(`${CH[id].ko} 미리 밴에 넣음 · 실시간 밴픽 우리 밴 차례에 먼저 나옵니다`); break; }
       case "bandel": S.ui.banGoal = { ids: glIds("ban").filter((x) => x !== el.dataset.id) }; save(); render(); break;
       case "banclr": S.ui.banGoal = { ids: [] }; save(); render(); break;
       case "goaldel": S.ui.goal = { ids: ((S.ui.goal && S.ui.goal.ids) || []).filter((x) => x !== el.dataset.id) }; save(); render(); break;
