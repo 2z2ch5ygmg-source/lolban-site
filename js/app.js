@@ -2671,6 +2671,8 @@
     try { await quickPools([[t.id, r]], true); } finally { delete ALTQ[k]; renderEditor(); render(); }
     toast(altMerged(t, r, d.riot) === "in" ? `${ROLE_KO[r]} 부계정 챔프폭을 합쳤습니다` : `${ROLE_KO[r]} 부계정은 저장됐고, 챔프폭은 잠시 뒤 「기록 갱신」이나 0시 수집 때 합쳐집니다`);
   }
+  // 11-21 사용자 「홈에 있기만 했는데 챔프폭 입력 창이 저절로 뜸」: 챔프폭 화면이 editing을 잡아 둔 채 다른 화면으로 가면, 팀원 챔프폭이 새로 오는 순간 창을 띄웠음 → 실제로 열린 편집 창만 다시 그림
+  const editorOpen = () => !!editing && (!!document.getElementById("setEd") || !!document.querySelector("#modal [data-editor]"));
   let editing = null, editMode = "pool";   // 상대팀 편집 창: "pool" 챔프폭 편집 · "alts" 부계정 입력(11-20 사용자 요청: 설정 버튼에서 둘로 나눔)
   // 티어는 고르기: 티어 + (아이언~다이아) 단계 1~4 / (마스터 이상) LP. 저장 글자는 「골드 4」·「마스터 700LP」 그대로
   const TIERS = ["아이언", "브론즈", "실버", "골드", "플래티넘", "에메랄드", "다이아", "마스터", "그랜드마스터", "챌린저"];
@@ -2925,7 +2927,7 @@
       <div class="ed-row"><input class="input" style="flex:1" list="champList" data-add="${r}" placeholder="챔피언 추가 (이름 입력 후 Enter)">
       <select data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select>
       <button class="ib btn sm" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></div></div>`; }).join(""); }
-    root.innerHTML = `<div class="modal-bg" data-act="close"><div class="modal ${!altMode && !MOB.matches && t.id === S.ourTeam && !t.solo ? "se-modal" : ""}" role="dialog" aria-modal="true" aria-label="${t.id === S.ourTeam ? "챔프폭 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}" ${MOB.matches ? `data-edr="${edLane}"` : ""}>
+    root.innerHTML = `<div class="modal-bg" data-act="close" data-editor="1"><div class="modal ${!altMode && !MOB.matches && t.id === S.ourTeam && !t.solo ? "se-modal" : ""}" role="dialog" aria-modal="true" aria-label="${t.id === S.ourTeam ? "챔프폭 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}" ${MOB.matches ? `data-edr="${edLane}"` : ""}>
       <div class="modal-h"><h2>${esc(t.name)} · ${t.id === S.ourTeam ? "챔프폭 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}</h2><button class="ib btn sm" data-act="close" aria-label="닫기" title="닫기">${ico("x")}</button></div>
       ${altMode ? `<p class="help ed-intro">이름#태그를 넣고 「찾기」 → 맞으면 「적용」. 적용하면 그 계정 챔프폭을 받아 이 라인 챔프폭에 합칩니다</p>` : MOB.matches ? `<p class="help ed-intro">${t.id === S.ourTeam ? "<b>대회에서 실제로 꺼낼 수 있는 챔프</b>만 넣고 자신감을 고르세요. 본인 평가가 있는 선수는 이 목록만 추천에 쓰고, 전적은 참고로만 붙습니다. " : ""}${t.id === S.ourTeam ? "" : "여기 넣은 챔프는 전적 추천에 <b>더해집니다</b>(전적 챔프는 그대로 남음). "}칩을 누르면 상 → 중 → 하 → 원챔 순서로 바뀝니다. ×는 삭제.</p>` : t.id === S.ourTeam && !t.solo ? "" : `<p class="help ed-intro">${t.id === S.ourTeam ? "알약을 누르면 숙련도가 바뀝니다 · ×는 빼기" : "기록(본계정·부계정)에서 찾은 챔프가 자동으로 들어 있습니다 · 알약을 누르면 숙련도가 바뀌고 ×는 빼기(↺로 되돌림)"} · 바로 저장됩니다</p>`}
       ${MOB.matches ? `<p class="help" id="shareNote" aria-live="polite">${t.solo ? "개인(솔랭) 상대는 이 브라우저에만 저장됩니다." : shareNote()}</p>${t.solo || !SH.url ? "" : shareRoles(t)}` : ""}
@@ -3702,9 +3704,9 @@
     } catch (e) { /* 확인 못 해도 넣음 */ }
     p.alts = [...alts, id]; if (val) { p.rk = { ...(p.rk || {}), [rkKey(id)]: val }; applyTiers(); }
     const k = tid + "|" + r; ALTQ[k] = true;
-    save(); shareChanged(tid, r); if (editing) renderEditor(); render();
+    save(); shareChanged(tid, r); if (editorOpen()) renderEditor(); render();
     toast(`${t.name} ${ROLE_KO[r]} 부계정 ${id} 추가 — 챔프폭 받는 중`);
-    try { await quickPools([[tid, r]], true); } finally { delete ALTQ[k]; if (editing) renderEditor(); render(); }
+    try { await quickPools([[tid, r]], true); } finally { delete ALTQ[k]; if (editorOpen()) renderEditor(); render(); }
   }
   function suspectNo(tid, riot, id) {
     const t = team(tid); if (!t) return; const v = /^[0-9a-f]{16}$/.test(id || "") ? id : riot;
@@ -5178,8 +5180,7 @@
       const btns = pv == null ? `<p class="help">불러오는 중…</p>` : pv.length ? pv.map((x) => `<button class="lg-b ${x}" data-act="lglogin" data-k="${x}">${pvIco[x] || ""}${PROVIDER_KO[x] || x}로 로그인</button>`).join("") : `<p class="help">로그인 준비 중입니다 — 곧 열립니다</p>`;
       const feat = (ic, t, d) => `<li><span class="ap-ic" aria-hidden="true">${ic}</span><span><b>${t}</b><small>${d}</small></span></li>`;
       h = `<div class="ap ap-split"><div class="ap-intro">${logo}
-          <div><h2>대회 밴픽,<br>팀이 같이 준비하는 곳</h2><ul class="ap-feat">${feat("BP", "실시간 밴픽", "진행자 한 명이 넣으면 팀원 화면에 바로")}${feat(lbi("scout", 18), "상대 분석", "상대 챔프폭·예상 밴·라인별 연습 포인트")}${feat(ico("users"), "부계정 찾기", "같은 5명이 모인 자유랭크로 의심 계정 표시")}</ul></div>
-          <span class="ap-tag">LoL 대회 팀용 피어리스 밴픽 보드</span></div>
+          <div><h2>대회 밴픽,<br>팀이 같이 준비하는 곳</h2><ul class="ap-feat">${feat("BP", "실시간 밴픽", "진행자 한 명이 넣으면 팀원 화면에 바로")}${feat(lbi("scout", 18), "상대 분석", "상대 챔프폭·예상 밴·라인별 연습 포인트")}${feat(ico("users"), "부계정 찾기", "같은 5명이 모인 자유랭크로 의심 계정 표시")}</ul></div></div>
         <div class="ap-side"><div class="ap-tool">${themeBtn()}</div><section class="ap-box" aria-label="로그인"><h1>로그인</h1>${btns}${authMsg()}
           <p class="help ap-note">회원 번호(바꿔서 저장)와 닉네임만 받습니다 · 이메일·전화번호는 받지 않음</p>${skip}</section>${AP_FOOT}</div></div>`;
     } else {
@@ -5810,7 +5811,7 @@
     if (changed) {
       save(); render();
       // 편집 창이 열려 있으면 다시 그리되, 쓰던 챔프 이름 칸은 살린다
-      if (editing) { const a = document.activeElement, keep = a && a.dataset && a.dataset.add ? [a.dataset.add, a.value] : null; renderEditor();
+      if (editorOpen()) { const a = document.activeElement, keep = a && a.dataset && a.dataset.add ? [a.dataset.add, a.value] : null; renderEditor();
         if (keep) { const n = document.querySelector(`[data-add="${keep[0]}"]`); if (n) { n.value = keep[1]; n.focus(); } } }
     } else shareNoteUpdate();
   }
