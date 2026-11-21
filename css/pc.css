@@ -114,6 +114,9 @@ html.pc .pill { border-radius: 999px; }
 .l5-c { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .l5-c b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .l5-c.first b { font-size: 16px; }
+/* 첫 화면은 라인마다 5개만 — 나머지 개수(11-21 사용자: 6번째 야스오가 안 보여 뺀 줄 알았음) */
+.l5-more { justify-self: start; font: inherit; font-size: 12px; font-weight: 700; color: var(--muted); background: var(--bg2); border: 0; border-radius: 999px; padding: 4px 10px; min-height: 28px; cursor: pointer; }
+.l5-more:hover { color: var(--hi); background: var(--hi-bg); } .l5-more:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
 .l5-b { display: flex; align-items: center; gap: 8px; }
 .hb { display: flex; gap: 12px; }
 .hc3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }

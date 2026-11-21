@@ -1855,10 +1855,10 @@
     const ql = { solo: "솔랭", flex: "자랭" }[CFG.queue] || "랭크";
     return `<section class="h-sec"><h3 class="h-h">로스터 · 챔프폭<small>${md((window.RECENT && window.RECENT.since) || "2026-11-10")}~ ${ql}</small>${teamSetMenu("our")}</h3><div class="lane5">${ROLES.map((r) => {
       const p = t.players[r], x = E.recentOf(t, r), ar = x ? E.actualRole(t, r) : null;
-      const pm = E.poolMap(t, r), list = Object.entries(pm).sort((a, b) => E.lvScore(b[1]) - E.lvScore(a[1])).slice(0, 5);
+      const pm = E.poolMap(t, r), all = Object.entries(pm).sort((a, b) => E.lvScore(b[1]) - E.lvScore(a[1])), list = all.slice(0, 5), more = all.slice(5);
       return `<div class="l5"><span class="l5-r">${ROLE_KO[r]}</span><b class="l5-n" title="${esc(p.riot)}">${esc(nick(p.riot) || "—")}</b><span class="l5-s">${tierLineHtml(p, x)}</span>
         ${altLine(t, r)}<span class="l5-w">${ar && ar.differs ? `${lbi("warn", 16)}최근 ${ROLE_KO[ar.role]} ${ar.n}판` : ""}</span>${crossLine(t, r)}
-        ${list.length ? list.map(([id, e], j) => `<span class="l5-c ${j ? "" : "first"}" title="${esc(CH[id] ? CH[id].ko : id)}${e.g ? ` · ${e.g}판` : ""}">${icon(id, j ? "md" : "lg")}<b>${esc(CH[id] ? CH[id].ko : id)}</b>${lvTag({ lv: e.lv, one: e.one })}</span>`).join("") : `<span class="help">챔프폭 없음 · 「챔프폭 입력」에서</span>`}</div>`;
+        ${list.length ? list.map(([id, e], j) => `<span class="l5-c ${j ? "" : "first"}" title="${esc(CH[id] ? CH[id].ko : id)}${e.g ? ` · ${e.g}판` : ""}">${icon(id, j ? "md" : "lg")}<b>${esc(CH[id] ? CH[id].ko : id)}</b>${lvTag({ lv: e.lv, one: e.one })}</span>`).join("") + (more.length ? `<button class="l5-more" data-act="poolgo" data-r="${r}" title="${esc(more.map(([id]) => CH[id] ? CH[id].ko : id).join(", "))}">+${more.length}개 더 · 전체 보기</button>` : "") : `<span class="help">챔프폭 없음 · 「챔프폭 입력」에서</span>`}</div>`;
     }).join("")}</div></section>`;
   }
   function homeCompsPC(t) {
@@ -2665,7 +2665,7 @@
     if (alts.length >= 2) return;
     p.alts = [...alts, d.riot];
     const val = { ...(d.solo ? { s: lowLp(d.solo) } : {}), ...(d.flex ? { f: lowLp(d.flex) } : {}) };
-    p.rk = { ...(p.rk || {}), [rkKey(d.riot)]: val }; applyTiers(); save(); shareChanged(t.id, r);
+    p.rk = { ...(p.rk || {}), [rkKey(d.riot)]: val }; applyTiers(); save(); shareChanged(t.id, r, true);
     delete ALTF[k]; ALTQ[k] = true; renderEditor(); render();
     toast(`${ROLE_KO[r]} 부계정 ${d.riot} 적용 — 챔프폭 받는 중`);
     try { await quickPools([[t.id, r]], true); } finally { delete ALTQ[k]; renderEditor(); render(); }
@@ -2854,9 +2854,9 @@
         p.rk = { ...(p.rk || {}), [rkKey(v)]: { ...keep(rkKey(v)), ...val }, [rkKey(d.riot)]: { ...keep(rkKey(d.riot)), ...val } }; applyTiers(); save();
         // 2년 내 최고도 바로 받아 반영 티어에 넣음
         fetchPeak(tt, r, d.riot).then((ok) => { if (!ok) return; const kk = rkKey(d.riot); if (rkKey(v) !== kk) p.rk[rkKey(v)] = { ...p.rk[rkKey(v)], ...p.rk[kk] };
-          applyTiers(); save(); shareChanged(tt.id, r);
+          applyTiers(); save(); shareChanged(tt.id, r, true);
           const b2 = document.getElementById(`edrk-${r}-${slot}`); if (b2) b2.outerHTML = rkView(tt, r, v, slot); const ef = document.getElementById(`edeff-${r}`); if (ef) ef.innerHTML = effLine(tt, r); });
-        shareChanged(tt.id, r);   // 11-20: 바로 공유 저장소에 올림 — 안 올리면 몇 초 뒤 서버의 옛 값이 덮어 「아직 티어를 못 받음」으로 돌아감
+        shareChanged(tt.id, r, true);   // 11-20: 바로 공유 저장소에 올림 — 안 올리면 몇 초 뒤 서버의 옛 값이 덮어 「아직 티어를 못 받음」으로 돌아감
         const slot = el.dataset.f === "riot" ? "m" : el.dataset.alt, box = document.getElementById(`edrk-${r}-${slot}`); if (box) box.outerHTML = rkView(tt, r, v, slot);
         const eff = document.getElementById(`edeff-${r}`); if (eff) eff.innerHTML = effLine(tt, r);
         // 부계정(설정 화면 포함)은 입력하자마자 챔프폭도 받아 기록에 합침(11-20 사용자 요청: 등록 즉시 밴픽·우리 팀 자료에 반영)
@@ -3199,7 +3199,7 @@
         const old = (p.rk || {})[k] || {};
         p.rk = { ...(p.rk || {}), [k]: { ...(d.solo ? { s: lowLp(d.solo) } : {}), ...(d.flex ? { f: lowLp(d.flex) } : {}), ...Object.fromEntries(["ps", "pf", "ts", "tf", "pt", "pv"].filter((y) => old[y] != null).map((y) => [y, old[y]])) } };
         await fetchPeak(t, r, a);   // 2년 내 최고도 함께(op.gg, Worker 24시간 캐시)
-        applyTiers(); shareChanged(tid, r);
+        applyTiers(); shareChanged(tid, r, true);
       } else { TQ.miss++; const tm = team(tid); TQ.fails.push({ team: tm ? tm.name : "", r, a, why: d && !d.exists ? "Riot에 없는 계정(이름·태그 확인)" : why }); }
       TQ.done++; TQ.msg = `Riot에서 티어 받는 중 ${TQ.done} / ${TQ.all}`;
       if (!waited) IQ.avg = IQ.avg * 0.7 + (Date.now() - t0) * 0.3;   // 계정 하나 걸리는 시간(한도 기다림 빼고)
@@ -3247,7 +3247,7 @@
       const lanes = new Set();
       for (const [t, r, a] of todo) { if (await fetchPeak(t, r, a)) lanes.add(`${t.id}|${r}`); }
       if (!lanes.size) return;
-      applyTiers(); save(); lanes.forEach((x) => { const [tid, r] = x.split("|"); shareChanged(tid, r); });
+      applyTiers(); save(); lanes.forEach((x) => { const [tid, r] = x.split("|"); shareChanged(tid, r, true); });   // 티어만 — 저절로 도는 갱신이 옛 챔프폭 사본을 올리지 않게
       if (!editing) render(); else { lanes.forEach((x) => { const [tid, r] = x.split("|"); const tt = team(tid), eff = document.getElementById(`edeff-${r}`); if (tt && tid === editing && eff) eff.innerHTML = effLine(tt, r); }); }
     }, 1500);
   }
@@ -3704,7 +3704,7 @@
     } catch (e) { /* 확인 못 해도 넣음 */ }
     p.alts = [...alts, id]; if (val) { p.rk = { ...(p.rk || {}), [rkKey(id)]: val }; applyTiers(); }
     const k = tid + "|" + r; ALTQ[k] = true;
-    save(); shareChanged(tid, r); if (editorOpen()) renderEditor(); render();
+    save(); shareChanged(tid, r, true); if (editorOpen()) renderEditor(); render();
     toast(`${t.name} ${ROLE_KO[r]} 부계정 ${id} 추가 — 챔프폭 받는 중`);
     try { await quickPools([[tid, r]], true); } finally { delete ALTQ[k]; if (editorOpen()) renderEditor(); render(); }
   }
@@ -5420,15 +5420,22 @@
       case "edfill": { const p = editing && team(editing).players[el.dataset.role]; if (p) { p.tier = el.dataset.v; const pv = ptsOf(p.tier); if (pv != null) p.pts = pv; save(); shareChanged(editing, el.dataset.role); renderEditor(); render(); } break; }
       case "setsec": S.ui.setSec = el.dataset.k; save(); render(); break;
       case "setteam": S.ui.setTeam = el.dataset.v; save(); render(); break;
-      case "tedit": { const t = team(S.ourTeam); if (!t) break; TE.on = true; TE.snap = JSON.stringify(t); render(); break; }
+      case "tedit": { const t = team(S.ourTeam); if (!t) break; TE.on = true; TE.snap = JSON.stringify(t); render(); pullShared(); break; }
       case "tcancel": case "tsave": { const t = team(S.ourTeam); if (!t) break;
         const before = TE.snap ? JSON.parse(TE.snap) : null;
-        if (el.dataset.act === "tcancel" && before) { const i = S.teams.findIndex((x) => x.id === t.id); if (i >= 0) S.teams[i] = before; }
+        // 11-21 사용자 「챔프폭 입력에서 뺀 야스오가 계정 수정에 남아 있음」: 취소가 계정 수정을 연 때의 팀 전체(챔프폭 포함)로 되돌리고
+        //   다섯 라인을 다 다시 올려, 그사이 이 창·다른 팀원이 뺀 챔프를 되살렸음 → 취소는 계정·티어만 되돌리고 챔프폭은 지금 것을 둠
+        const tsig = (p) => JSON.stringify([(p && p.tier) || "", (p && p.rk) || null]);
+        // 비교 기준: 취소는 취소 직전 이 창 상태, 저장은 계정 수정을 연 때 상태
+        const sig0 = Object.fromEntries(ROLES.map((r) => [r, tsig(el.dataset.act === "tcancel" || !before ? t.players[r] : before.players[r])]));
+        if (el.dataset.act === "tcancel" && before) { const i = S.teams.findIndex((x) => x.id === t.id);
+          if (i >= 0) { ROLES.forEach((r) => { const c = t.players[r] || {}, b = before.players[r] || (before.players[r] = {}); ["pool", "hide", "sharedAt", "sharedRev"].forEach((k) => { if (c[k] !== undefined) b[k] = c[k]; else delete b[k]; }); }); S.teams[i] = before; } }
         const now = team(S.ourTeam);
         TE.on = false; TE.snap = null; editing = null;
         if (S.ui.altOpen) ROLES.forEach((r) => delete S.ui.altOpen[t.id + "|" + r]);   // 비워 둔 부계정 칸은 닫음
         if (el.dataset.act === "tsave") ROLES.forEach((r) => { const p = now.players[r]; if (p && Array.isArray(p.alts)) p.alts = p.alts.filter((a) => /#/.test(a || "")); });   // 덜 친 부계정(이름#태그 아님)은 저장하지 않음
-        applyTiers(); save(); rosterChanged(); ROLES.forEach((r) => shareChanged(now.id, r));
+        // 팀 공유 저장소에는 계정 수정으로 티어가 바뀐 라인만, 챔프폭은 서버 것을 그대로 두고(keep:"pool") 올림 — 챔프 알약을 눌러 바꾼 챔프폭은 누를 때 이미 올라감
+        applyTiers(); save(); rosterChanged(); ROLES.forEach((r) => { if (!before || tsig(now.players[r]) !== sig0[r]) shareChanged(now.id, r, true); });
         // 저장: 계정이 바뀐 라인만 Riot에서 솔랭·자랭 다시 받기
         const accSig = (x, r) => JSON.stringify([((x.players[r] || {}).riot || ""), ((x.players[r] || {}).alts || [])]);
         if (el.dataset.act === "tsave" && before) { const nw = ROLES.filter((r) => (now.players[r] || {}).riot && accSig(before, r) !== accSig(now, r) && (qpLoad()[`${now.id}|${r}`] || {}).accs !== qpAccs(now, r)); if (nw.length) { toast("바뀐 계정 챔프폭 받는 중…"); quickPools(nw.map((r) => [now.id, r])); }
@@ -5751,7 +5758,7 @@
 
   // ---------- 팀 공유 챔프폭 (js/config.js SELF_EVAL_SHARE_URL = Worker /selfeval) ----------
   // 우리 자기평가와 상대 챔프폭 메모를 링크를 받은 팀원끼리 같이 본다. 팀·라인별 칸 하나, 마지막 저장이 남는다.
-  const SH = { url: window.SELF_EVAL_SHARE_URL && SPACE ? window.SELF_EVAL_SHARE_URL : "", status: window.SELF_EVAL_SHARE_URL && SPACE ? "loading" : "unset", at: "", err: "", pending: {}, timers: {} };
+  const SH = { url: window.SELF_EVAL_SHARE_URL && SPACE ? window.SELF_EVAL_SHARE_URL : "", status: window.SELF_EVAL_SHARE_URL && SPACE ? "loading" : "unset", at: "", err: "", pending: {}, timers: {}, full: {} };
   const seedP = (tid, r) => { const t = window.SEED_TEAMS.find((x) => x.id === tid); return (t && t.players[r]) || {}; };
   const normPool = (pool) => (pool || []).map((e) => (e[2] ? [e[0], 3, true] : [e[0], e[1]]));
   const sameJ = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -5761,21 +5768,29 @@
     const hide = (p.hide || []).filter((id) => /^[A-Za-z][A-Za-z0-9]{1,24}$/.test(id)).slice(-30);
     return { pool: normPool(p.pool), tier: p.tier && p.tier !== seedP(tid, r).tier ? p.tier : "", ...(rk && Object.keys(rk).length ? { rk } : {}), ...(hide.length ? { hide } : {}) }; }
   function editedLocally(tid, r) { const p = team(tid).players[r], sp = seedP(tid, r); return !sameJ(normPool(p.pool), normPool(sp.pool)) || (p.tier || "") !== (sp.tier || ""); }
-  function shareChanged(tid, r) {
+  // tierOnly: 티어만 바뀜 → 서버에 저장된 챔프폭을 그대로 두라고 보냄(keep:"pool"). 사이에 챔프폭도 바꿨으면 챔프폭까지 올림
+  function shareChanged(tid, r, tierOnly) {
     if (!SH.url || !shareable(tid)) return;
     const k = tid + "|" + r; SH.pending[k] = (SH.pending[k] || 0) + 1;   // 바꿀 때마다 번호가 올라감
+    if (!tierOnly) SH.full[k] = 1;
     clearTimeout(SH.timers[k]);
     SH.timers[k] = setTimeout(() => pushShared(tid, r), 700);
   }
   async function pushShared(tid, r) {
-    const k = tid + "|" + r, seq = SH.pending[k];
+    const k = tid + "|" + r, seq = SH.pending[k], full = !!SH.full[k];
+    delete SH.full[k];
     try {
-      const res = await wfetch(`/selfeval?team=${encodeURIComponent(tid)}&role=${r}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sharedBody(tid, r)) });
+      const body = sharedBody(tid, r); if (!full) body.keep = "pool";
+      const res = await wfetch(`/selfeval?team=${encodeURIComponent(tid)}&role=${r}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await res.json().catch(() => ({}));
       if (!res.ok || d.status !== "ok") throw new Error(d.reason || "HTTP " + res.status);
       Object.assign(SH, { status: "ok", at: d.saved.at, err: "" });
-      team(tid).players[r].sharedAt = d.saved.at; team(tid).players[r].sharedRev = d.saved.rev || Date.now(); save();
-    } catch (err) { Object.assign(SH, { status: "error", err: String(err.message || err) }); }
+      const p = team(tid).players[r];
+      // 티어만 보낸 저장: 서버가 그대로 둔 챔프폭을 받아 이 브라우저 사본도 맞춤(사이에 이 창에서 챔프폭을 바꿨으면 그 저장이 따로 감)
+      if (d.kept === "pool" && !SH.full[k] && Array.isArray(d.saved.pool)) { p.pool = d.saved.pool; p.hide = d.saved.hide || []; }
+      p.sharedAt = d.saved.at; p.sharedRev = d.saved.rev || Date.now(); save();
+      if (d.kept === "pool" && editorOpen()) renderEditor();
+    } catch (err) { if (full) SH.full[k] = 1; Object.assign(SH, { status: "error", err: String(err.message || err) }); }
     if (SH.pending[k] === seq) delete SH.pending[k];   // 보내는 사이 또 바꿨으면 그 저장이 끝날 때까지 기다림
     shareNoteUpdate();
   }
