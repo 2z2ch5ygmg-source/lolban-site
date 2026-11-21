@@ -2098,28 +2098,46 @@
   }
   // ---- 상대 팀 소식 자세히(11-22 사용자: 시안 B+C) ----
   // 소식 줄을 누르면 오른쪽 서랍(휴대폰은 아래에서 올라옴): 6팀 소식을 팀별로·종류로 거르기(C), 줄을 누르면 서랍 안에서 그 항목 자세히(B)
-  const ND = { open: false, f: "all", sel: null };
+  const ND = { open: false, f: "all", tid: null, sel: null };   // tid = 보는 팀, sel = 그 팀 소식 번호(자세히)
   const ND_KINDS = [["all", "전체"], ["new", "새 픽"], ["cross", "교차 출전"], ["swap", "라인 바꿈"], ["alt", "부계정"], ["games", "함께 한 경기"]];
   const LIVE_GAMES = {};   // 기록 갱신으로 합친 상대 경기(자세히의 경기 줄)
   const newsBtn = (t, x, i, cls) => `<button class="nw-btn ${cls || ""}" data-act="news" data-tid="${esc(t.id)}" data-i="${i}" aria-label="${esc(t.name)} · ${esc(x.t)} 자세히">${newsLine(x)}${cls ? `<span class="nx-tg ${NEWS_TAG[x.k]}">${x.tag}</span>` : ""}</button>`;
   const gamesFor = (tid) => LIVE_GAMES[tid] || (PG && PG.teams && PG.teams[tid]) || [];
   const qName = (q) => (q === 440 ? "자유랭" : q === 420 ? "솔랭" : "일반");
-  const kday = (ms) => { const d = new Date(ms + 9 * 3600e3); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`; };
+  // 날짜 묶기(11-22 사용자: 날짜는 C처럼 묶어서): 오늘 · 어제 · 11/19
+  const kdayK = (ms) => { const d = new Date(ms + 9 * 3600e3); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`; };
+  const dayLabel = (ms) => (!ms ? "그 밖" : kdayK(ms) === kdayK(Date.now()) ? "오늘" : kdayK(ms) === kdayK(Date.now() - 86400e3) ? "어제" : kdayK(ms));
+  // 함께 한 경기 날짜("11-20 00:35", 해 없음) → 시각
+  const grpMs = (s0) => { const m = String(s0 || "").match(/(?:(\d{4})-)?(\d{2})-(\d{2}) (\d{2}:\d{2})/); if (!m) return 0;
+    const y = m[1] || new Date(Date.now() + 9 * 3600e3).getUTCFullYear(); let ms = Date.parse(`${y}-${m[2]}-${m[3]}T${m[4]}:00+09:00`); if (!m[1] && ms > Date.now() + 864e5) ms = Date.parse(`${y - 1}-${m[2]}-${m[3]}T${m[4]}:00+09:00`); return ms || 0; };
+  function byDay(list, msOf, row, head) {
+    const groups = []; list.forEach((it) => { const lab = dayLabel(msOf(it)), g = groups[groups.length - 1]; if (g && g.lab === lab) g.items.push(it); else groups.push({ lab, items: [it] }); });
+    return groups.map((g) => `<h5 class="nd-day">${g.lab}${head ? `<small>${head(g.items)}</small>` : ""}</h5>${g.items.map(row).join("")}`).join("");
+  }
+  const wl = (items, win) => { const w = items.filter(win).length; return `${items.length}판 · ${w}승 ${items.length - w}패`; };
   function ndGames(tid, r, champ) {
-    const gs = gamesFor(tid).filter((g) => g.p && g.p[r] && (!champ || g.p[r][2] === champ)).sort((a, b) => b.t - a.t).slice(0, 8);
+    const gs = gamesFor(tid).filter((g) => g.p && g.p[r] && (!champ || g.p[r][2] === champ)).sort((a, b) => b.t - a.t).slice(0, 12);
     if (!gs.length) return `<p class="help">경기 줄은 「기록 갱신」 뒤에 보입니다</p>`;
-    return `<div class="nd-games">${gs.map((g) => { const p = g.p[r], mates = Object.values(g.p).filter((y) => y[0] === p[0]).length;
-      return `<div class="nd-g"><span class="dim">${kday(g.t)}</span>${champ ? "" : CH[p[2]] ? icon(p[2], "xs") : ""}<span class="nd-q">${qName(g.q)}${mates > 1 ? ` · ${mates}명 함께` : ""}</span><span class="nd-kda">${p[4]}/${p[5]}/${p[6]}</span><b class="${p[1] ? "w" : "l"}">${p[1] ? "승" : "패"}</b></div>`; }).join("")}</div>`;
+    return `<div class="nd-games">${byDay(gs, (g) => g.t, (g) => { const p = g.p[r], mates = Object.values(g.p).filter((y) => y[0] === p[0]).length;
+      return `<div class="nd-g">${champ ? "" : CH[p[2]] ? icon(p[2], "xs") : ""}<span class="nd-q">${qName(g.q)}${mates > 1 ? ` · ${mates}명 함께` : ""}</span><span class="nd-kda">${p[4]}/${p[5]}/${p[6]}</span><b class="${p[1] ? "w" : "l"}">${p[1] ? "승" : "패"}</b></div>`; }, (it) => wl(it, (g) => g.p[r][1]))}</div>`;
+  }
+  // 소식 하나가 언제 일인지(목록 날짜 묶기): 새 픽은 그 챔프 마지막 경기, 교차·라인은 그 선수 마지막 경기, 함께 한 경기는 마지막 판
+  function newsMs(t, x) {
+    const gs = gamesFor(t.id), mx = (a) => a.reduce((m, v) => (v > m ? v : m), 0);
+    if (x.k === "new") return mx(gs.filter((g) => g.p && g.p[x.r] && g.p[x.r][2] === x.id).map((g) => g.t));
+    if (x.k === "cross" || x.k === "swap") return mx(gs.filter((g) => g.p && g.p[x.r]).map((g) => g.t));
+    if (x.k === "games") return mx((E.groupsOf(t) || []).map((g) => grpMs(g.date)));
+    return 0;
   }
   function ndDetail(t, x) {
     const P = E.practiceOf(t), pl = x.r && t.players[x.r], nick = pl ? String(pl.riot || "").split("#")[0] : "";
-    const head = `<div class="nd-dh"><button class="ib btn sm ghost" data-act="ndback" aria-label="소식 목록으로">${ico("left")}</button><span class="nd-who">${crestOf(t, "r")}<b>${esc(t.name)}</b>${x.r ? `<span class="dim">${ROLE_KO[x.r]}${nick ? ` · ${esc(nick)}` : ""}</span>` : ""}</span><button class="ib btn sm ghost nd-x" data-act="ndclose" aria-label="닫기">${ico("x")}</button></div>`;
+    const head = `<div class="nd-dh"><button class="ib btn sm ghost" data-act="ndback" aria-label="${esc(t.name)} 소식 목록으로">${ico("left")}</button><span class="nd-who">${crestOf(t, "r")}<b>${esc(t.name)}</b>${x.r ? `<span class="dim">${ROLE_KO[x.r]}${nick ? ` · ${esc(nick)}` : ""}</span>` : ""}</span><button class="ib btn sm ghost nd-x" data-act="ndclose" aria-label="닫기">${ico("x")}</button></div>`;
     const act = (extra) => `<div class="nd-act">${extra || ""}<button class="nx-soft nd-soft" data-act="pickenemy" data-id="${esc(t.id)}">상대 분석에서 보기</button></div>`;
     let body = "";
     if (x.k === "new") {
       const pk = ((P && P.players[x.r] && P.players[x.r].picks) || []).find((y) => y.id === x.id) || {}, g = pk.g || 0, w = pk.w || 0;
       body = `<div class="nd-hero">${icon(x.id, "lg")}<div><b class="nd-t">${esc(CH[x.id].ko)}</b><span class="dim">새로 연습 ${g}판 · ${w}승 ${Math.max(0, g - w)}패</span></div><span class="tag new">새 픽</span></div>
-        <div class="nd-stats"><span><small>승률</small><b>${g ? Math.round((w / g) * 100) : 0}%</b></span><span><small>KDA</small><b>${pk.kda ?? "-"}</b></span><span><small>팀원과 함께</small><b>${pk.tg || 0}판</b></span></div>
+        <div class="nd-stats"><span><small>승률</small><b>${g ? Math.round((w / g) * 100) : 0}%</b></span><span><small>평균 KDA</small><b>${pk.kda ?? "-"}</b></span><span><small>팀원과 함께</small><b>${pk.tg || 0}판</b></span></div>
         <h4 class="nd-h4">경기</h4>${ndGames(t.id, x.r, x.id)}${act(`<button class="n-new sm" data-act="ndban" data-id="${x.id}">${lbi("plus", 16)}미리 밴에 넣기</button>`)}`;
     } else if (x.k === "cross") {
       const cx = E.crossOf(t, x.r) || {};
@@ -2138,32 +2156,32 @@
       const wk = Date.now() - 7 * 86400e3, gs = (E.groupsOf(t) || []).filter((g) => { const ms = Date.parse(String(g.date).replace(" ", "T") + ":00+09:00"); return !Number.isFinite(ms) || ms >= wk; });
       const win = gs.filter((g) => g.win).length;
       body = `<div class="nd-hero"><span class="nd-lane">${lbi("comp", 30)}</span><div><b class="nd-t">함께 한 경기</b><span class="dim">최근 7일 ${gs.length}판 · ${win}승 ${gs.length - win}패</span></div><span class="tag">팀 경기</span></div>
-        <div class="nd-games">${gs.slice(0, 10).map((g) => `<div class="nd-g nd-tg"><span class="dim">${esc(String(g.date).replace(/^\d{4}-/, "").slice(0, 5).replace("-", "/").replace(/^0/, "").replace("/0", "/"))}</span><span class="nd-five">${ROLES.map((r) => (g.picks && g.picks[r] && CH[g.picks[r]] ? icon(g.picks[r], "xs") : "")).join("")}</span><span class="nd-q">${typeof g.queue === "number" ? qName(g.queue) : esc(g.queue || "")}${g.n ? ` · ${g.n}명 함께` : ""}</span><b class="${g.win ? "w" : "l"}">${g.win ? "승" : "패"}</b></div>`).join("")}</div>${act()}`;
+        <div class="nd-games">${byDay(gs.slice(0, 14), (g) => grpMs(g.date), (g) => `<div class="nd-g nd-tg"><span class="nd-five">${ROLES.map((r) => (g.picks && g.picks[r] && CH[g.picks[r]] ? icon(g.picks[r], "xs") : "")).join("")}</span><span class="nd-q">${typeof g.queue === "number" ? qName(g.queue) : esc(g.queue || "")}${g.n ? ` · ${g.n}명 함께` : ""}</span><b class="${g.win ? "w" : "l"}">${g.win ? "승" : "패"}</b></div>`, (it) => wl(it, (g) => g.win))}</div>${act()}`;
     }
     return `${head}<div class="nd-sc">${body}</div>`;
   }
   function ndList() {
-    const opp = S.teams.filter((t) => !t.solo && t.id !== S.ourTeam);
-    let total = 0;
-    const secs = opp.map((t) => { const all = teamNews(t); total += all.length;
-      const nw = all.map((x, i) => [x, i]).filter(([x]) => ND.f === "all" || x.k === ND.f); if (!nw.length) return "";
-      return `<section class="nd-team"><h4 class="nd-th">${crestOf(t, "r")}<span>${esc(t.name)}</span><small>${nw.length}</small></h4>${nw.map(([x, i]) => `<button class="nd-row" data-act="news" data-tid="${esc(t.id)}" data-i="${i}">${newsLine(x)}<span class="tag ${NEWS_TAG[x.k]}">${x.tag}</span>${lbi("right", 14)}</button>`).join("")}</section>`; }).join("");
-    return `<div class="nd-hd"><b>상대 팀 소식</b><span class="dim">${opp.length}팀 · ${total}개 · 7일</span><button class="ib btn sm ghost nd-x" data-act="ndclose" aria-label="닫기">${ico("x")}</button></div>
+    const opp = S.teams.filter((t) => !t.solo && t.id !== S.ourTeam), t = team(ND.tid) || opp[0];
+    if (!t) return "";
+    const all = teamNews(t), items = all.map((x, i) => ({ x, i, ms: newsMs(t, x) })).filter((o) => ND.f === "all" || o.x.k === ND.f).sort((a, b) => b.ms - a.ms);
+    const row = (o) => `<button class="nd-row" data-act="news" data-tid="${esc(t.id)}" data-i="${o.i}">${newsLine(o.x)}<span class="tag ${NEWS_TAG[o.x.k]}">${o.x.tag}</span>${lbi("right", 14)}</button>`;
+    return `<div class="nd-hd">${crestOf(t, "r")}<b>${esc(t.name)}</b><span class="dim">최근 7일 변동 ${all.length}개</span><button class="ib btn sm ghost nd-x" data-act="ndclose" aria-label="닫기">${ico("x")}</button></div>
+      ${opp.length > 1 ? `<div class="nd-teams" role="group" aria-label="팀 고르기">${opp.map((o) => `<button data-act="ndteam" data-tid="${esc(o.id)}" aria-pressed="${o.id === t.id}">${crestOf(o, "r")}<span>${esc(o.name)}</span></button>`).join("")}</div>` : ""}
       <div class="nd-f" role="group" aria-label="종류로 거르기">${ND_KINDS.map(([k, n]) => `<button data-act="ndf" data-k="${k}" aria-pressed="${ND.f === k}">${n}</button>`).join("")}</div>
-      <div class="nd-sc">${secs || emptyBox("check", "이 종류의 소식이 없습니다", "", true)}</div>`;
+      <div class="nd-sc">${items.length ? byDay(items, (o) => o.ms, row) : emptyBox("check", "이 종류의 소식이 없습니다", "", true)}</div>`;
   }
   function renderNews(focus) {
     if (ND.open && S.tab !== "our") { ND.open = false; ND.sel = null; }
     let root = document.getElementById("ndRoot");
     if (!ND.open) { if (root) root.innerHTML = ""; document.documentElement.classList.remove("nd-on"); return; }
     if (!root) { root = document.createElement("div"); root.id = "ndRoot"; document.body.appendChild(root); }
-    const t = ND.sel && team(ND.sel.tid), x = t && teamNews(t)[ND.sel.i];
+    const t = team(ND.tid), x = t && ND.sel != null ? teamNews(t)[ND.sel] : null;
     const fresh = !root.firstChild;
     root.innerHTML = `<div class="nd-bg ${fresh ? "in" : ""}" data-act="ndclose"></div><aside class="nd ${fresh ? "in" : ""}" role="dialog" aria-modal="true" aria-label="상대 팀 소식" tabindex="-1">${t && x ? ndDetail(t, x) : ndList()}</aside>`;
     document.documentElement.classList.add("nd-on");
     if (focus) { const a = root.querySelector(".nd"); if (a) a.focus(); }
   }
-  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && ND.open) { ev.preventDefault(); if (ND.sel) ND.sel = null; else ND.open = false; renderNews(true); } });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && ND.open) { ev.preventDefault(); if (ND.sel != null) ND.sel = null; else ND.open = false; renderNews(true); } });
   function nextHero(ours) {
     const nx = nextOpp(), can = canSetNext(), opp = S.teams.filter((t) => !t.solo && t.id !== ours.id);
     const pop = NX.open && can ? nxPop(opp) : "";
@@ -5643,7 +5661,8 @@
       case "goaladd": addGoal(); break;
       case "banadd": addGoal("ban"); break;
       case "refreshall": refreshAll(); break;
-      case "news": ND.open = true; ND.sel = el.dataset.tid ? { tid: el.dataset.tid, i: Number(el.dataset.i) || 0 } : null; renderNews(true); practiceGames().then(() => { if (ND.open) renderNews(); }); break;
+      case "news": ND.open = true; ND.tid = el.dataset.tid || ND.tid; ND.sel = el.dataset.i != null ? Number(el.dataset.i) || 0 : null; renderNews(true); practiceGames().then(() => { if (ND.open) renderNews(); }); break;
+      case "ndteam": ND.tid = el.dataset.tid; ND.sel = null; renderNews(); break;
       case "ndback": ND.sel = null; renderNews(true); break;
       case "ndclose": ND.open = false; ND.sel = null; renderNews(); break;
       case "ndf": ND.f = el.dataset.k || "all"; renderNews(); break;

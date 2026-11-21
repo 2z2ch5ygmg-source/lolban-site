@@ -1745,11 +1745,12 @@ html.pc .live-pc .lc-r .gl-in { width: 104px; }
 .nw-btn:hover .nw-t { text-decoration: underline; text-underline-offset: 3px; }
 .nw-btn:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
 .nd-bg { position: fixed; inset: 0; z-index: 80; background: rgba(10, 10, 14, .42); }
-.nd { position: fixed; top: 0; right: 0; bottom: 0; z-index: 81; width: min(440px, 100vw); display: flex; flex-direction: column; padding: 16px 18px 0; background: var(--panel); color: var(--text); box-shadow: -16px 0 40px rgba(0, 0, 0, .18); outline: none; }
+/* 11-22 사용자: 웹은 오른쪽 서랍 말고 가운데 모달 */
+.nd { position: fixed; inset: 0; margin: auto; z-index: 81; width: min(560px, calc(100vw - 32px)); height: fit-content; max-height: min(82vh, 760px); display: flex; flex-direction: column; padding: 16px 20px 0; border-radius: 20px; background: var(--panel); color: var(--text); box-shadow: 0 24px 64px rgba(0, 0, 0, .28); outline: none; }
 .nd-bg.in { animation: ndfade .2s ease-out; }
-.nd.in { animation: ndin .28s cubic-bezier(.32, .72, 0, 1); }
+.nd.in { animation: ndin .22s cubic-bezier(.23, 1, .32, 1); }
 @keyframes ndfade { from { opacity: 0; } }
-@keyframes ndin { from { transform: translateX(28px); opacity: 0; } }
+@keyframes ndin { from { transform: scale(.96); opacity: 0; } }
 @keyframes ndup { from { transform: translateY(36px); opacity: 0; } }
 html.nd-on body { overflow: hidden; }
 .nd-hd, .nd-dh { display: flex; align-items: center; gap: 8px; min-height: 40px; }
@@ -1759,7 +1760,11 @@ html.nd-on body { overflow: hidden; }
 .nd-f { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 6px; }
 .nd-f button { border: 0; border-radius: 999px; min-height: 32px; padding: 0 12px; background: var(--bg2); color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
 .nd-f button[aria-pressed="true"] { background: var(--text); color: var(--panel); }
-.nd-sc { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 0 -18px; padding: 0 18px 20px; }
+.nd-sc { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 0 -20px; padding: 0 20px 20px; }
+.nd-teams { display: flex; gap: 6px; overflow-x: auto; margin: 10px -20px 0; padding: 0 20px 2px; scrollbar-width: none; }
+.nd-teams button { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px 0 5px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.nd-teams button[aria-pressed="true"] { border-color: var(--text); color: var(--text); }
+.nd-day { display: flex; align-items: baseline; gap: 8px; margin: 14px 0 2px; font-size: 13px; } .nd-day small { color: var(--muted); font-weight: 600; font-size: 12px; }
 .nd-th { display: flex; align-items: center; gap: 8px; margin: 14px 0 2px; font-size: 14px; } .nd-th small { color: var(--muted); font-weight: 700; }
 .nd-row { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 6px 2px; border-top: 1px solid var(--line); cursor: pointer; font-size: 13px; }
 .nd-row .nw-l { flex: 1; min-width: 0; } .nd-row > svg { color: var(--muted); flex: none; }
@@ -1774,7 +1779,7 @@ html.nd-on body { overflow: hidden; }
 .nd-h4 { margin: 14px 0 2px; font-size: 12.5px; color: var(--muted); }
 .nd-p { font-size: 13.5px; line-height: 1.55; margin: 0 0 4px; }
 .nd-g { display: flex; align-items: center; gap: 8px; min-height: 38px; font-size: 13px; border-top: 1px solid var(--line); }
-.nd-g > .dim { width: 40px; flex: none; } .nd-q { flex: 1; min-width: 0; color: var(--muted); } .nd-kda { font-variant-numeric: tabular-nums; }
+.nd-q { flex: 1; min-width: 0; color: var(--muted); } .nd-kda { font-variant-numeric: tabular-nums; }
 .nd-g b { width: 22px; text-align: right; } .nd-g .w { color: var(--good); } .nd-g .l { color: var(--red); }
 .nd-five { display: flex; gap: 2px; }
 .nd-champs { display: flex; gap: 14px; margin-top: 6px; } .nd-champs span { display: grid; justify-items: center; gap: 3px; } .nd-champs small { font-size: 11.5px; }
@@ -1783,7 +1788,8 @@ html.nd-on body { overflow: hidden; }
 .nd-soft { background: transparent; border: 1px solid var(--line); color: var(--text); min-height: 40px; padding: 0 16px; font-size: 13.5px; }
 .nd-soft:hover { background: var(--line); }
 @media (max-width: 760px) {
-  .nd { top: auto; left: 0; right: 0; width: auto; max-height: 86vh; border-radius: 20px 20px 0 0; padding: 14px 16px 0; box-shadow: 0 -12px 40px rgba(0, 0, 0, .2); }
+  .nd { inset: auto 0 0 0; margin: 0; width: auto; height: auto; max-height: 86vh; border-radius: 20px 20px 0 0; padding: 14px 16px 0; box-shadow: 0 -12px 40px rgba(0, 0, 0, .2); }
+  .nd-teams { margin: 10px -16px 0; padding: 0 16px 2px; }
   .nd.in { animation-name: ndup; }
   .nd-sc { margin: 0 -16px; padding: 0 16px calc(20px + env(safe-area-inset-bottom)); }
 }
