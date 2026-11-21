@@ -2105,7 +2105,7 @@
   const qName = (q) => (q === 440 ? "자유랭" : q === 420 ? "솔랭" : "일반");
   // 날짜 묶기(11-22 사용자: 날짜는 C처럼 묶어서): 오늘 · 어제 · 11/19
   const kdayK = (ms) => { const d = new Date(ms + 9 * 3600e3); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`; };
-  const dayLabel = (ms) => (!ms ? "그 밖" : kdayK(ms) === kdayK(Date.now()) ? "오늘" : kdayK(ms) === kdayK(Date.now() - 86400e3) ? "어제" : kdayK(ms));
+  const dayLabel = (ms) => (!ms ? "최근 변동" : kdayK(ms) === kdayK(Date.now()) ? "오늘" : kdayK(ms) === kdayK(Date.now() - 86400e3) ? "어제" : kdayK(ms));
   // 함께 한 경기 날짜("11-20 00:35", 해 없음) → 시각
   const grpMs = (s0) => { const m = String(s0 || "").match(/(?:(\d{4})-)?(\d{2})-(\d{2}) (\d{2}:\d{2})/); if (!m) return 0;
     const y = m[1] || new Date(Date.now() + 9 * 3600e3).getUTCFullYear(); let ms = Date.parse(`${y}-${m[2]}-${m[3]}T${m[4]}:00+09:00`); if (!m[1] && ms > Date.now() + 864e5) ms = Date.parse(`${y - 1}-${m[2]}-${m[3]}T${m[4]}:00+09:00`); return ms || 0; };
@@ -2142,7 +2142,7 @@
     });
     (E.groupsOf(t) || []).forEach((g) => { const ms = grpMs(g.date);
       out.push({ k: "games", ms, html: `<div class="nd-row nd-gr"><span class="nw-r">${lbi("comp", 15)}</span><span class="nd-five">${ROLES.map((r) => (g.picks && g.picks[r] && CH[g.picks[r]] ? icon(g.picks[r], "xs") : "")).join("")}</span><span class="nd-q">${typeof g.queue === "number" ? qName(g.queue) : esc(g.queue || "")}${g.n ? ` · ${g.n}명 함께` : ""}</span><b class="${g.win ? "w" : "l"}">${g.win ? "승" : "패"}</b></div>` }); });
-    return out.sort((x, y) => y.ms - x.ms);
+    return out.sort((x, y) => (y.ms || Infinity) - (x.ms || Infinity));   // 날짜를 모르는 소식은 맨 위 「최근 변동」
   }
   // 언제 자료인지: 이 팀을 Riot에서 바로 받은 시각, 아니면 매일 0시 수집 시각
   const ndStamp = (t) => { const R = window.RECENT, lv = R && R.live && R.live[t.id] && R.live[t.id].at; return lv ? `${relTime(lv)} 갱신` : R && R.at ? `${relTime(R.at)} 수집 기준` : ""; };
@@ -2151,7 +2151,6 @@
     if (!t) return "";
     const nx = nextOpp(), items = ndFeed(t).filter((o) => ND.f === "all" || o.k === ND.f);
     return `<div class="nd-hd">${crestOf(t, "r")}<b>${esc(t.name)}</b>${nx && nx.t.id === t.id ? `<span class="tag new">다음 상대</span>` : ""}<span class="dim">${esc(ndStamp(t))}</span><button class="ib btn sm ghost nd-x" data-act="ndclose" aria-label="닫기">${ico("x")}</button></div>
-      ${opp.length > 1 ? `<div class="nd-teams" role="group" aria-label="팀 고르기">${opp.map((o) => `<button data-act="ndteam" data-tid="${esc(o.id)}" aria-pressed="${o.id === t.id}">${crestOf(o, "r")}<span>${esc(o.name)}</span></button>`).join("")}</div>` : ""}
       <div class="nd-sc">${ndSummary(t)}
         <div class="nd-f" role="group" aria-label="종류로 거르기">${ND_KINDS.map(([k, n]) => `<button data-act="ndf" data-k="${k}" aria-pressed="${ND.f === k}">${n}</button>`).join("")}</div>
         ${items.length ? byDay(items, (o) => o.ms, (o) => o.html) : emptyBox("check", "아직 변동 기록이 없습니다", "", true)}
@@ -2160,13 +2159,18 @@
   function renderNews(focus) {
     if (ND.open && S.tab !== "our") ND.open = false;
     let root = document.getElementById("ndRoot");
-    if (!ND.open) { if (root) root.innerHTML = ""; document.documentElement.classList.remove("nd-on"); return; }
+    if (!ND.open) {
+      const was = root && root.firstChild; if (root) root.innerHTML = ""; document.documentElement.classList.remove("nd-on");
+      // 닫으면 연 카드(또는 다음 상대 칸)로 포커스를 돌려줌
+      if (was && ND.tid) { const back = document.querySelector(`.tcard[data-tid="${CSS.escape(ND.tid)}"]`) || document.querySelector(".nx-click"); if (back && back.focus) back.focus({ preventScroll: true }); }
+      return;
+    }
     if (!root) { root = document.createElement("div"); root.id = "ndRoot"; document.body.appendChild(root); }
 
-    const fresh = !root.firstChild;
+    const fresh = !root.firstChild, hadFocus = root.contains(document.activeElement);
     root.innerHTML = `<div class="nd-bg ${fresh ? "in" : ""}" data-act="ndclose"></div><aside class="nd ${fresh ? "in" : ""}" role="dialog" aria-modal="true" aria-label="상대 팀 변동" tabindex="-1">${ndTeam()}</aside>`;
     document.documentElement.classList.add("nd-on");
-    if (focus) { const a = root.querySelector(".nd"); if (a) a.focus(); }
+    if (focus || hadFocus) { const a = root.querySelector(".nd"); if (a) a.focus({ preventScroll: true }); }   // 다시 그려도 포커스는 모달 안에
   }
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && ND.open) { ev.preventDefault(); ND.open = false; renderNews(); }
     else if ((ev.key === "Enter" || ev.key === " ") && ev.target.matches && ev.target.matches("[data-act=teamnews]")) { ev.preventDefault(); ev.target.click(); } });
