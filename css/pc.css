@@ -1,6 +1,7 @@
 /* 새 디자인(PC) — 2026-11-19 결정(tmp/lol-draft-design/DECISIONS.md). html.pc(폭 761px 이상)일 때만 적용, 휴대폰은 예전 그대로(모바일은 PC 뒤에).
    라이트 = C 방송 화면 밝은 판, 다크 = B 흑연 + 라임. 예전 토큰 이름(--bg·--panel·--gold…)을 새 값으로 바꿔 기존 화면도 함께 따라오게 한다. */
-html.pc {
+/* 11-21 휴대폰도 PC와 같은 색(사용자: 모바일을 PC 시안에 맞춤) — 색 토큰·기본 모양은 :root(PC·휴대폰 공통) */
+:root {
   --bg: #F4F3EF; --bg2: #ECEBE6; --panel: #FFFFFF; --panel2: #ECEBE6; --line: #DAD8D1;
   --text: #15171C; --muted: #62656E; --dim: #8A8C93;
   --blue: #1D63D8; --blue-bg: rgba(29, 99, 216, 0.10); --red: #D42F3C; --red-bg: rgba(212, 47, 60, 0.09);
@@ -12,7 +13,7 @@ html.pc {
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  html.pc:not([data-theme="light"]) {
+  :root:not([data-theme="light"]) {
     --bg: #0D0D0F; --bg2: #17171B; --panel: #17171B; --panel2: #202026; --line: #2C2C33;
     --text: #EDEDF0; --muted: #8E8E98; --dim: #6E6E78;
     --blue: #5B8CFF; --blue-bg: rgba(91, 140, 255, 0.14); --red: #FF5468; --red-bg: rgba(255, 84, 104, 0.13);
@@ -22,7 +23,7 @@ html.pc {
     color-scheme: dark;
   }
 }
-html.pc[data-theme="dark"] {
+:root[data-theme="dark"] {
     --bg: #0D0D0F; --bg2: #17171B; --panel: #17171B; --panel2: #202026; --line: #2C2C33;
     --text: #EDEDF0; --muted: #8E8E98; --dim: #6E6E78;
     --blue: #5B8CFF; --blue-bg: rgba(91, 140, 255, 0.14); --red: #FF5468; --red-bg: rgba(255, 84, 104, 0.13);
@@ -32,11 +33,11 @@ html.pc[data-theme="dark"] {
     color-scheme: dark;
   }
 
-html.pc, html.pc body { background: var(--bg); color: var(--text); font-size: 15px; }
-html.pc ::selection { background: var(--hi-bg); }
-html.pc :where(button, a, select, input, summary, [tabindex]):focus-visible { outline: 2px solid var(--hi); }
-html.pc .btn.primary { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
-html.pc ::-webkit-scrollbar-thumb { background: var(--line); border-color: var(--bg); }
+html, body { background: var(--bg); color: var(--text); } html.pc, html.pc body { font-size: 15px; }
+::selection { background: var(--hi-bg); }
+:where(button, a, select, input, summary, [tabindex]):focus-visible { outline: 2px solid var(--hi); }
+.btn.primary, html.pc .btn.primary { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
+::-webkit-scrollbar-thumb { background: var(--line); border-color: var(--bg); }
 
 /* ---------- 틀: 왼쪽 사이드바 280 + 오른쪽(머리줄 96 + 본문) ---------- */
 html.pc .top { display: none; }
@@ -1124,9 +1125,9 @@ html.pc .ic.xl { width: 72px; height: 72px; border-radius: 50%; flex: none; }
 }
 
 /* 11-20 칩 색 = 뜻(사용자 요청): 조합 파랑 · 카운터 초록 · 숙련도·기록 보라 · 메타 주황 · 주의 빨강. 옅은 바탕 + 같은 색 글자, 기준 넘는 기록은 같은 색으로 꽉 채움 */
-html.pc { --k-comp: #0277B6; --k-ctr: #15803D; --k-rec: #7C3AED; --k-meta: #C2410C; --k-bad: #D42F3C; --k-on: #FFFFFF; }
-@media (prefers-color-scheme: dark) { html.pc:not([data-theme="light"]) { --k-comp: #4CC3F5; --k-ctr: #4FD68C; --k-rec: #B79CFF; --k-meta: #FFA35C; --k-bad: #FF5468; --k-on: #121216; } }
-html.pc[data-theme="dark"] { --k-comp: #4CC3F5; --k-ctr: #4FD68C; --k-rec: #B79CFF; --k-meta: #FFA35C; --k-bad: #FF5468; --k-on: #121216; }
+:root { --k-comp: #0277B6; --k-ctr: #15803D; --k-rec: #7C3AED; --k-meta: #C2410C; --k-bad: #D42F3C; --k-on: #FFFFFF; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --k-comp: #4CC3F5; --k-ctr: #4FD68C; --k-rec: #B79CFF; --k-meta: #FFA35C; --k-bad: #FF5468; --k-on: #121216; } }
+:root[data-theme="dark"] { --k-comp: #4CC3F5; --k-ctr: #4FD68C; --k-rec: #B79CFF; --k-meta: #FFA35C; --k-bad: #FF5468; --k-on: #121216; }
 html.pc .k-comp { --k: var(--k-comp); } html.pc .k-ctr { --k: var(--k-ctr); } html.pc .k-rec { --k: var(--k-rec); } html.pc .k-meta { --k: var(--k-meta); } html.pc .k-bad { --k: var(--k-bad); }
 html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc { background: color-mix(in srgb, var(--k, var(--muted)) 13%, transparent); color: var(--k, var(--text)); }
 html.pc :is(.live-pc, .enemy-pc) .rec .why.rchips > .rc.rc-strong { background: var(--k); color: var(--k-on); font-weight: 800; }

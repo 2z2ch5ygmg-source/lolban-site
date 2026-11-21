@@ -6,26 +6,35 @@
   <meta name="robots" content="noindex, nofollow">
   <title>피어리스 밴픽 보드</title>
   <link rel="icon" id="fav" type="image/svg+xml" href="img/lolban-favicon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="img/app/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="lolban">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#F4F3EF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0D0D0F" media="(prefers-color-scheme: dark)">
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&display=swap">
   <script>try { const t = localStorage.getItem("lolban.theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}</script>
-  <link rel="stylesheet" href="css/app.css?v=192">
-  <link rel="stylesheet" href="css/pc.css?v=192">
+  <link rel="stylesheet" href="css/app.css?v=193">
+  <link rel="stylesheet" href="css/pc.css?v=193">
 </head>
 <body>
   <header class="top">
     <div class="top-in">
       <div class="brand">FEARLESS <b>DRAFT</b></div>
       <nav class="tabs" role="tablist" aria-label="섹션">
-        <button class="tab" role="tab" data-tab="our"><span class="t-long">우리팀 전략</span><span class="t-short">전략</span></button>
-        <button class="tab" role="tab" data-tab="live"><span class="t-long">실시간 밴픽</span><span class="t-short">밴픽</span></button>
-        <button class="tab" role="tab" data-tab="enemy"><span class="t-long">상대팀 분석</span><span class="t-short">상대</span></button>
+        <button class="tab" role="tab" data-tab="our"><svg class="nv-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9H4z"/><circle cx="12" cy="15" r="1.8"/></svg><span class="t-long">홈</span><span class="t-short">홈</span></button>
+        <button class="tab" role="tab" data-tab="live"><span class="nv-bp" aria-hidden="true"><i>BP</i></span><span class="t-long">실시간 밴픽</span><span class="t-short">밴픽</span></button>
+        <button class="tab" role="tab" data-tab="team"><svg class="nv-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.5"/><path d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"/><path d="M19 7v6M16 10h6"/></svg><span class="t-long">우리 팀</span><span class="t-short">우리 팀</span></button>
+        <button class="tab" role="tab" data-tab="enemy"><svg class="nv-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20 20"/><circle cx="10.5" cy="10.5" r="1.8"/></svg><span class="t-long">상대팀 분석</span><span class="t-short">상대</span></button>
         <button class="tab t-vision" role="tab" data-tab="vision">공부자료</button>
         <button class="tab" role="tab" data-tab="notes"><span class="t-long">피드백 노트</span><span class="t-short">노트</span></button>
-        <button class="tab-more m-only" data-act="mmore" aria-label="메뉴 열기" aria-expanded="false"><svg class="ico-dots" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+        <button class="tab-more m-only" data-act="mmore" aria-label="더보기 메뉴" aria-expanded="false"><svg class="nv-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="var(--panel)"/><circle cx="15.5" cy="12" r="2" fill="var(--panel)"/><circle cx="7" cy="17" r="2" fill="var(--panel)"/></svg><span>더보기</span></button>
       </nav>
       <div class="top-side">
         <label class="sel">우리팀 <select id="ourSel"></select></label>
@@ -41,19 +50,19 @@
   <div id="modal"></div>
   <datalist id="champList"></datalist>
   <footer>챔피언 이미지·이름: Riot Games Data Dragon. 이 사이트는 Riot Games가 보증하거나 후원하지 않습니다. 카운터·조합 판단은 참고용입니다. · <a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a> · 문의 <a href="mailto:wonseo151@naver.com">wonseo151@naver.com</a><br><span lang="en">LolBan isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</span></footer>
-  <script src="js/config.js?v=192"></script>
-  <script src="js/champions.js?v=192"></script>
-  <script src="js/seed.js?v=192"></script>
-  <script src="js/pro.js?v=192"></script>
-  <script src="js/meta.js?v=192"></script>
-  <script src="js/knowledge.js?v=192"></script>
-  <script src="js/vision.js?v=192"></script>
-  <script src="js/visiongrid.js?v=192"></script>
-  <script src="js/world.js?v=192"></script>
-  <script src="js/macro.js?v=192"></script>
-  <script src="js/practice.js?v=192"></script>
-  <script src="js/teamsheet.js?v=192"></script>
-  <script src="js/engine.js?v=192"></script>
-  <script src="js/app.js?v=192"></script>
+  <script src="js/config.js?v=193"></script>
+  <script src="js/champions.js?v=193"></script>
+  <script src="js/seed.js?v=193"></script>
+  <script src="js/pro.js?v=193"></script>
+  <script src="js/meta.js?v=193"></script>
+  <script src="js/knowledge.js?v=193"></script>
+  <script src="js/vision.js?v=193"></script>
+  <script src="js/visiongrid.js?v=193"></script>
+  <script src="js/world.js?v=193"></script>
+  <script src="js/macro.js?v=193"></script>
+  <script src="js/practice.js?v=193"></script>
+  <script src="js/teamsheet.js?v=193"></script>
+  <script src="js/engine.js?v=193"></script>
+  <script src="js/app.js?v=193"></script>
 </body>
 </html>

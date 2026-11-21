@@ -809,7 +809,7 @@
     const donePicks = E.picks(S, tabSide);
     const roleTabs = `<div class="seg pred-seg" role="group" aria-label="${who === "our" ? "라인별 추천" : "라인별 예상"}">${[["", "전체"]].concat(ROLES.map((r) => [r, ROLE_KO[r]])).map(([r, n]) => {
       const done = r && donePicks.find((p) => p.role === r);
-      return `<button data-act="${who === "enemy" ? "pred" : "ourrole"}" data-r="${r}" aria-pressed="${pr === r}" ${done ? `disabled title="${esc(CH[done.champ].ko)} 픽 완료"` : ""}>${n}</button>`; }).join("")}</div>`;
+      return `<button data-act="${who === "enemy" ? "pred" : "ourrole"}" data-r="${r}" aria-pressed="${pr === r}" ${done ? `disabled title="${esc(CH[done.champ].ko)} 픽 완료"` : ""}${r && MOB.matches ? ` aria-label="${n}"` : ""}>${r && MOB.matches ? laneIco(r, 18) : n}</button>`; }).join("")}</div>`;
     if (pr && who === "our" && type === "pick") {
       const ol = E.recommendPick(S, "our", pr);
       body = ol.length ? `<p class="help pred-h">${ROLE_KO[pr]} ${esc(nick(t.players[pr].riot))} 선수 추천 · 눌러서 ${ROLE_KO[pr]} 픽으로 기록</p><div class="recs">${ol.map((r, i) => recCard(r, type, false, i + 1)).join("")}</div>`
@@ -4805,7 +4805,7 @@
   function laneChips(act, cur, label, opts) {
     const o = opts || {};
     const items = (o.noAll ? [] : [["", "전체"]]).concat(ROLES.map((r) => [r, ROLE_KO[r]]));
-    return `<div class="mv-chips" role="group" aria-label="${label}">${items.map(([r, n]) => `<button class="mv-chip" data-act="${act}" data-r="${r}" aria-pressed="${cur === r}" ${o.dis && r && o.dis(r) ? "disabled" : ""}>${n}</button>`).join("")}</div>`;
+    return `<div class="mv-chips" role="group" aria-label="${label}">${items.map(([r, n]) => `<button class="mv-chip" data-act="${act}" data-r="${r}" aria-pressed="${cur === r}" ${o.dis && r && o.dis(r) ? "disabled" : ""}${r ? ` aria-label="${n}"` : ""}>${r ? laneIco(r, 18) : n}</button>`).join("")}</div>`;
   }
   const mvPager = (act, key, page, pages, extra) => `<div class="mv-pager">${pages > 1 ? `<button class="btn sm ghost" data-act="${act}" data-k="${key}" data-p="${page - 1}" ${page > 1 ? "" : "disabled"} aria-label="이전 쪽">◀</button>
     <span class="mv-pg">${page} / ${pages}</span><button class="btn sm ghost" data-act="${act}" data-k="${key}" data-p="${page + 1}" ${page < pages ? "" : "disabled"} aria-label="다음 쪽">▶</button>` : ""}${extra || ""}</div>`;
@@ -4817,11 +4817,12 @@
     const now = i === S.draft.idx;
     if (!s.champ) {
       const pr = who === "our" && planned ? planned[i] : null;
-      return `<div class="mv-s empty ${now ? "now" : ""}"><span>${now ? (pr ? ROLE_KO[pr] + "?" : "선택 중") : pr ? ROLE_KO[pr] : "대기"}</span></div>`;
+      return `<div class="mv-s empty ${now ? "now" : ""}" aria-label="${now ? (pr ? ROLE_KO[pr] + " 고르는 중" : "고르는 중") : pr ? ROLE_KO[pr] + " 예정" : "대기"}">${pr ? laneIco(pr, 20) : ""}</div>`;   // 11-21 PC 모양: 글자 대신 라인 아이콘
     }
     const ep = s.role === "?" ? E.picks(S, who).find((x) => x.i === i) : null;
     const unk = who === "enemy" || s.role === "?" ? `<option value="?" ${s.role === "?" ? "selected" : ""}>${ep && ep.role ? ROLE_KO[ep.role] + "?" : "모름"}</option>` : "";
-    return `<div class="mv-s f">${icon(s.champ, "mv")}<select data-act="role" data-i="${i}" aria-label="${esc(CH[s.champ].ko)} 라인">${unk}${ROLES.map((r) => `<option value="${r}" ${r === s.role ? "selected" : ""}>${ROLE_KO[r]}</option>`).join("")}</select></div>`;
+    const rb = s.role && s.role !== "?" ? laneIco(s.role, 13) : "?";
+    return `<div class="mv-s f">${icon(s.champ, "mv")}<span class="mv-rb" aria-hidden="true">${rb}</span><select data-act="role" data-i="${i}" aria-label="${esc(CH[s.champ].ko)} 라인">${unk}${ROLES.map((r) => `<option value="${r}" ${r === s.role ? "selected" : ""}>${ROLE_KO[r]}</option>`).join("")}</select></div>`;
   }
   const DOCK_M = [["comps", "조합"], ["threat", "요주의"], ["prac", "연습 픽"], ["strat", "전략"], ["series", "저장"]];
   function renderPracticeM() {
@@ -4855,8 +4856,8 @@
     else act = `<button class="btn primary mv-main" data-act="sheet">${st[1] === "ban" ? (who === "our" ? "밴할 챔프 고르기" : "상대 밴 기록") : who === "our" ? "챔프 고르기" : "상대 픽 기록"}</button>
       ${st[1] === "ban" ? `<button class="ib btn" data-act="skip" aria-label="넘기기" title="넘기기">${ico("skip")}</button>` : ""}<button class="ib btn" data-act="undo" ${S.draft.idx ? "" : "disabled"} aria-label="되돌리기" title="되돌리기">${ico("undo")}</button>`;
     return `<div class="mv mv-live">
-      <header class="mv-h"><span class="pill gold">${S.series.game}세트</span><b class="mv-turn">${st ? S.draft.idx + 1 : 20}/20 · <span class="${st ? st[0] : ""}">${turn}</span></b>
-        <span class="mv-sub">${ourSide === "B" ? "블루" : "레드"} · vs ${esc(E.teamOf(S, "enemy").name)}</span><button class="mv-more" data-act="mmore" aria-label="세트·데이터 메뉴" aria-expanded="${MV.more}">${DOTS}</button></header>
+      <header class="mv-h mv-lh"><span class="mv-side ${ourSide}">${ourSide === "B" ? "블루" : "레드"}</span><b class="mv-vs"><span class="o">${esc(E.teamOf(S, "our").name)}</span><small>vs</small><span class="e">${esc(E.teamOf(S, "enemy").name)}</span></b><button class="mv-more" data-act="mmore" aria-label="세트·데이터 메뉴" aria-expanded="${MV.more}">${DOTS}</button></header>
+      <div class="mv-turnbar ${st ? (who === "our" ? "o" : "e") : "done"}"><span class="dot" aria-hidden="true"></span><b>${turn}</b><span class="n">${st ? S.draft.idx + 1 : 20} / 20</span><span class="set">${S.series.game}세트</span></div>
       ${liveCan() ? `<div class="livebar mv-livebar" aria-live="polite">${liveBarHtml()}</div>` : ""}
       <section class="mv-board" aria-label="밴픽 판">${row("our", ourSide)}${row("enemy", enSide)}<div class="mv-bans"><span>밴</span>${bans(ourSide)}${bans(enSide)}</div></section>
       <section class="mv-now" aria-label="지금 차례 추천">${renderNow()}</section>
@@ -4909,7 +4910,7 @@
         <div class="mv-mb"><button class="btn primary" data-act="nextGame">세트 종료</button><button class="btn" data-act="saveSeries">밴픽 저장</button>
           <button class="btn" data-act="resetGame">이번 세트 다시</button><button class="btn ghost" data-act="resetSeries">시리즈 초기화</button></div></div>` : ""}
       <div class="mv-mg">${topCta().replace("btn sm", "btn mv-wide")}</div>
-      <div class="mv-mg mv-mb"><button class="btn" data-act="settings">${SPACE && !SPACE.bad ? `설정 · ${esc(SPACE.name || "팀 공간")}` : "설정"}</button><button class="btn ${S.tab === "vision" ? "primary" : ""}" data-act="mvision">공부자료</button></div>
+      <div class="mv-mg mv-mb"><button class="btn" data-act="settings">${SPACE && !SPACE.bad ? `설정 · ${esc(SPACE.name || "팀 공간")}` : "설정"}</button><button class="btn ${S.tab === "vision" ? "primary" : ""}" data-act="mvision">공부자료</button><button class="btn ${S.tab === "notes" ? "primary" : ""}" data-act="gotab" data-k="notes">피드백 노트</button></div>
       <p class="help mv-legal"><a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a> · <a href="mailto:wonseo151@naver.com">문의</a></p>
       </section>`;
   }
@@ -4942,7 +4943,7 @@
       const p = t.players[r];
       const alt = altsOf(t.id, r).length;
       const top = topPool(t, r, 3);
-      return `<div class="mv-pl"><span class="mv-r">${ROLE_KO[r]}</span><div class="mv-pn"><b title="${esc(p.riot)}">${esc(nick(p.riot) || "-")}</b><span>${esc(p.tier || "")}${alt ? ` · 부계정 ${alt}` : ""}</span></div>
+      return `<div class="mv-pl"><span class="mv-r" aria-label="${ROLE_KO[r]}">${laneIco(r, 20)}</span><div class="mv-pn"><b title="${esc(p.riot)}">${esc(nick(p.riot) || "-")}</b><span class="mv-tl">${p.tier ? tierLineHtml(p) : ""}${alt ? `<span>부계정 ${alt}</span>` : ""}</span></div>
         <div class="mv-pc">${top.map(([id, e]) => `<span class="mv-pi">${icon(id, "sm")}<small>${lvKo(e)}</small></span>`).join("") || `<span class="dim">챔프폭 없음</span>`}</div></div>`;
     }).join("");
     return `<div class="mv mv-our">
@@ -4969,7 +4970,7 @@
       const have = uniq(study.flatMap((x) => x.have)).filter((id) => CH[id]).slice(0, 2);
       const risky = uniq(study.flatMap((x) => x.risky)).filter((id) => CH[id]).slice(0, 2);
       const pr = P && P.players[r] ? P.players[r].picks.filter((x) => CH[x.id]).slice(0, 3) : [];
-      return `<article class="mv-ec"><div class="mv-ec-h"><span class="mv-r">${ROLE_KO[r]}</span><b>${esc(nick(p.riot) || "-")}</b><span class="help">${esc(p.tier || "")}</span><span class="mv-ec-n">${i + 1} / 5</span></div>
+      return `<article class="mv-ec"><div class="mv-ec-h"><span class="mv-r" aria-label="${ROLE_KO[r]}">${laneIco(r, 20)}</span><b>${esc(nick(p.riot) || "-")}</b><span class="help mv-tl">${p.tier ? tierLineHtml(p) : ""}</span><span class="mv-ec-n">${i + 1} / 5</span></div>
         <div class="mv-ec-s"><span class="mv-k">주력</span>${top.length ? `<div class="mv-ec-c">${top.map(([id, e]) => `<span class="mv-cell">${icon(id).replace(/ title="[^"]*"/, "")}<span class="n">${ko(id)}</span><span class="sub">${lvKo(e)}</span></span>`).join("")}</div>` : `<span class="dim">챔프폭·전적 없음</span>`}</div>
         <div class="mv-ec-s"><span class="mv-k">연습 중</span><div class="cpills">${pr.map((x) => `<span class="cp ${x.new ? "gold" : ""}">${ko(x.id)} ${x.g}판${x.new ? " · 새 픽" : ""}</span>`).join("") || `<span class="dim">자료 없음</span>`}</div></div>
         <div class="mv-ec-s"><span class="mv-k">우리 대응</span><div class="cpills">${have.map((id) => `<span class="cp good">${ko(id)}</span>`).join("")}${risky.map((id) => `<span class="cp bad">${ko(id)} 주의</span>`).join("") || (have.length ? "" : `<span class="dim">-</span>`)}</div></div></article>`;
@@ -5026,7 +5027,41 @@
       + `<section class="mv-nl" aria-label="노트 목록">${items}</section>`
       + mvPager("gpage", "notesM", page, pages, `<button class="btn primary mv-nnew" data-act="nnew" data-cat="${f.game ? "champ" : cat}"${f.game ? ` data-gk="${esc(f.game)}"` : ""}>+ 노트 쓰기</button>`));
   }
-  const MOB_VIEW = { live: renderLiveM, our: renderOurM, enemy: renderEnemyM, notes: renderNotesM };
+  // 11-21 아래 탭(사용자 결정 시안 A): 홈 · 밴픽 · 우리 팀 · 상대 · 더보기(노트·공부자료·설정) — PC 왼쪽 메뉴와 같은 구성
+  function renderHomeM() {
+    return `<div class="mv mv-home"><header class="mv-h"><b class="mv-logo">${LOGO_MARK}lolban<i>.</i></b></header><div class="mv-scroll">${renderOurPC()}</div>${a2hsCard()}</div>`;
+  }
+  // ---- 웹앱(11-21 사용자: 웹앱으로) — 홈 화면에 추가 안내 · 서비스 워커 · 새 판 안내 ----
+  const APPV = (((document.querySelector('script[src*="js/app.js"]') || {}).src || "").split("v=")[1] || "0").split("&")[0];
+  const A2HS = { ev: null, iosHow: false };
+  const standaloneApp = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); A2HS.ev = e; if (MOB.matches) render(); });
+  window.addEventListener("appinstalled", () => { A2HS.ev = null; try { localStorage.setItem("lolban.a2hs.v1", "installed"); } catch (e) { /* 무시 */ } render(); });
+  function a2hsCard() {
+    if (standaloneApp() || (!A2HS.ev && !IOS)) return "";
+    try { if (localStorage.getItem("lolban.a2hs.v1")) return ""; } catch (e) { return ""; }
+    const how = IOS ? (A2HS.iosHow ? "Safari 아래 공유 버튼 → 「홈 화면에 추가」 → 「추가」. 다음부터 홈 화면의 lolban 아이콘으로 열면 주소창 없이 전체 화면이에요" : "공유 버튼 → 「홈 화면에 추가」 · 앱처럼 전체 화면으로 열려요") : "설치하면 홈 화면 아이콘으로 바로 열려요";
+    return `<aside class="a2hs" aria-label="홈 화면에 추가"><span class="a2hs-ic" aria-hidden="true"><img src="img/app/icon-192.png" alt=""></span><div class="a2hs-t"><b>홈 화면에 lolban 추가</b><span>${how}</span></div>
+      <div class="a2hs-b">${A2HS.ev ? `<button class="btn primary" data-act="a2hsGo">설치</button>` : IOS && !A2HS.iosHow ? `<button class="btn primary" data-act="a2hsHow">방법 보기</button>` : ""}<button class="btn" data-act="a2hsNo">닫기</button></div></aside>`;
+  }
+  // 오래 켜 둔 앱(특히 홈 화면 앱): 다시 볼 때 새 판이 있으면 한 줄 안내
+  const APPUPD = { at: 0, newer: false };
+  async function checkAppUpdate() {
+    if (APPUPD.newer || Date.now() - APPUPD.at < 20 * 60e3) return; APPUPD.at = Date.now();
+    try { const h = await (await fetch("/index.html", { cache: "no-store" })).text(); const m = h.match(/js\/app\.js\?v=([0-9a-z.-]+)/i); if (m && m[1] !== APPV) { APPUPD.newer = true; appUpdBar(); } } catch (e) { /* 연결 없음 */ }
+  }
+  function appUpdBar() {
+    let el = document.getElementById("appupd");
+    if (!APPUPD.newer) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement("div"); el.id = "appupd"; el.setAttribute("role", "status"); document.body.appendChild(el); }
+    el.innerHTML = `<span>새 판이 있습니다</span><button class="btn primary sm" data-act="appReload">새로 고침</button>`;
+  }
+  if ("serviceWorker" in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register("/sw.js?v=" + APPV).catch(() => { /* 막혀 있으면 그냥 웹 */ });
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkAppUpdate(); });
+  const MOB_VIEW = { live: renderLiveM, our: renderHomeM, team: renderOurM, pool: renderOurM, enemy: renderEnemyM, notes: renderNotesM };
 
   let lastIdx = -1;
   // 그리는 도중(입력 칸이 사라지며 change·blur가 또 render를 부름) 다시 들어오면 끝난 뒤 한 번 더
@@ -5304,7 +5339,11 @@
       case "altsel": S.ui.altSel = S.ui.altSel === el.dataset.v ? "" : el.dataset.v; save(); render(); break;
       case "jpgo": joinByCode(); break;
       case "pickenemy": if (el.dataset.id && team(el.dataset.id)) { S.enemyTeam = el.dataset.id; syncQueue(true); S.tab = "enemy"; MV.more = false; save(); render(); window.scrollTo(0, 0); } break;
-      case "gotab": S.tab = el.dataset.k; MV.more = false; save(); render(); window.scrollTo(0, 0); break;
+      case "gotab": S.tab = el.dataset.k; MV.more = false; save(); render(); window.scrollTo(0, 0); if (S.tab === "notes") loadNotes(); break;
+      case "a2hsGo": if (A2HS.ev) { const ev = A2HS.ev; A2HS.ev = null; ev.prompt(); ev.userChoice.finally(() => render()); } break;
+      case "a2hsHow": A2HS.iosHow = true; render(); break;
+      case "a2hsNo": try { localStorage.setItem("lolban.a2hs.v1", "no"); } catch (e) { /* 이번만 */ } render(); break;
+      case "appReload": location.reload(); break;
       case "flowhide": S.ui.flowHide = true; save(); render(); break;
       case "nustep": { const st = nuSteps(); S.ui.nuStep = { k: el.dataset.k, at: st.findIndex((x) => !x.done) }; save(); render(); break; }
       case "settings": TSM.open = ""; openSettings(el.dataset.k); checkSpace(); break;
