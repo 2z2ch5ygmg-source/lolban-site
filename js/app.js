@@ -1527,6 +1527,7 @@
         const merged = mergePool([main, ...altPools]); if (altPools.length) merged.mo = { n: main.n, w: main.w, roleN: main.roleN, champs: main.champs, ...(main.s ? { s: main.s } : {}), ...(main.f ? { f: main.f } : {}) };
         if (tid === S.ourTeam) added.push(...addAltChamps(t, r, altPools));
         const m = qpLoad(); m[`${tid}|${r}`] = { ...merged, riot, quick: true, accs: qpAccs(t, r), fetchedAt: Date.now() }; qpSave(m); got++;
+        livePoolPut(`${tid}|${r}`, m[`${tid}|${r}`]);   // 11-22: 이 브라우저에만 두지 않고 팀 전체가 같이(추천이 사람마다 달랐던 원인)
         if (opt.each) opt.each(`${tid}|${r}`);
       } catch (e) { /* 다음 계정 */ }
     }
@@ -2042,7 +2043,22 @@
   // ---- 기록 갱신 공유(11-22 사용자: 웹과 앱 갱신 연동) ----
   // 누가 갱신하든 서버(Worker /live)에 팀별 마지막 완료 시각이 남음 → 다른 화면(웹·앱)은 30초마다 보고 더 새 결과를 받아 같은 길로 합침.
   // 새로고침해도 서버에 남은 결과를 다시 입혀 갱신이 사라지지 않음. 갱신 중이면 「○○ 님이 갱신 중」으로 보이고 5초마다 확인
-  const LSY = { seen: {}, busy: null, mine: false, timer: null, polling: false };
+  const LSY = { seen: {}, busy: null, mine: false, timer: null, polling: false, poolsRev: 0 };
+  // 새 계정 챔프폭(명단·계정을 바꾸면 바로 받는 기록)도 서버에 올려 팀 전체가 같은 자료로 계산(11-22 사용자: 실시간 밴픽 추천이 사람마다 달랐음)
+  function livePoolPut(key, entry) {
+    if (!SPACE || SPACE.bad || !WURL() || !entry) return;
+    wfetch("/live/pool", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key, entry }) }).catch(() => {});
+  }
+  async function livePoolsPull() {
+    const d = await wfetch("/live/pools").then((r) => r.json()).catch(() => null);
+    if (!d || d.status !== "ok" || !d.pools) return false;
+    const m = qpLoad(); let ch = false;
+    Object.entries(d.pools).forEach(([k, e]) => { const mine = m[k]; if (!mine || (e.fetchedAt || 0) > (mine.fetchedAt || 0)) { m[k] = e; ch = true; } });
+    if (ch) { qpSave(m); mergeQuick(); }
+    // 이 브라우저에만 있던 것(예전에 받은 것 포함)은 서버로 올림 — 오래돼 빠진 것은 mergeQuick이 이미 지움
+    Object.entries(qpLoad()).forEach(([k, e]) => { const sv = d.pools[k]; if (!sv || (e.fetchedAt || 0) > (sv.fetchedAt || 0)) livePoolPut(k, e); });
+    return ch;
+  }
   function liveBusy(on, msg) {
     LSY.mine = on;
     if (!SPACE || SPACE.bad || !WURL()) return;
@@ -2061,6 +2077,7 @@
       if (d && d.status === "ok") {
         const was = otherBusy(); LSY.busy = d.busy || null; const now = otherBusy();
         let changed = !!was !== !!now || (was && now && was.msg !== now.msg);
+        if (R && R.status === "ok" && (!LSY.poolsInit || (d.poolsRev && d.poolsRev !== LSY.poolsRev))) { LSY.poolsInit = true; if (await livePoolsPull()) changed = true; LSY.poolsRev = d.poolsRev; }
         if (R && R.status === "ok") {
           for (const [tid, m] of Object.entries(d.teams || {})) {
             if (LSY.seen[tid] === m.ms) continue;
