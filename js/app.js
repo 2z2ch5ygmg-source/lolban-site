@@ -3294,8 +3294,10 @@
   // 서버 결과 반영(한 번 반영한 것은 다시 안 함, 작업마다 기록)
   function sjApply() {
     const j = SJ.job; if (!j || !SJ.items.length) return;
-    let mk = sjMark(); if (mk.id !== j.id) mk = { id: j.id, c: [], q: [] };
-    const doneC = new Set(mk.c), doneQ = new Set(mk.q), lanes = new Set();
+    // 이 브라우저가 시작한 등록 작업만 반영(시작할 때 표시를 남김). 다른 팀원·다른 창의 작업을 반영하면 이 브라우저의 옛 챔프폭 사본을
+    //   공유 저장소에 통째로 올려 남이 넣은 챔프폭을 지웠음(11-22 사용자 「반클러치에 넣어 둔 챔프폭이 다 없어짐」) — 그 결과는 공유 저장소에서 받음
+    const mk = sjMark(); if (mk.id !== j.id) return;
+    const doneC = new Set(mk.c), doneQ = new Set(mk.q), lanes = new Set(), poolLanes = new Set();
     SJ.items.forEach((it, i) => {
       if (!it.c || doneC.has(i)) return;
       const t = team(it.team), p = t && t.players[it.role]; doneC.add(i); if (!p || !it.c.exists) return;
@@ -3319,13 +3321,14 @@
       const alts = list.filter((x) => x !== mainIt && x.pool).map((x) => x.pool);
       if (!main) return;
       qm[lk] = { ...mergePool([main, ...alts]), ...(alts.length ? { mo: { n: main.n, w: main.w, roleN: main.roleN, champs: main.champs, ...(main.s ? { s: main.s } : {}), ...(main.f ? { f: main.f } : {}) } } : {}), riot: p.riot, quick: true, accs: qpAccs(t, r), fetchedAt: Math.max(...list.map((x) => x.t2 || x.t1 || 0), Date.now() - 1000) }; qChanged = true;
-      if (tid === S.ourTeam && alts.length) addAltChamps(t, r, alts);
+      if (tid === S.ourTeam && alts.length) { const b = JSON.stringify(p.pool || []); addAltChamps(t, r, alts); if (JSON.stringify(p.pool || []) !== b) poolLanes.add(lk); }
       lanes.add(lk);
     });
     mk.c = [...doneC]; mk.q = [...doneQ]; sjMarkSave(mk);
     if (!lanes.size) return;
     if (qChanged) { qpSave(qm); if (!window.RECENT) window.RECENT = { status: "ok", season: {}, players: {}, groups: {}, stacks: {} }; mergeQuick(); }
-    applyTiers(); save(); lanes.forEach((x) => { const [tid, r] = x.split("|"); shareChanged(tid, r); });
+    // 티어만 올림(keep:"pool") — 부계정 챔프를 우리 팀 챔프폭에 더한 라인만 챔프폭까지
+    applyTiers(); save(); lanes.forEach((x) => { const [tid, r] = x.split("|"); shareChanged(tid, r, !poolLanes.has(x)); });
     if (!editing && !IQ.on) render();
   }
   // 진행 숫자(서버 작업이면 서버 기준)
