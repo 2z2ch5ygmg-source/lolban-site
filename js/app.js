@@ -1320,6 +1320,10 @@
     const reasons = (sc) => { const out = []; if (sc.tag) out.push({ t: sc.tag, c: "" });
       sc.why.forEach((w) => { const s = String(w).replace(/ — .*$/, ""); if (!s || out.some((x) => x.t === s)) return; out.push({ t: s.length > 26 ? s.slice(0, 25) + "…" : s, full: s, c: bad(s) ? "bad" : /잡는|유리|뺏기|가져가기/.test(s) ? "good" : "" }); });
       return out; };
+    // 11-21 사용자: 여러 조합에 똑같이 붙는 이유(예: 「미드 대체 픽 없음 → 먼저 확보」)는 처음 나온 줄에만 — 아래 줄에서는 되풀이하지 않음
+    const keyOf = (x) => x.full || x.t, seenR = new Set(), SHOWN = new Map();
+    list.forEach((sc) => { const rs0 = reasons(sc); SHOWN.set(sc, rs0.filter((x) => !seenR.has(keyOf(x)))); rs0.forEach((x) => seenR.add(keyOf(x))); });
+    const shown = (sc) => SHOWN.get(sc) || reasons(sc);
     const chip = (x) => `<span class="cr-chip ${x.c}" ${x.full && x.full !== x.t ? `title="${esc(x.full)}"` : ""}>${esc(x.t)}</span>`;
     const altN = (sc) => ROLES.reduce((a, r) => a + (sc.slots[r] && !sc.slots[r].done ? (sc.slots[r].alts || []).length : 0), 0);
     const rank = (sc) => list.indexOf(sc) + 1;
@@ -1327,14 +1331,14 @@
     const bar = (lab, pct, val, cls) => `<span class="cr-bar ${cls || ""}"><span>${lab}</span><i style="--w:${Math.round(pct)}%"></i><b>${val}</b></span>`;
     const five = (sc, big) => `<span class="cr-5 ${big ? "big" : ""}">${ROLES.map((r) => { const x = sc.slots[r]; return `<span class="cr-s">${big ? `<small>${ROLE_KO[r]}</small>` : ""}${x && x.id ? icon(x.id, big ? "lg" : "sm") : `<span class="ic ${big ? "lg" : "sm"}"></span>`}${big ? `<b title="${x && x.id ? esc(CH[x.id].ko) : ""}">${x && x.id ? esc(CH[x.id].ko) : "—"}</b>${x && (x.done || x.goal) ? `<em>${x.done ? "확정" : "목표"}</em>` : ""}` : ""}</span>`; }).join("")}</span>`;
     const cf = comfortOf(sel), vs = VSW[sel.vs];
-    const rs = reasons(sel), n = altN(sel);
+    const rs = shown(sel), n = altN(sel);
     const hero = `<section class="cr-hero"><div class="cr-hl"><span class="cr-k">추천 ${rank(sel)}위${sel.id === selId ? " · 밴픽 설계에 쓰는 중" : ""}</span><h3>${esc(sel.name.replace(/ 조합$/, ""))}</h3><p class="cr-win">${esc(sel.win || COMPS[sel.key].win || "")}</p>${five(sel, true)}</div>
       <div class="cr-hr"><div class="cr-bars">${bar("숙련도", (cf / 3) * 100, LVK(cf))}${bar("조합 적합", ((sel.fitScore || 0) / maxFit) * 100, (sel.fitScore || 0) >= maxFit * 0.8 ? "좋음" : (sel.fitScore || 0) >= maxFit * 0.5 ? "보통" : "낮음")}${vs ? bar("상대 대비", vs[0], vs[2], vs[1]) : bar("상대 대비", 0, "모름")}</div>
         <div class="cr-chips">${rs.slice(0, 4).map(chip).join("")}${n ? `<span class="cr-chip">대체 픽 ${n}개</span>` : ""}</div>
         ${sel.id === selId && S.ui.scen ? `<button class="soft-b cr-btn" data-act="scen" data-k="${sel.id}">설계를 1위로 되돌리기</button>` : ""}</div></section>`;
     // 순위 그대로 한 줄씩, 고른 조합만 그 자리에서 크게(11-20 사용자: 칸을 누르면 상세가 나오고 선택 — 고르기 버튼 없이)
     const rows = list.map((sc) => { if (sc === sel) return hero;
-      const r1 = reasons(sc).sort((a, b) => (b.c === "bad") - (a.c === "bad"))[0] || (VSW[sc.vs] ? { t: `상대 대비 ${sc.vs}`, c: VSW[sc.vs][1] } : null);
+      const r1 = shown(sc).sort((a, b) => (b.c === "bad") - (a.c === "bad"))[0] || (VSW[sc.vs] ? { t: `상대 대비 ${sc.vs}`, c: VSW[sc.vs][1] } : null);
       return `<button class="cr-row" data-act="scen" data-k="${sc.id}" aria-label="${rank(sc)}위 ${esc(sc.name)} — 누르면 자세히 보고 밴픽 설계에 씀"><b class="cr-n">${rank(sc)}</b><b class="cr-t" title="${esc(sc.name)}">${esc(sc.name.replace(/ 조합$/, ""))}</b>${five(sc)}<span class="cr-sp"></span>${r1 ? chip(r1) : ""}<svg class="cr-car" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>`; }).join("");
     return `<div class="cr-top">${od ? `<span>상대 방향 <b>${esc(COMPS[od].short)}</b></span>` : ""}<span class="dim">줄을 누르면 자세히 보고 그 조합으로 밴픽 설계 · 운영 방법은 「운영 전략」</span></div><div class="cr-rows">${rows}</div>`;
   }
