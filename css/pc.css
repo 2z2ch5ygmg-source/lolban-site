@@ -1739,3 +1739,52 @@ html.pc :is(.live-pc, .enemy-pc) .rec .nm > .cn { flex: 0 1 auto; min-width: 0; 
 html.pc .live-pc .lv-ctrl { flex-wrap: wrap; row-gap: 8px; }
 html.pc .live-pc .lv-ctrl .lc-r { margin-left: auto; flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; }
 html.pc .live-pc .lc-r .gl-in { width: 104px; }
+/* 상대 팀 소식 자세히(11-22 시안 B+C): 홈 소식 줄 = 버튼, 오른쪽 서랍(휴대폰은 아래에서) — 목록(팀별·종류 거르기) ↔ 항목 자세히 */
+.nw-btn { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 30px; cursor: pointer; border-radius: 8px; }
+.nw-btn .nw-l { flex: 1; min-width: 0; }
+.nw-btn:hover .nw-t { text-decoration: underline; text-underline-offset: 3px; }
+.nw-btn:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
+.nd-bg { position: fixed; inset: 0; z-index: 80; background: rgba(10, 10, 14, .42); }
+.nd { position: fixed; top: 0; right: 0; bottom: 0; z-index: 81; width: min(440px, 100vw); display: flex; flex-direction: column; padding: 16px 18px 0; background: var(--panel); color: var(--text); box-shadow: -16px 0 40px rgba(0, 0, 0, .18); outline: none; }
+.nd-bg.in { animation: ndfade .2s ease-out; }
+.nd.in { animation: ndin .28s cubic-bezier(.32, .72, 0, 1); }
+@keyframes ndfade { from { opacity: 0; } }
+@keyframes ndin { from { transform: translateX(28px); opacity: 0; } }
+@keyframes ndup { from { transform: translateY(36px); opacity: 0; } }
+html.nd-on body { overflow: hidden; }
+.nd-hd, .nd-dh { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.nd-hd b { font-size: 17px; } .nd-hd .dim { font-size: 12.5px; }
+.nd-x { margin-left: auto; }
+.nd-who { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 13.5px; } .nd-who b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nd-f { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 6px; }
+.nd-f button { border: 0; border-radius: 999px; min-height: 32px; padding: 0 12px; background: var(--bg2); color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.nd-f button[aria-pressed="true"] { background: var(--text); color: var(--panel); }
+.nd-sc { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 0 -18px; padding: 0 18px 20px; }
+.nd-th { display: flex; align-items: center; gap: 8px; margin: 14px 0 2px; font-size: 14px; } .nd-th small { color: var(--muted); font-weight: 700; }
+.nd-row { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 6px 2px; border-top: 1px solid var(--line); cursor: pointer; font-size: 13px; }
+.nd-row .nw-l { flex: 1; min-width: 0; } .nd-row > svg { color: var(--muted); flex: none; }
+.nd-row:hover { background: var(--bg2); } .nd-row:focus-visible { outline: 2px solid var(--hi); outline-offset: -2px; }
+.nd .tag { font-size: 11.5px; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: var(--bg2); color: var(--muted); white-space: nowrap; }
+.nd .tag.new { background: var(--hi-bg); color: var(--hi); } .nd .tag.red { background: var(--red-bg); color: var(--red); }
+.nd-hero { display: flex; align-items: center; gap: 12px; margin: 12px 0 10px; } .nd-hero > div { display: grid; gap: 3px; flex: 1; min-width: 0; } .nd-hero .dim { font-size: 13px; }
+.nd-t { font-size: 19px; }
+.nd-lane { width: 44px; height: 44px; display: grid; place-items: center; flex: none; color: var(--text); }
+.nd-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.nd-stats span { display: grid; gap: 2px; } .nd-stats small { color: var(--muted); font-size: 12px; } .nd-stats b { font-size: 19px; }
+.nd-h4 { margin: 14px 0 2px; font-size: 12.5px; color: var(--muted); }
+.nd-p { font-size: 13.5px; line-height: 1.55; margin: 0 0 4px; }
+.nd-g { display: flex; align-items: center; gap: 8px; min-height: 38px; font-size: 13px; border-top: 1px solid var(--line); }
+.nd-g > .dim { width: 40px; flex: none; } .nd-q { flex: 1; min-width: 0; color: var(--muted); } .nd-kda { font-variant-numeric: tabular-nums; }
+.nd-g b { width: 22px; text-align: right; } .nd-g .w { color: var(--good); } .nd-g .l { color: var(--red); }
+.nd-five { display: flex; gap: 2px; }
+.nd-champs { display: flex; gap: 14px; margin-top: 6px; } .nd-champs span { display: grid; justify-items: center; gap: 3px; } .nd-champs small { font-size: 11.5px; }
+.nd-act { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.nd-act .n-new.sm { padding: 0 16px; min-height: 40px; font-size: 13.5px; }
+.nd-soft { background: transparent; border: 1px solid var(--line); color: var(--text); min-height: 40px; padding: 0 16px; font-size: 13.5px; }
+.nd-soft:hover { background: var(--line); }
+@media (max-width: 760px) {
+  .nd { top: auto; left: 0; right: 0; width: auto; max-height: 86vh; border-radius: 20px 20px 0 0; padding: 14px 16px 0; box-shadow: 0 -12px 40px rgba(0, 0, 0, .2); }
+  .nd.in { animation-name: ndup; }
+  .nd-sc { margin: 0 -16px; padding: 0 16px calc(20px + env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) { .nd.in, .nd-bg.in { animation: none; } }
