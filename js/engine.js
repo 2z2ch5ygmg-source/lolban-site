@@ -208,7 +208,7 @@ window.Engine = (function () {
     };
     // 교차 출전: 다른 라인에서만 한 챔프는 원챔 아님·「중」까지(그 라인에서 해 본 적 없음)
     const crossCap = (e, x) => { if (e && x.crossOff) { e.one = false; e.score = Math.min(e.score * 0.7, 0.59); e.lv = e.score >= 0.35 ? 2 : 1; e.crossOff = true; } return e; };
-    seasonX.forEach(({ x0, x }) => { const e = crossCap(statEntry(x, roleTotal, role, weigh(x.id, x.g || 0, x.w || 0, r30Of(x0, x))), x); if (e) stats[x.id] = e; });
+    seasonX.forEach(({ x0, x }) => { const e = crossCap(statEntry(x, roleTotal, role, weigh(x.id, x.g || 0, x.w || 0, r30Of(x0, x))), x); if (e) { if (strict && x0.rr && !x.crossOff) e.inRole = true; stats[x.id] = e; } });
     // 준비 기간에만 있는 챔프: 승률 문턱을 넘거나 팀원과 2판 이상 한 것만 새로 넣음(예전엔 2판만 해도 넣었음 — 조작에 약했음)
     Object.values(rcMap).forEach((x) => {
       const tr = stackChampRecord(team, role, x.id);
@@ -844,8 +844,7 @@ window.Engine = (function () {
         // 그 라인에 안 서는 챔프(다른 라인으로 했던 기록)는 원챔·큰 비중이 아니면 이 라인 위협으로 약하게 본다
         const one = e.one || e.sone;
         const sc = Math.max(e.score, e.sscore || 0);
-        const offRole = !c.pos.includes(r) && !one && !(e.share >= 0.2);
-        const v = Math.max(one ? 48 : 0, 8 + 34 * sc) * f * (offRole ? 0.35 : 1);
+        const v = Math.max(one ? 48 : 0, 8 + 34 * sc) * f * roleFit(c.id, r, e);
         if (v > s) {
           s = v;
           const t = one ? "원챔 차단" : e.g >= 15 && e.wr >= 60 ? "고승률 차단" : sc >= 0.6 ? "숙련도 높음" : "상대 챔프폭";
@@ -921,6 +920,20 @@ window.Engine = (function () {
     return out;
   }
 
+  // 이 선수가 이 챔프를 이 라인으로 꺼낼 가능성으로 본 밴 위협 배율(11-21 사용자 결정):
+  //   원챔급·직접 넣은 챔프·비중 20% 이상·그 라인에서 실제로 3판 이상 → 1(본인 기록이 우선)
+  //   아니면 솔랭 라인 비율: 25% 이상 1, 3% 이하 0.1(사실상 밴 후보에서 빠짐), 그 사이는 비례
+  //   예) 미드 브라이어(솔랭 미드 0%) 0.1 · 미드 판테온(10%) 0.39 · 원딜 야스오(15%) 0.59 · 서폿 갈리오(18%) 0.71
+  //   솔랭 자료가 없는 챔프는 예전처럼 기본 라인 1 / 아니면 0.35
+  function roleFit(id, r, e) {
+    if (e && (e.one || e.sone || e.manual || e.share >= 0.2 || (e.inRole && e.g >= 3))) return 1;
+    const sq = window.META && window.META.soloq && window.META.soloq[id];
+    if (!sq || !Object.values(sq).some((x) => x.pr > 0)) return CH[id] && CH[id].pos.includes(r) ? 1 : 0.35;
+    const sh = roleShare(id)[r] || 0;
+    if (sh >= 0.25) return 1;
+    if (sh <= 0.03) return 0.1;
+    return 0.1 + (0.9 * (sh - 0.03)) / 0.22;
+  }
   // 솔로랭크 픽률로 본 챔프의 라인 비율(합 1). 자료가 없으면 기본 라인 1.
   function roleShare(id) {
     const sq = window.META && window.META.soloq && window.META.soloq[id];
@@ -1514,10 +1527,12 @@ window.Engine = (function () {
     const gr = who === "our" ? groupsOf(team) : null;
     if (gr && gr.length) {
       const real = (g, r) => !g.playedRole || !g.playedRole[r] || g.playedRole[r] === r;
+      // 지금 그 라인 챔프폭에 있는 챔프만(11-21 사용자 지적: 원딜이 챔프폭에서 뺀 야스오가 예전 이긴 판 그대로 원딜 칸에 들어감)
+      const pmR = {}; open.forEach((r) => (pmR[r] = poolMap(team, r)));
       const won = {};
       gr.filter((g) => g.win && (g.n || 5) >= 4).forEach((g) => {
         const pre = {};
-        ROLES.forEach((r) => { const id = g.picks && g.picks[r]; if (id && real(g, r) && open.includes(r) && !G.fixed[r] && avail.has(id)) pre[r] = id; });
+        ROLES.forEach((r) => { const id = g.picks && g.picks[r]; if (id && real(g, r) && open.includes(r) && !G.fixed[r] && avail.has(id) && pmR[r][id]) pre[r] = id; });
         const n = Object.keys(pre).length;
         if (n < 2) return;
         const k = Object.entries(pre).sort().map(([r, id]) => r + id).join(",");
@@ -2068,6 +2083,6 @@ window.Engine = (function () {
   return {
     champ, ko, j, poolMap, setOurTeam, scoutOf, statText, lvScore, levelOf, teamHasPools, fit, compScores, buildComp, teamComps, fearlessPlan,
     picks, bans, taken, available, openRoles, crossOf, setMainOnly, teamOf, guessRole, pickRole, scenarios, flexRoles, sylasRisk, pairBonus, direction, sideOf, whoOfSide,
-    facts, nowFacts, cardPills, liveComps, enemyCompSet, answerComp, goalAnchors, goalPlan, recommendBan, recommendPick, buildStrategy, laneStudy, lockedFor, pickPlan, keyThreats, metaInfo, metaText, muWr, predictRole, hoverInfo, recentOf, actualRole, stacksOf, groupsOf, duoSuggest, proDuo, practiceOf, practicePick, practiceText,
+    facts, nowFacts, cardPills, liveComps, enemyCompSet, answerComp, goalAnchors, goalPlan, recommendBan, roleFit, recommendPick, buildStrategy, laneStudy, lockedFor, pickPlan, keyThreats, metaInfo, metaText, muWr, predictRole, hoverInfo, recentOf, actualRole, stacksOf, groupsOf, duoSuggest, proDuo, practiceOf, practicePick, practiceText,
   };
 })();
