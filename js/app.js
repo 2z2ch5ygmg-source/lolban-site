@@ -1458,7 +1458,7 @@
         const before = window.RECENT, R = d.data;
         if (before && before.live && R.at === before.at) R.live = before.live;
         if (!before || before.at !== R.at) PG = null;
-        window.RECENT = R; REC.status = "ok"; mergeQuick(); render(); return R;
+        window.RECENT = R; REC.status = "ok"; mergeQuick(); LSY.seen = {}; render(); setTimeout(liveSync, 0); return R;
       }
       REC.status = res.ok ? "empty" : "error";
     } catch (e) { REC.status = "error"; }
@@ -1564,6 +1564,25 @@
   const NIGHT = { groups: {}, at: "" };
   const kstMs = (s) => Date.parse(String(s).replace(" ", "T") + ":00+09:00");
   let gTimer = null;
+  // 우리 팀 함께 한 경기 결과(/groups 응답)를 0시 자료에 합침 — 직접 갱신·다른 화면에서 한 갱신(공유, 11-22) 공통
+  function mergeGroups(ourT, j) {
+    const R = window.RECENT;
+    if (!R || R.status !== "ok" || !ourT || !j || !Array.isArray(j.groups)) return false;
+    if (NIGHT.at !== R.at) { NIGHT.at = R.at; NIGHT.groups = {}; }
+    if (!NIGHT.groups[ourT.id] && !(R.live && R.live[ourT.id])) NIGHT.groups[ourT.id] = (R.groups || {})[ourT.id] || [];
+    const inc = !!j.after && NIGHT.groups[ourT.id] && j.after === kstMs(R.at);
+    const fresh = j.groups.map((g) => {
+      const picks = {}, playedRole = {};
+      ROLES.forEach((r) => { if (g.picks && g.picks[r]) { picks[r] = champId(g.picks[r]); playedRole[r] = (g.playedRole && g.playedRole[r]) || ""; } });
+      return { date: g.date, queue: g.queue, n: g.n, win: !!g.win, picks, playedRole };
+    });
+    const merged = {};
+    if (inc) NIGHT.groups[ourT.id].forEach((g) => (merged[gameKeyRiot(g)] = g));
+    fresh.forEach((g) => (merged[gameKeyRiot(g)] = g));
+    const groups = Object.values(merged).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    window.RECENT = { ...R, groups: { ...(R.groups || {}), [ourT.id]: groups }, live: { ...(R.live || {}), [ourT.id]: { at: j.at, pending: j.pending || 0 } } };
+    return true;
+  }
   let chainEnemy = false;   // 우리팀 「갱신하기」: 우리 팀 다음에 상대도
   let rCb = null;   // 홈 「기록 갱신」(전체): 우리 팀이 끝나면 상대 팀들로 이어감
   function refreshRecent(auto) {
@@ -1581,7 +1600,7 @@
         S.ui.rState = { msg: `${msg} · 상대 ${en.name} 갱신 중…` }; render();
         refreshPractice(false, {
           progress: (m) => { S.ui.rState = { msg: `${msg} · 상대 ${en.name}: ${m}` }; render(); },
-          done: (m) => { refreshing = false; S.ui.rState = { msg: `${msg} · 상대 ${en.name}: ${m}` }; render(); },
+          done: (m) => { refreshing = false; S.ui.rState = { msg: `${msg} · 상대 ${en.name}: ${m}` }; render(); const c = rCb; rCb = null; if (c) c(m); },
         });
         return;
       }
@@ -1617,16 +1636,7 @@
           gTimer = setTimeout(() => refreshRecent(true), wait * 1000);
           refreshing = false; S.ui.rState = { wait: true, msg: `경기 ${j.groups.length}판까지 읽음 · 남은 ${j.pending}경기는 ${wait}초 뒤 자동으로 이어 읽음(Riot 한도: 2분 100회)` }; render(); return;
         }
-        const fresh = j.groups.map((g) => {
-          const picks = {}, playedRole = {};
-          ROLES.forEach((r) => { if (g.picks && g.picks[r]) { picks[r] = champId(g.picks[r]); playedRole[r] = (g.playedRole && g.playedRole[r]) || ""; } });
-          return { date: g.date, queue: g.queue, n: g.n, win: !!g.win, picks, playedRole };
-        });
-        const merged = {};
-        if (inc) NIGHT.groups[ourT.id].forEach((g) => (merged[gameKeyRiot(g)] = g));
-        fresh.forEach((g) => (merged[gameKeyRiot(g)] = g));
-        const groups = Object.values(merged).sort((a, b) => String(b.date).localeCompare(String(a.date)));
-        window.RECENT = { ...R, groups: { ...(R.groups || {}), [ourT.id]: groups }, live: { ...(R.live || {}), [ourT.id]: { at: j.at, pending: j.pending || 0 } } };
+        mergeGroups(ourT, j);
         const add = count() - n0;
         done(`실시간 ${j.at}${add > 0 ? ` · 새 경기 ${add}판` : " · 새 경기 없음"}`);
       })
@@ -1634,6 +1644,35 @@
   }
   // 상대 연습 픽 갱신: Worker(/games)가 상대 5명 경기를 Riot에서 바로 읽고, 페이지가 js/practice.js로 다시 분석한다.
   // 기준선(이전 랭크·숙련도)은 매일 0시 수집 자료(RECENT.practiceBase). 경기를 다 못 읽었으면 바꾸지 않고 다시 누르라고 안내.
+  // 상대 경기 결과(/games 응답)를 0시 자료에 합쳐 다시 분석 — 직접 갱신·공유(11-22) 공통. base = 0시 경기(기준일이 같을 때만)
+  function mergeGames(t, j, base) {
+    if (!t || !j || j.status !== "ok" || !Array.isArray(j.games) || !window.Practice || !window.RECENT || window.RECENT.status !== "ok") return null;
+    const roles = ROLES.filter((r) => j.players && j.players[r] && !j.players[r].error && j.players[r].riot === t.players[r].riot);
+    const all = {};
+    if (base) base.teams[t.id].forEach((g) => (all[g.id] = g));
+    j.games.forEach((g) => (all[g.id] = g));
+    const games = Object.values(all);
+    const RR = window.RECENT, sinceMs = Date.parse(`${j.since || PREP.since || RR.since || "2026-11-10"}T00:00:00+09:00`);
+    const P = window.Practice.compute(games, roles, RR.practiceBase && RR.practiceBase[t.id], sinceMs, Date.now());
+    const before = RR.practice && RR.practice[t.id];
+    P.live = { at: j.at, acct: j.players, since: j.since };
+    // 상대 「함께 한 경기」도 같은 경기로(0시 수집기와 같은 규칙, tools/test-groups-from-games.cjs)
+    const gr = window.Practice.groups(games, roles);
+    // 시즌 전적·11/10 이후 랭크 전적(챔프폭 점수의 바탕): 0시 집계에 그 뒤 새 랭크 경기만 더함. 같은 날 다시 눌러도 0시 값에서 다시 더해 두 번 세지 않음
+    let season = RR.season, players = RR.players, ranked = 0;
+    if (base) {
+      if (!NIGHTSTAT || NIGHTSTAT.at !== RR.at) NIGHTSTAT = { at: RR.at, season: {}, players: {} };
+      if (!NIGHTSTAT.season[t.id]) { NIGHTSTAT.season[t.id] = (RR.season || {})[t.id] || null; NIGHTSTAT.players[t.id] = (RR.players || {})[t.id] || null; }
+      const baseIds = new Set(base.teams[t.id].map((g) => g.id)), fresh = j.games.filter((g) => !baseIds.has(g.id));
+      const ns = NIGHTSTAT.season[t.id], np = NIGHTSTAT.players[t.id];
+      const addAll = (src, kind) => src && Object.fromEntries(Object.entries(src).map(([r, x]) => [r, roles.includes(r) ? window.Practice.addRanked(x, fresh, r, kind) : x]));
+      if (ns) { season = { ...(RR.season || {}), [t.id]: addAll(ns, "season") }; ranked = ROLES.reduce((n, r) => n + ((season[t.id][r] && season[t.id][r].added) || 0), 0); }
+      if (np) players = { ...(RR.players || {}), [t.id]: addAll(np, "recent") };
+    }
+    window.RECENT = { ...RR, season, players, practice: { ...(RR.practice || {}), [t.id]: P }, groups: { ...(RR.groups || {}), [t.id]: gr }, live: { ...(RR.live || {}), [t.id]: { at: j.at, pending: 0, ranked } } };
+    const add = (P.teamGames.n || 0) - ((before && before.teamGames && before.teamGames.n) || 0);
+    return { games, ranked, add };
+  }
   let prefreshing = false;
   // 대회 준비 시작일(연습 기간 시작): 팀 전체 하나(Worker /config). 바꾸면 「갱신하기」는 바로, 매일 0시 수집은 다음 수집부터 그 날짜를 따른다
   const PREP = { since: "", def: "", edit: false, msg: "" };
@@ -1701,30 +1740,9 @@
           else { const c = pCb; pCb = null; if (c) c.done("상대가 바뀌어 멈춤"); }
           prefreshing = false; S.ui.pState = { team: t.id, msg }; render(); return;
         }
-        const roles = ROLES.filter((r) => j.players && j.players[r] && !j.players[r].error && j.players[r].riot === t.players[r].riot);
-        const all = {};
-        if (base) base.teams[t.id].forEach((g) => (all[g.id] = g));
-        j.games.forEach((g) => (all[g.id] = g));
-        const games = Object.values(all);
-        const RR = window.RECENT, sinceMs = Date.parse(`${j.since || since || "2026-11-10"}T00:00:00+09:00`);
-        const P = window.Practice.compute(games, roles, RR.practiceBase && RR.practiceBase[t.id], sinceMs, Date.now());
-        const before = RR.practice && RR.practice[t.id];
-        P.live = { at: j.at, acct: j.players, since: j.since };
-        // 상대 「함께 한 경기」도 같은 경기로(0시 수집기와 같은 규칙, tools/test-groups-from-games.cjs)
-        const gr = window.Practice.groups(games, roles);
-        // 시즌 전적·11/10 이후 랭크 전적(챔프폭 점수의 바탕): 0시 집계에 그 뒤 새 랭크 경기만 더함. 같은 날 다시 눌러도 0시 값에서 다시 더해 두 번 세지 않음
-        let season = RR.season, players = RR.players, ranked = 0;
-        if (base) {
-          if (!NIGHTSTAT || NIGHTSTAT.at !== RR.at) NIGHTSTAT = { at: RR.at, season: {}, players: {} };
-          if (!NIGHTSTAT.season[t.id]) { NIGHTSTAT.season[t.id] = (RR.season || {})[t.id] || null; NIGHTSTAT.players[t.id] = (RR.players || {})[t.id] || null; }
-          const baseIds = new Set(base.teams[t.id].map((g) => g.id)), fresh = j.games.filter((g) => !baseIds.has(g.id));
-          const ns = NIGHTSTAT.season[t.id], np = NIGHTSTAT.players[t.id];
-          const addAll = (src, kind) => src && Object.fromEntries(Object.entries(src).map(([r, x]) => [r, roles.includes(r) ? window.Practice.addRanked(x, fresh, r, kind) : x]));
-          if (ns) { season = { ...(RR.season || {}), [t.id]: addAll(ns, "season") }; ranked = ROLES.reduce((n, r) => n + ((season[t.id][r] && season[t.id][r].added) || 0), 0); }
-          if (np) players = { ...(RR.players || {}), [t.id]: addAll(np, "recent") };
-        }
-        window.RECENT = { ...RR, season, players, practice: { ...(RR.practice || {}), [t.id]: P }, groups: { ...(RR.groups || {}), [t.id]: gr }, live: { ...(RR.live || {}), [t.id]: { at: j.at, pending: 0, ranked } } };
-        const add = (P.teamGames.n || 0) - ((before && before.teamGames && before.teamGames.n) || 0);
+        const o = mergeGames(t, j, base);
+        if (!o) { done("실시간 조회 결과를 읽지 못함 — 매일 0시 자료 그대로"); return; }
+        const { games, ranked, add } = o;
         done(`실시간 ${j.at} · 상대 경기 ${games.length}개${base ? `(0시 이후 새 경기 ${j.games.length}${ranked ? ` · 랭크 ${ranked}판 전적에 더함` : ""})` : ""}${add > 0 ? ` · 팀원끼리 한 판 ${add}판 늘어남` : ""}`);
       })
       .catch(() => { clearTimeout(timer); done("실시간 조회 실패(연결 안 됨) — 매일 0시 자료 그대로"); });
@@ -1732,7 +1750,7 @@
   function stacksHtml(t, mine) {
     const R = window.RECENT;
     const rs = S.ui.rState || {};
-    const refresh = mine ? `<div class="g-refresh"><button class="ib btn sm primary g-btn${refreshing ? " busy" : ""}" data-act="grefresh" title="갱신하기 · 우리 팀과 지금 상대" aria-label="갱신하기 · 우리 팀과 지금 상대" ${refreshing ? "disabled" : ""}>${REFRESH_ICO}<span class="sr-only">${refreshing ? "갱신 중" : "갱신하기"}</span></button><span class="help" role="status">${esc(rs.msg || (liveOf(t) ? `Riot에서 바로 가져옴 · ${liveOf(t).at}` : R && R.at ? `매일 0시 자동 수집 ${R.at} · 누르면 Riot에서 바로 가져옵니다` : ""))}</span></div>` : "";
+    const refresh = mine ? `<div class="g-refresh"><button class="ib btn sm primary g-btn${refreshing ? " busy" : ""}" data-act="grefresh" title="갱신하기 · 우리 팀과 지금 상대" aria-label="갱신하기 · 우리 팀과 지금 상대" ${refreshing ? "disabled" : ""}>${REFRESH_ICO}<span class="sr-only">${refreshing ? "갱신 중" : "갱신하기"}</span></button><span class="help" role="status">${esc((otherBusy() && !refreshing ? busyText(otherBusy()) : "") || rs.msg || (liveOf(t) ? `Riot에서 바로 가져옴 · ${liveOf(t).at}` : R && R.at ? `매일 0시 자동 수집 ${R.at} · 누르면 Riot에서 바로 가져옵니다` : ""))}</span></div>` : "";
     const head = `<div class="section-title"><h2>${mine ? "우리 팀 함께 한 경기" : "상대 팀 함께 한 경기"}</h2><p>같은 팀 선수 2명 이상이 같은 편이었던 경기(자랭 등) · ${R && R.since ? esc(R.since) : "11/10"} 이후</p>${refresh}</div>`;
     if (!R || R.status !== "ok") return head + `<div class="note">${esc(recWhy())}</div>`;
     const st = E.groupsOf(t);
@@ -1882,7 +1900,7 @@
   }
   function homeGamesPC(t, theirs) {
     const R = window.RECENT, rs = S.ui.rState || {}, pk = theirs ? "enemy" : "our";
-    const refresh = theirs ? "" : `<button class="hg-ref ${refreshing ? "busy" : ""}" data-act="grefresh" ${refreshing ? "disabled" : ""} aria-label="갱신하기 · 우리 팀과 지금 상대" title="갱신하기 · 우리 팀과 지금 상대">${lbi("refresh", 22)}</button><span class="help" role="status">${esc(rs.msg || (liveOf(t) ? `Riot에서 바로 가져옴 · ${liveOf(t).at}` : ""))}</span>`;
+    const refresh = theirs ? "" : `<button class="hg-ref ${refreshing ? "busy" : ""}" data-act="grefresh" ${refreshing ? "disabled" : ""} aria-label="갱신하기 · 우리 팀과 지금 상대" title="갱신하기 · 우리 팀과 지금 상대">${lbi("refresh", 22)}</button><span class="help" role="status">${esc((otherBusy() && !refreshing ? busyText(otherBusy()) : "") || rs.msg || (liveOf(t) ? `Riot에서 바로 가져옴 · ${liveOf(t).at}` : ""))}</span>`;
     const st = R && R.status === "ok" ? E.groupsOf(t) : null;
     const head = (sub) => `<h3 class="h-h">${theirs ? esc(t.name) + " " : ""}함께 한 경기<small>${sub}</small>${refresh}</h3>`;
     if (!st) return `<section class="h-sec">${head("")}${emptyBox("refresh", R && R.status === "ok" ? "이 팀 경기 자료가 없습니다" : "아직 경기 기록이 없습니다", R && R.status === "ok" ? "" : esc(recWhy()))}</section>`;
@@ -2012,21 +2030,66 @@
     const m = String(at).match(/^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2})/); return m ? `${+m[1]}/${+m[2]} ${m[3]}` : String(at);
   }
   function refreshTile() {
-    const R = window.RECENT, busy = refreshing || prefreshing || ALLR.on;
+    const R = window.RECENT, ob = otherBusy(), busy = refreshing || prefreshing || ALLR.on || !!ob;
     const lives = Object.values((R && R.live) || {}).map((x) => x && x.at).filter(Boolean).sort();
     const last = lives[lives.length - 1] || "", when = last || (R && R.status === "ok" && R.at) || "";
     const md = (x) => { const m = String(x).match(/^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2})/); return m ? `${+m[1]}/${+m[2]} ${m[3]}` : ""; };
-    const sub = busy ? ALLR.msg || "받는 중…" : last ? `Riot에서 바로 · ${md(last)}` : when ? `0시 자동 수집 · ${md(when)}` : "누르면 Riot에서 받음";
+    const sub = ob && !ALLR.on ? busyText(ob) : busy ? ALLR.msg || "받는 중…" : last ? `Riot에서 바로 · ${md(last)}` : when ? `0시 자동 수집 · ${md(when)}` : "누르면 Riot에서 받음";
     return `<button class="nx-d${busy ? " busy" : ""}" data-act="refreshall" ${busy ? "disabled" : ""} aria-label="기록 전체 갱신 · 우리 팀과 상대 팀 모두${when ? ` · 마지막 ${esc(relTime(when))}` : ""}">
       <span class="nx-d-h">${lbi("refresh", 18)}<span>기록 갱신</span></span><b class="nx-d-t">${busy ? "갱신 중" : esc(when ? relTime(when) : "-")}</b><small role="status">${esc(sub)}</small></button>`;
   }
+  // ---- 기록 갱신 공유(11-22 사용자: 웹과 앱 갱신 연동) ----
+  // 누가 갱신하든 서버(Worker /live)에 팀별 마지막 완료 시각이 남음 → 다른 화면(웹·앱)은 30초마다 보고 더 새 결과를 받아 같은 길로 합침.
+  // 새로고침해도 서버에 남은 결과를 다시 입혀 갱신이 사라지지 않음. 갱신 중이면 「○○ 님이 갱신 중」으로 보이고 5초마다 확인
+  const LSY = { seen: {}, busy: null, mine: false, timer: null, polling: false };
+  function liveBusy(on, msg) {
+    LSY.mine = on;
+    if (!SPACE || SPACE.bad || !WURL()) return;
+    wfetch("/live/busy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on, msg: msg || "" }) }).catch(() => {});
+  }
+  const otherBusy = () => (LSY.busy && !LSY.mine ? LSY.busy : null);
+  const busyText = (b) => `${b.by} 님이 갱신 중${b.msg ? ` · ${b.msg}` : ""}`;
+  async function liveSync() {
+    clearTimeout(LSY.timer);
+    if (!SPACE || SPACE.bad || !WURL() || LSY.polling) return;
+    LSY.polling = true;
+    let wait = 30000;
+    try {
+      const d = await wfetch("/live").then((r) => r.json());
+      const R = window.RECENT;
+      if (d && d.status === "ok") {
+        const was = otherBusy(); LSY.busy = d.busy || null; const now = otherBusy();
+        let changed = !!was !== !!now || (was && now && was.msg !== now.msg);
+        if (R && R.status === "ok") {
+          for (const [tid, m] of Object.entries(d.teams || {})) {
+            if (LSY.seen[tid] === m.ms) continue;
+            const t = team(tid), mineAt = R.live && R.live[tid] && R.live[tid].at;
+            // 이 화면이 직접 받은 것만큼 새것이거나 0시 자료보다 옛 갱신이면 건너뜀
+            if (!t || (mineAt && mineAt >= m.at) || !(kstMs(m.at) > kstMs(R.at))) { LSY.seen[tid] = m.ms; continue; }
+            const j = await wfetch(`/live/team?team=${encodeURIComponent(tid)}`).then((r) => r.json()).then((x) => x && x.data).catch(() => null);
+            if (!j) continue;
+            if (m.kind === "groups") { if (tid === S.ourTeam && mergeGroups(t, j)) changed = true; }
+            else { const pg = await practiceGames(), since = PREP.since || window.RECENT.since;
+              const base = pg && pg.since === since && pg.teams && pg.teams[tid] && j.after === pg.atMs ? pg : null;
+              if (mergeGames(t, j, base)) changed = true; }
+            LSY.seen[tid] = m.ms;
+          }
+        } else wait = 3000;   // 0시 자료를 아직 못 받음 → 곧 다시
+        if (now) wait = 5000;
+        if (changed) render();
+      }
+    } catch (e) { /* 다음에 다시 */ }
+    LSY.polling = false;
+    if (document.visibilityState === "visible") LSY.timer = setTimeout(liveSync, wait);
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") liveSync(); else clearTimeout(LSY.timer); });
   function refreshAll() {
     if (refreshing || prefreshing || ALLR.on) return;
     const ens = S.teams.filter((t) => !t.solo && t.id !== S.ourTeam);
-    ALLR.on = true; ALLR.msg = "우리 팀 받는 중…"; render();
+    ALLR.on = true; ALLR.msg = "우리 팀 받는 중…"; liveBusy(true, "우리 팀"); render();
     const next = (i) => {
-      if (i >= ens.length) { ALLR.on = false; ALLR.msg = ""; render(); toast(`기록 갱신 끝 · 우리 팀과 상대 ${ens.length}팀`); return; }
-      const t = ens[i]; ALLR.msg = `상대 ${i + 1}/${ens.length} · ${t.name}`; render();
+      if (i >= ens.length) { ALLR.on = false; ALLR.msg = ""; liveBusy(false); render(); toast(`기록 갱신 끝 · 우리 팀과 상대 ${ens.length}팀`); return; }
+      const t = ens[i]; ALLR.msg = `상대 ${i + 1}/${ens.length} · ${t.name}`; liveBusy(true, ALLR.msg); render();
       refreshPractice(false, { progress: () => { ALLR.msg = `상대 ${i + 1}/${ens.length} · ${t.name} · Riot 한도로 잠시 대기`; render(); }, done: () => next(i + 1) }, t.id);
     };
     chainEnemy = false; rCb = () => next(0);
@@ -5517,11 +5580,11 @@
       case "goalclr": S.ui.goal = { ids: [] }; save(); render(); break;
       case "ctnav": { const tr = document.getElementById("ctrack"); if (tr) { const w = (tr.firstElementChild || {}).offsetWidth || 300; tr.scrollBy({ left: Number(el.dataset.d) * (w + 12), behavior: "smooth" }); } break; }
       case "dock": S.ui.dock = el.dataset.k; S.ui.dockAt = S.draft.idx; render(); break;
-      case "grefresh": if (!refreshing) { chainEnemy = true; refreshRecent(false);
+      case "grefresh": if (!refreshing) { chainEnemy = true; liveBusy(true, "우리 팀과 지금 상대"); rCb = () => liveBusy(false); refreshRecent(false);
         if (SPACE && !SPACE.bad && !TQ.busy) { const en = E.teamOf(S, "enemy"); const list = [team(S.ourTeam), en].filter((x) => x && !x.solo).flatMap((x) => ROLES.map((r) => [x.id, r])); if (list.length) fetchTiers(list, true); }
         { const en = E.teamOf(S, "enemy"), need = lanesNeedingAlts([team(S.ourTeam), en]);
           if (need.length) { const go = () => (refreshing || TQ.busy ? setTimeout(go, 1500) : quickPools(need)); setTimeout(go, 1500); } } } break;
-      case "prefresh": refreshPractice(false); break;
+      case "prefresh": if (!prefreshing) { const en = E.teamOf(S, "enemy"); liveBusy(true, en ? `상대 ${en.name}` : ""); refreshPractice(false, { progress: () => {}, done: () => liveBusy(false) }); } break;
       case "prepedit": PREP.edit = true; PREP.msg = ""; render(); { const d = document.getElementById("prepDate"); if (d) d.focus(); } break;
       case "prepcancel": PREP.edit = false; render(); break;
       case "prepdef": savePrep(PREP.def); break;
