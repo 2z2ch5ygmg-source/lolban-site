@@ -564,7 +564,7 @@
       c = `<span class="mh-t">${crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b")}<span class="tb">${esc(ourName)}</span></span><span class="mh-s">연습 기간 ${since}~${g ? ` · 함께 한 경기 ${g.length}판 ${g.filter((x) => x.win).length}승` : ""}</span>`;
     } else {
       const VS = window.VISION, nD = typeof allDrills === "function" && VS ? allDrills().length : 0, nOk = Object.values(S.ui.dScore || {}).filter(Boolean).length;
-      const T = { team: ["우리 팀", `${esc(ourName)} · 로스터·최적 조합·함께 한 경기 · 팀원 초대`], pool: ["선수·챔프폭", `${esc(ourName)} · 칸으로 끌어 숙련도 정하기 · 누르면 한 단계씩`], vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자유랭크에서 같은 5명이 여러 날 모인 기록으로 찾음"], pts: ["점수 기준표", "티어별 선수 점수 · 대회 규정에 맞게 팀장이 고침"] }[S.tab] || ["", ""];
+      const T = { team: ["우리 팀", `${esc(ourName)} · 로스터·최적 조합·함께 한 경기 · 팀원 초대`], pool: (() => { const pt = poolTeam(), en = pt && pt.id !== S.ourTeam; return [en ? `${esc(pt.name)} 챔프폭` : "선수·챔프폭", `${esc(pt ? pt.name : ourName)} · 칸으로 끌어 숙련도 정하기 · 누르면 한 단계씩`]; })(), vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자유랭크에서 같은 5명이 여러 날 모인 기록으로 찾음"], pts: ["점수 기준표", "티어별 선수 점수 · 대회 규정에 맞게 팀장이 고침"] }[S.tab] || ["", ""];
       c = `<b class="mh-t">${T[0]}</b><span class="mh-s">${T[1]}</span>`;
     }
     el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}${hdMe()}</div>`;
@@ -1022,7 +1022,7 @@
   function goalBar(k = "goal") {
     const c = GL[k], g = glIds(k);
     const chips = g.map((id) => `<span class="chip gl-chip">${icon(id, "sm")}${esc(CH[id].ko)}<button class="gl-x" data-act="${c.del}" data-id="${id}" aria-label="${esc(CH[id].ko)} ${c.out}">${XICO}</button></span>`).join("");
-    return `<div class="gl-bar ${k === "ban" ? "gl-ban" : ""}"><span class="gl-l">${c.label}</span>${chips}<span class="gl-add"><input class="input" id="${c.inp}" list="champList" placeholder="${g.length ? "더 넣기" : c.ph}" autocomplete="off" enterkeyhint="done" aria-label="${c.label} 넣기"><button class="ib btn sm" data-act="${c.add}" aria-label="넣기" title="넣기">${ico("plus")}</button></span>
+    return `<div class="gl-bar ${k === "ban" ? "gl-ban" : ""}"><span class="gl-l">${c.label}</span>${chips}<span class="gl-add"><input class="input" id="${c.inp}" data-csug="${k}" placeholder="${g.length ? "더 넣기" : c.ph}" autocomplete="off" spellcheck="false" enterkeyhint="done" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="csgBox" aria-label="${c.label} 넣기"><button class="ib btn sm" data-act="${c.add}" aria-label="넣기" title="넣기">${ico("plus")}</button></span>
       ${g.length ? `<button class="ib btn sm ghost" data-act="${c.clr}" aria-label="비우기" title="비우기">${ico("trash")}</button>` : `<span class="help gl-help">${c.help}</span>`}<span class="help" id="${c.msg}" role="status"></span></div>`;
   }
   function goalPlanHtml(P) {
@@ -1277,7 +1277,7 @@
     const g = ((S.ui.goal && S.ui.goal.ids) || []).filter((id) => CH[id]);
     const GP = goalPlanNow();
     const pc = (k) => { const c = GL[k], ids = glIds(k);
-      return `<span class="gl-pc ${k === "ban" ? "gl-ban" : ""}"><b>${c.label}</b>${ids.map((id) => `<span class="gl-c">${icon(id, "xs")}${esc(CH[id].ko)}<button class="gl-x" data-act="${c.del}" data-id="${id}" aria-label="${esc(CH[id].ko)} ${c.out}">×</button></span>`).join("")}<input class="input gl-in" id="${c.inp}" list="champList" placeholder="${ids.length ? "더 넣기" : c.phPC}" autocomplete="off" aria-label="${c.label} 넣기"><button class="ib mh-ib gl-addb" data-act="${c.add}" aria-label="${c.label} 넣기">${lbi("plus", 18)}</button></span>`; };
+      return `<span class="gl-pc ${k === "ban" ? "gl-ban" : ""}"><b>${c.label}</b>${ids.map((id) => `<span class="gl-c">${icon(id, "xs")}${esc(CH[id].ko)}<button class="gl-x" data-act="${c.del}" data-id="${id}" aria-label="${esc(CH[id].ko)} ${c.out}">×</button></span>`).join("")}<input class="input gl-in" id="${c.inp}" data-csug="${k}" placeholder="${ids.length ? "더 넣기" : c.phPC}" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="csgBox" aria-label="${c.label} 넣기"><button class="ib mh-ib gl-addb" data-act="${c.add}" aria-label="${c.label} 넣기">${lbi("plus", 18)}</button></span>`; };
     const goal = pc("ban") + `<span class="lc-div" aria-hidden="true"></span>` + pc("goal");
     let plan = "";
     if (GP) {
@@ -2280,8 +2280,10 @@
     const n = HIGH(x.t) ? (x.lp ? `${x.lp}LP` : "") : x.d;
     return `<span class="pk-tr ${use ? "use" : ""}" title="${Q_KO[q]} ${esc(v)}${use ? " · 점수에 쓰는 티어" : ""}"><small>${Q_KO[q]}</small>${tierImg(x.t, 22)}<b>${esc(n)}</b></span>`;
   }
+  // 챔프폭 화면의 팀(11-22 사용자: 상대 팀 「챔프폭 편집」도 우리 팀과 같은 화면) — 없으면 우리 팀
+  const poolTeam = () => { const x = S.ui.poolTid && team(S.ui.poolTid); return x && !x.solo ? x : team(S.ourTeam); };
   function renderPoolPC() {
-    const t = team(S.ourTeam);
+    const t = poolTeam(), ours = t && t.id === S.ourTeam;
     if (!t || t.solo) return emptyBox("invite", "우리 팀이 없습니다", "「우리 팀」에서 팀을 만들거나 초대 코드로 들어오세요");
     editing = t.id;
     const r = poolLane(t), p = t.players[r] || {}, can = canEditLane(t.id, r), my = SPACE && SPACE.viaLogin ? SPACE.myRole : "";
@@ -2292,8 +2294,8 @@
     const alts = ((p.alts || altsOf(t.id, r)) || []).filter(Boolean);
     const altChip = (a, i) => { const lab = `부계정 ${i + 1}`, use = !eff.none && eff.acc === lab, tv = use ? accTier(p, a, eff.q) : "";
       return `<span class="pk-alt ${use ? "use" : ""}" title="${esc(a)}${use ? " · 이 계정 티어를 점수에 씀" : ""}">${esc(nick(a))}<small>#${esc(String(a).split("#")[1] || "")}</small>${use ? tierPill(tv, eff.q, true) : ""}</span>`; };
-    const head = `<div class="pk-head"><span class="pk-nm"><b>${esc(nick(main) || "계정 없음")}</b>${main ? `<small>#${esc(String(main).split("#")[1] || "")}</small>` : ""}<button class="pk-ib" data-act="poolacc" aria-label="계정·부계정 고치기" title="계정·부계정 고치기">${ico("pencil")}</button></span>
-      <span class="pk-trs">${tiers}</span><span class="n-sp"></span><span class="pk-alts">${alts.map(altChip).join("")}<button class="pk-addalt" data-act="poolacc">${lbi("plus", 16)}부계정</button></span></div>`;
+    const head = `<div class="pk-head"><span class="pk-nm"><b>${esc(nick(main) || "계정 없음")}</b>${main ? `<small>#${esc(String(main).split("#")[1] || "")}</small>` : ""}${ours ? `<button class="pk-ib" data-act="poolacc" aria-label="계정·부계정 고치기" title="계정·부계정 고치기">${ico("pencil")}</button>` : ""}</span>
+      <span class="pk-trs">${tiers}</span><span class="n-sp"></span><span class="pk-alts">${alts.map(altChip).join("")}${ours ? `<button class="pk-addalt" data-act="poolacc">${lbi("plus", 16)}부계정</button>` : `<button class="pk-addalt" data-act="edit" data-mode="alts" data-team="${t.id}">${lbi("plus", 16)}부계정</button>`}</span></div>`;
     const stats = E.poolMap({ ...t, players: { ...t.players, [r]: { ...p, pool: [], hide: [] } } }, r);
     const pool = p.pool || [];
     const lvOf = (x) => (x[2] ? "one" : String(x[1]));
@@ -2320,7 +2322,7 @@
   const PKF = { i: 0, ids: [] };
   function pkSug(keepI) {
     const inp = document.getElementById("pkFind"), box = document.getElementById("pkSug"); if (!inp || !box) return;
-    const q = inp.value.trim(), t = team(S.ourTeam), r = poolLane(t), have = new Set(((t.players[r] || {}).pool || []).map((x) => x[0]));
+    const q = inp.value.trim(), t = poolTeam(), r = poolLane(t), have = new Set(((t.players[r] || {}).pool || []).map((x) => x[0]));
     if (!q) { box.hidden = true; inp.setAttribute("aria-expanded", "false"); PKF.ids = []; return; }
     const nq = q.toLowerCase().replace(/\s+/g, "");
     const list = window.CHAMPIONS.filter((c) => matches(c, q)).sort((a, b) => (b.ko.replace(/\s+/g, "").startsWith(nq) - a.ko.replace(/\s+/g, "").startsWith(nq)) || (have.has(a.id) - have.has(b.id)) || a.ko.localeCompare(b.ko, "ko")).slice(0, 8);
@@ -2330,10 +2332,10 @@
     box.hidden = false; inp.setAttribute("aria-expanded", "true"); inp.setAttribute("aria-activedescendant", list.length ? `pkSg${PKF.i}` : "");
   }
   function pkAdd(id) {
-    const t = team(S.ourTeam), r = poolLane(t); if (!id || !t) return;
+    const t = poolTeam(), r = poolLane(t); if (!id || !t) return;
     if (((t.players[r] || {}).pool || []).some((x) => x[0] === id)) { toast(`${CH[id] ? CH[id].ko : id}은(는) 이미 챔프폭에 있습니다`); return; }
     poolDrop(id, "2");
-    const inp = document.getElementById("pkFind"); if (inp) { inp.value = ""; inp.focus(); }
+    const inp = document.getElementById("pkFind"); if (inp) { inp.value = ""; inp.focus(); pkSug(); }
     toast(`${CH[id] ? CH[id].ko : id} → 중 칸에 넣었습니다 · 끌어서 옮길 수 있음`);
   }
   document.addEventListener("input", (ev) => { if (ev.target && ev.target.id === "pkFind") pkSug(); });
@@ -2378,11 +2380,11 @@
   document.addEventListener("focusout", (ev) => { if (ev.target && ev.target.id === "ecBanIn") setTimeout(() => { const box = document.getElementById("ecBanSug"); if (box && document.activeElement !== ev.target) box.hidden = true; }, 0); });
   // 끌어 놓기: 칸(원챔·상·중·하) ↔ 기록 줄
   function poolDrop(id, v) {
-    const t = team(S.ourTeam), r = poolLane(t); if (!t || !id) return;
+    const t = poolTeam(), r = poolLane(t); if (!t || !id) return;
     if (!canEditLane(t.id, r)) { toast(laneLockMsg(r)); return; }
     const p = t.players[r]; p.pool = p.pool || [];
     const i = p.pool.findIndex((x) => x[0] === id);
-    if (v === "out") { if (i < 0) return; p.pool.splice(i, 1); }
+    if (v === "out") { if (i < 0) return; p.pool.splice(i, 1); if (t.id !== S.ourTeam) p.hide = [...new Set([...(p.hide || []), id])].slice(-30); }
     else { const e = v === "one" ? [id, 3, true] : [id, +v]; if (i < 0) p.pool.push(e); else p.pool[i] = e; }
     save(); shareChanged(t.id, r); render();
   }
@@ -3111,7 +3113,7 @@
       return who(p) + alts.map((a) => { const st = altMerged(t, r, a); return `<span class="ed-who ed-alt-who" title="부계정 · ${st === "in" ? "챔프폭에 합침" : st === "wait" ? "챔프폭 받는 중" : "챔프폭은 기록 갱신 때 합침"}"><i>+</i>${esc(nick(a))}<small>#${esc(String(a).split("#")[1] || "")}</small><em class="alt-st ${st}">${st === "in" ? "합침" : st === "wait" ? "받는 중" : "갱신 필요"}</em></span>`; }).join(""); };
     const roles = !altMode && !MOB.matches && t.id === S.ourTeam && !t.solo ? seEditorHtml(t) : altMode ? ROLES.map((r) => `<div class="ed-role ed-pool-only ed-altonly" data-r="${r}"><div class="ed-row"><b style="width:40px">${ROLE_KO[r]}</b>${who(t.players[r])}<small class="help">본계정</small></div>${altsBox(r)}</div>`).join("") : MOB.matches ? edRolesFull(t) : ROLES.map((r) => { const p = t.players[r]; return `<div class="ed-role ed-pool-only" data-r="${r}"><div class="ed-row ed-who-row"><b style="width:40px">${ROLE_KO[r]}</b>${whoAll(r)}</div>
       <div class="row-chips">${poolChips(t, r, { edit: true })}</div>
-      <div class="ed-row"><input class="input" style="flex:1" list="champList" data-add="${r}" placeholder="챔피언 추가 (이름 입력 후 Enter)">
+      <div class="ed-row"><input class="input" style="flex:1" data-csug="add" data-add="${r}" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="csgBox" placeholder="챔피언 추가 (이름 입력 후 Enter)">
       <select data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select>
       <button class="ib btn sm" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></div></div>`; }).join("");
     function edRolesFull(t) { return ROLES.map((r) => { const p = t.players[r]; return `<div class="ed-role" data-r="${r}"><div class="ed-row"><b style="width:40px">${ROLE_KO[r]}</b>
@@ -3121,7 +3123,7 @@
       <div class="ed-sug" id="edsug-${r}" role="listbox" aria-label="${ROLE_KO[r]} 계정 추천" hidden></div>
       <p class="ed-chk" id="edchk-${r}" aria-live="polite" data-k="${t.id}|${r}|riot">${CHK[`${t.id}|${r}|riot`] || ""}</p>
       <div class="row-chips">${poolChips(t, r, { edit: true })}</div>
-      <div class="ed-row"><input class="input" style="flex:1" list="champList" data-add="${r}" placeholder="챔피언 추가 (이름 입력 후 Enter)">
+      <div class="ed-row"><input class="input" style="flex:1" data-csug="add" data-add="${r}" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="csgBox" placeholder="챔피언 추가 (이름 입력 후 Enter)">
       <select data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select>
       <button class="ib btn sm" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></div></div>`; }).join(""); }
     root.innerHTML = `<div class="modal-bg" data-act="close" data-editor="1"><div class="modal ${!altMode && !MOB.matches && t.id === S.ourTeam && !t.solo ? "se-modal" : ""}" role="dialog" aria-modal="true" aria-label="${t.id === S.ourTeam ? "챔프폭 입력" : altMode ? "부계정 입력" : "챔프폭 편집"}" ${MOB.matches ? `data-edr="${edLane}"` : ""}>
@@ -3149,7 +3151,7 @@
     const mine = new Set(pool.map((x) => x[0])), hidden = new Set(p.hide || []);
     const rec = Object.entries(stats).filter(([id, e]) => !mine.has(id) && !hidden.has(id) && CH[id] && (e.g || e.rg)).sort((a, b) => E.lvScore(b[1]) - E.lvScore(a[1])).slice(0, 10);
     const recH = rec.length ? `<div class="se-rec"><span class="se-rec-h">기록에만 있는 챔프${can ? " · 누르면 넣기" : ""}</span>${rec.map(([id, e]) => can ? `<button class="chip auto-chip" data-act="pinrec" data-team="${t.id}" data-role="${r}" data-id="${id}" data-lv="${e.lv}" data-one="${e.one ? 1 : ""}">${icon(id, "sm")}${esc(CH[id].ko)}<span class="st">${e.g || e.rg}판</span></button>` : `<span class="chip">${icon(id, "sm")}${esc(CH[id].ko)}<span class="st">${e.g || e.rg}판</span></span>`).join("")}</div>` : "";
-    const add = can ? `<div class="se-add"><input class="input" list="champList" data-add="${r}" placeholder="챔피언 추가 — 이름 입력 후 Enter"><select class="input" data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select><button class="ib btn sm" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></div>`
+    const add = can ? `<div class="se-add"><input class="input" data-csug="add" data-add="${r}" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="csgBox" placeholder="챔피언 추가 — 이름 입력 후 Enter"><select class="input" data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select><button class="ib btn sm" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></div>`
       : `<p class="se-lock">🔒 ${laneLockMsg(r)}</p>`;
     return `<p class="help se-intro">숙련도를 누르면 바로 저장 · ${SPACE && SPACE.viaLogin ? "내 라인만 고칠 수 있음(팀장·코치는 전체)" : "이 브라우저 팀 열쇠로는 모든 라인을 고칠 수 있음"}</p>${tabs}
       <div class="se-list">${pool.length ? pool.map(row).join("") : `<p class="help">아직 넣은 챔프가 없습니다${can ? " — 아래에서 넣거나 기록에만 있는 챔프를 누르세요" : ""}</p>`}</div>${recH}${add}`;
@@ -3509,7 +3511,7 @@
           ${alts.filter(Boolean).length < 2 && ((S.ui.altOpen || {})[t.id + "|" + r] || 0) < 2 ? `<button class="sd-altadd" data-act="altadd" data-role="${r}" data-team="${t.id}" data-n="${Math.max(alts.filter(Boolean).length, (S.ui.altOpen || {})[t.id + "|" + r] || 0) + 1}">${lbi("plus", 14)}부계정 <small>(라인당 3개까지)</small></button>` : ""}
           <div id="edeff-${r}">${effLine(t, r)}</div></div>
         <div class="sd-pool"><div class="row-chips">${poolChips(t, r, { edit: true })}</div>
-          <div class="ed-row sd-add"><label class="sd-fl"><small>챔프 추가</small><input class="input" list="champList" data-add="${r}" placeholder="이름 입력 후 Enter" aria-label="${ROLE_KO[r]} 챔프 추가"></label>
+          <div class="ed-row sd-add"><label class="sd-fl"><small>챔프 추가</small><input class="input" data-csug="add" data-add="${r}" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="csgBox" placeholder="이름 입력 후 Enter" aria-label="${ROLE_KO[r]} 챔프 추가"></label>
           <label class="sd-fl"><small>숙련도</small><select class="input" data-addlv="${r}" aria-label="숙련도"><option value="3">상</option><option value="2" selected>중</option><option value="1">하</option><option value="one">원챔</option></select></label>
           <span class="sd-fl"><small aria-hidden="true">&nbsp;</small><button class="ib btn sm sd-addb" data-act="add" data-role="${r}" aria-label="추가" title="추가">${ico("plus")}</button></span></div></div></div>`; }).join("");
   }
@@ -5743,7 +5745,7 @@
         if (S.ui.sheet && MOB.matches) { const st = curStep(); S.ui.q = ""; S.ui.role = (st && E.whoOfSide(S, st[0]) === "enemy" ? S.ui.predRole : S.ui.ourRole) || ""; }
         render(); if (S.ui.sheet) { const q = document.getElementById("q"); if (q && matchMedia("(min-width: 761px)").matches) q.focus(); } break;
       case "edit": { const wasOpen = !!TSM.open; TSM.open = "";
-        if (!MOB.matches && el.dataset.team === S.ourTeam && el.dataset.mode !== "alts") { S.tab = "pool"; save(); render(); window.scrollTo(0, 0); pullShared(); break; }
+        if (!MOB.matches && el.dataset.mode !== "alts" && team(el.dataset.team) && !team(el.dataset.team).solo) { S.ui.poolTid = el.dataset.team; if (el.dataset.team !== S.ourTeam) S.ui.seLane = S.ui.seLane || "T"; S.tab = "pool"; save(); render(); window.scrollTo(0, 0); pullShared(); break; }
         editing = el.dataset.team; editMode = el.dataset.mode === "alts" ? "alts" : "pool"; if (wasOpen || document.querySelector(".tsm-pop")) render(); renderEditor(); pullShared(); break; }
       case "close": editing = null; renderEditor(); break;
       case "edlane": edLane = el.dataset.r; renderEditor(); break;
@@ -5766,7 +5768,7 @@
         p.pool[i] = el.dataset.v === "one" ? [el.dataset.id, 3, true] : [el.dataset.id, +el.dataset.v];
         save(); shareChanged(el.dataset.team, el.dataset.role); renderEditor(); render(); break; }
       case "selane": S.ui.seLane = el.dataset.r; if (S.tab === "pool") render(); else renderEditor(); break;
-      case "poolgo": if (ROLES.includes(el.dataset.r)) S.ui.seLane = el.dataset.r; S.tab = "pool"; MV.more = false; save(); render(); window.scrollTo(0, 0); pullShared(); break;
+      case "poolgo": if (ROLES.includes(el.dataset.r)) S.ui.seLane = el.dataset.r; S.ui.poolTid = S.ourTeam; S.tab = "pool"; MV.more = false; save(); render(); window.scrollTo(0, 0); pullShared(); break;
       case "poolacc": { const t = team(S.ourTeam); if (!t) break; S.tab = "team"; TE.on = true; TE.snap = JSON.stringify(t); save(); render(); window.scrollTo(0, 0); break; }
       case "nxopen": nxOpenPop(); break;
       case "nxcancel": NX.open = false; NX.msg = ""; render(); break;
@@ -5793,19 +5795,62 @@
       case "wipe": if (confirm("모든 입력(챔프폭·밴픽·피어리스)을 처음 상태로 되돌릴까요?")) { S = fresh(); E.setOurTeam(S.ourTeam); save(); render(); } break;
     }
   });
-  function addGoal(k = "goal") {
-    const cf = GL[k], inp = document.getElementById(cf.inp), msg = document.getElementById(cf.msg);
-    if (liveLocked()) { if (inp) inp.value = ""; toast(liveLockMsg()); return; }
-    const c = inp && findChamp(inp.value);
-    if (!c) { const t = inp && inp.value.trim() ? "챔프 이름을 찾지 못했습니다." : "챔프 이름을 넣어 주세요."; if (msg) msg.textContent = t; else toast(t); return; }
-    const ids = glIds(k).filter((x) => x !== c.id).concat([c.id]).slice(-cf.max);
-    S.ui[cf.key] = { ids };
-    // 같은 챔프를 뽑을 목표이자 밴할 챔프로 둘 수는 없음: 나중에 넣은 쪽으로
-    const other = k === "ban" ? "goal" : "ban";
-    S.ui[GL[other].key] = { ids: glIds(other).filter((x) => x !== c.id) };
-    save(); render();
-    const n = document.getElementById(cf.inp); if (n && !MOB.matches) n.focus();
+  // ---- 챔프 찾기 목록(11-22 사용자: 미리 밴·목표 챔프·챔프폭 넣기를 「초상화 + 이름」으로, 「리 신」 Enter에 신 짜오가 같이 들어가던 문제) ----
+  // 원인: 한글 입력 중 Enter → Enter 처리가 「리 신」을 넣고, 입력기가 끝 글자 「신」을 확정하며 한 번 더 찾아 「신 짜오」까지.
+  // 이제는 data-csug 칸에 친 글자로 목록을 띄우고, Enter·누르기는 목록에서 고른 챔프 하나만 넣음(입력 중 Enter는 확정을 기다렸다 한 번)
+  const CSG = { el: null, i: 0, ids: [], pend: false };
+  function csgList(q) { const nq = q.toLowerCase().replace(/\s+/g, "");
+    return window.CHAMPIONS.filter((c) => matches(c, q)).sort((a, b) => (b.ko.replace(/\s+/g, "").startsWith(nq) - a.ko.replace(/\s+/g, "").startsWith(nq)) || a.ko.localeCompare(b.ko, "ko")).slice(0, 8); }
+  function csgBox() { let b = document.getElementById("csgBox"); if (!b) { b = document.createElement("div"); b.id = "csgBox"; b.className = "pk-sug csg"; b.setAttribute("role", "listbox"); b.setAttribute("aria-label", "찾은 챔피언"); b.hidden = true; document.body.appendChild(b); } return b; }
+  function csgShow(inp, keep) {
+    const q = inp.value.trim(); if (!q) { csgHide(); return; }
+    const list = csgList(q), box = csgBox();
+    if (CSG.el !== inp) keep = false;
+    CSG.el = inp; CSG.ids = list.map((c) => c.id); if (!keep) CSG.i = 0; CSG.i = Math.min(CSG.i, Math.max(0, CSG.ids.length - 1));
+    box.innerHTML = list.length ? list.map((c, k) => `<button type="button" class="pk-sg" role="option" id="csg${k}" data-id="${c.id}" aria-selected="${k === CSG.i}">${icon(c.id, "sm")}<b>${esc(c.ko)}</b></button>`).join("") : `<p class="help csg-none">찾는 챔피언이 없습니다</p>`;
+    const r = inp.getBoundingClientRect();
+    Object.assign(box.style, { position: "fixed", left: `${Math.max(8, Math.min(r.left, innerWidth - 228))}px`, top: `${r.bottom + 4}px`, width: `${Math.max(r.width, 220)}px` });
+    box.hidden = false; inp.setAttribute("aria-expanded", "true"); inp.setAttribute("aria-activedescendant", list.length ? `csg${CSG.i}` : "");
   }
+  function csgHide() { const b = document.getElementById("csgBox"); if (b) b.hidden = true; if (CSG.el) { CSG.el.setAttribute("aria-expanded", "false"); CSG.el.removeAttribute("aria-activedescendant"); } CSG.el = null; CSG.ids = []; CSG.pend = false; }
+  function csgPick(id) {
+    const inp = CSG.el; if (!inp || !CH[id]) return;
+    const kind = inp.dataset.csug; csgHide();
+    if (kind === "goal" || kind === "ban") addGoalId(kind, id);
+    else if (kind === "add") { inp.value = CH[id].ko; addChamp(inp.dataset.add); }
+  }
+  document.addEventListener("input", (ev) => { const t = ev.target; if (t && t.dataset && t.dataset.csug) csgShow(t); });
+  document.addEventListener("keydown", (ev) => {
+    const t = ev.target; if (!t || !t.dataset || !t.dataset.csug) return;
+    if (ev.key === "Enter" && (ev.isComposing || ev.keyCode === 229)) { ev.preventDefault(); CSG.pend = true; return; }   // 입력기 확정 뒤 한 번만
+    const n = CSG.el === t ? CSG.ids.length : 0;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { if (!n) return; ev.preventDefault(); CSG.i = (CSG.i + (ev.key === "ArrowDown" ? 1 : n - 1)) % n; csgShow(t, true); }
+    else if (ev.key === "Enter") { ev.preventDefault(); ev.stopPropagation(); if (!n) csgShow(t); if (CSG.ids.length) csgPick(CSG.ids[CSG.i]); else if (t.value.trim()) toast("챔프 이름을 찾지 못했습니다"); }
+    else if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); t.value = ""; csgHide(); }
+  }, true);
+  document.addEventListener("compositionend", (ev) => { const t = ev.target; if (!t || !t.dataset || !t.dataset.csug || !CSG.pend) return; CSG.pend = false;
+    setTimeout(() => { csgShow(t); if (CSG.ids.length) csgPick(CSG.ids[CSG.i]); }, 0); });
+  document.addEventListener("mousedown", (ev) => { const b = ev.target.closest && ev.target.closest("#csgBox .pk-sg"); if (!b) return; ev.preventDefault(); csgPick(b.dataset.id); });
+  document.addEventListener("focusout", (ev) => { const t = ev.target; if (t && t.dataset && t.dataset.csug) setTimeout(() => { if (CSG.el === t && document.activeElement !== t) csgHide(); }, 0); });
+  window.addEventListener("scroll", (ev) => { if (CSG.el && !(ev.target && ev.target.id === "csgBox")) csgHide(); }, true);   // 목록 자체를 굴릴 때는 그대로
+  function addGoalId(k, id) {
+    if (liveLocked()) { toast(liveLockMsg()); return; }
+    const cf = GL[k];
+    S.ui[cf.key] = { ids: glIds(k).filter((x) => x !== id).concat([id]).slice(-cf.max) };
+    const other = k === "ban" ? "goal" : "ban";
+    S.ui[GL[other].key] = { ids: glIds(other).filter((x) => x !== id) };
+    save(); render();
+    const n = document.getElementById(cf.inp); if (n) { n.value = ""; if (!MOB.matches) n.focus(); }
+  }
+  function addGoal(k = "goal") {
+    const cf = GL[k], inp = document.getElementById(cf.inp);
+    if (CSG.el === inp && CSG.ids.length) { csgPick(CSG.ids[CSG.i]); return; }
+    const q = inp ? inp.value.trim().replace(/\s+/g, "").toLowerCase() : "";
+    const c = q && window.CHAMPIONS.find((x) => x.ko.replace(/\s+/g, "").toLowerCase() === q || x.id.toLowerCase() === q);
+    if (!c) { if (inp) { inp.focus(); csgShow(inp); } if (!q) toast("챔프 이름을 넣어 주세요"); return; }
+    addGoalId(k, c.id);
+  }
+
 
   // PC: 추천 조합·밴픽 설계 띠는 마우스로 끌어서 넘김(휴대폰은 손가락으로 밀기)
   let drag = null, dragEat = false;
@@ -5859,7 +5904,6 @@
     const t = ev.target;
     if (t.id === "ipText") { IMP.text = t.value; return; }
     // 목표 챔프: 목록에서 고르면(정확한 이름) 바로 넣음 — 예전엔 Enter를 눌러야만 들어가서 「골라도 안 들어감」(사용자 지적 11-19)
-    if ((t.id === "goalIn" || t.id === "banIn") && (ev.inputType === "insertReplacementText" || ev.inputType == null) && window.CHAMPIONS.some((c) => c.ko === t.value.trim() || c.id === t.value.trim())) { addGoal(t.id === "banIn" ? "ban" : "goal"); return; }
     if (t.id === "ipTeam") { IMP.team = t.value; return; }
     if (t.id === "q") { S.ui.q = t.value; const box = document.getElementById("champs"); if (box) box.innerHTML = champButtons(); else render();
       const sh = document.querySelector(".mv-pick"); if (sh) sh.classList.toggle("searching", !!t.value.trim()); return; }
@@ -5904,7 +5948,7 @@
   });
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "Enter" && ev.target.dataset && ev.target.dataset.add) { ev.preventDefault(); addChamp(ev.target.dataset.add); }
-    else if (ev.key === "Enter" && (ev.target.id === "goalIn" || ev.target.id === "banIn")) { ev.preventDefault(); addGoal(ev.target.id === "banIn" ? "ban" : "goal"); }
+
     else if (ev.key === "Enter" && ev.target.id === "q") { const first = document.querySelector("#champs .cbtn:not([disabled])"); if (first) choose(first.dataset.id); }
     else if (ev.key === "Escape" && closeChampDetail()) { /* 상대 챔프 자세히 보기 닫음 */ }
     else if (ev.key === "Escape" && editing) { editing = null; renderEditor(); }

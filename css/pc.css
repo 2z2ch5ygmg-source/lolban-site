@@ -143,7 +143,10 @@ html.pc .pill { border-radius: 999px; }
 .hg-c { display: grid; justify-items: center; gap: 3px; } .hg-c small { font-size: 11px; color: var(--muted); }
 .h-pg { justify-content: flex-start; }
 .sd-tm .act { border: 0; background: none; box-shadow: none; }
-html.pc .tsm-b, html.pc .tsm-se { background: var(--bg2); color: var(--text); border: 0; box-shadow: none; }
+html.pc .tsm-b { background: var(--bg2); color: var(--text); border: 0; box-shadow: none; }
+/* 11-22 사용자: 우리 팀 「챔프폭 입력」은 회색 말고 강조색 */
+html.pc .tsm-se { background: var(--hi); color: var(--panel); border: 0; box-shadow: none; font-weight: 700; }
+html.pc .tsm-se:hover { filter: brightness(1.08); }
 .h-h .tsm + .tsm-se { margin-left: -2px; }
 
 /* ---------- 실시간 밴픽 C ---------- */
@@ -1806,3 +1809,10 @@ html.nd-on body { overflow: hidden; }
 .nd-gr .nd-q { flex: 1; } .nd-gr b { width: 22px; text-align: right; } .nd-gr .w { color: var(--good); } .nd-gr .l { color: var(--red); }
 .nd-stats { margin: 4px 0 8px; } .nd-stats em { font-style: normal; color: var(--muted); font-size: 11.5px; }
 @media (prefers-reduced-motion: reduce) { .tc-click, .nx-click { transition: none; } .tc-click:active, .nx-click:active { transform: none; } }
+
+/* 챔프 찾기 목록(11-22): 미리 밴·목표 챔프·챔프폭 넣기 칸 아래 「초상화 + 이름」 — 화면 위에 떠서 칸 위치를 따라감 */
+#csgBox.csg { position: fixed; z-index: 120; display: grid; gap: 2px; max-height: 320px; overflow-y: auto; padding: 6px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 12px 32px rgba(0, 0, 0, .18); }
+#csgBox.csg[hidden] { display: none; }
+#csgBox .pk-sg { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+#csgBox .pk-sg[aria-selected="true"], #csgBox .pk-sg:hover { background: var(--bg2); }
+#csgBox .csg-none { margin: 6px 8px; }
