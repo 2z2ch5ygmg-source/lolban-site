@@ -69,6 +69,7 @@
   function loginSpace() {
     if (!SESS || !AUTH.spaces.length) return null;
     let want = null; try { want = localStorage.getItem("lolban.space.v1"); } catch (e) { want = null; }
+    if (want === "none") return null;   // 데이터 초기화(11-23): 팀 없는 상태로 둠 — 「내 팀」에서 다시 열거나 새 팀을 만들 때까지
     const sp = AUTH.spaces.find((x) => x.id === want) || AUTH.spaces[0];
     return { id: sp.id, key: "", name: sp.name, viaLogin: true, isOwner: !!sp.owner, code: sp.code || "", codeExp: sp.codeExp || "", members: sp.members || 0, myRole: sp.myRole || "" };
   }
@@ -212,7 +213,7 @@
   }
 
   // ---------- 밴픽 저장(버튼으로만) ----------
-  // 저장 목록은 따로 두어 「처음 상태로」·「시리즈 초기화」가 지우지 않는다. 같은 시리즈를 다시 저장하면 그 칸을 덮어쓴다.
+  // 저장 목록은 따로 두어 「시리즈 초기화」가 지우지 않는다(「데이터 초기화」는 지움). 같은 시리즈를 다시 저장하면 그 칸을 덮어쓴다.
   const KEY_SAVED = "sentrix-draft.saved.v1";
   function loadSaved() { try { const v = JSON.parse(localStorage.getItem(KEY_SAVED) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
   function writeSaved(list) { try { localStorage.setItem(KEY_SAVED, JSON.stringify(list)); return true; } catch (e) { return false; } }
@@ -3571,7 +3572,7 @@
   function renderSettingsPC() {
     const acct = SESS ? `<p class="lg-who">${esc((AUTH.user && AUTH.user.nick) || "로그인됨")} · ${PROVIDER_KO[AUTH.user && AUTH.user.provider] || ""}</p>
         <span class="sd-btns"><button class="soft-b" data-act="lgout">로그아웃</button><button class="nc-a del" data-act="lgdel">탈퇴</button></span>
-        <p class="help">탈퇴하면 로그인 정보와 소속이 지워지고, 혼자 있는 팀은 팀 자료까지 지워집니다</p>`
+        <p class="help">탈퇴하면 로그인 정보와 소속이 지워지고, 혼자 있는 팀은 팀 자료까지 지워집니다</p>${AUTH.msg ? `<p class="help lg-msg" role="status">${esc(AUTH.msg)}</p>` : ""}`
       : `<p class="help">로그인하지 않았습니다</p><span class="sd-btns"><button class="tab n-new" data-tab="our">로그인</button></span>`;
     const right = `<div class="set-cards">
       <section class="sd-card"><h3>분석 기준</h3><b class="sd-sub">티어 기준</b>
@@ -3584,7 +3585,7 @@
       <section class="sd-card"><h3>명단</h3><p class="help">우리 팀·상대 팀 전체 명단(계정·부계정·챔프폭)을 엑셀 한 시트로 내려받습니다. 상대 팀 등록은 왼쪽 「상대 팀」 옆 ＋에서</p>
         <span class="sd-btns"><button class="soft-b" data-act="export">${lbi("note", 16)}전체 명단 엑셀 내보내기</button></span></section>
       <section class="sd-card"><h3>이 브라우저</h3><p class="help">밴픽 진행·저장한 밴픽·팀 공간 열쇠·화면 상태는 이 브라우저에만 있습니다. 다른 기기는 초대 링크로 들어오면 팀 자료를 같이 봅니다.</p>
-        <span class="sd-btns"><button class="soft-b" data-act="wipe">처음 상태로</button><small class="dim">팀 공간 열쇠와 팀 공유 자료는 그대로</small></span></section>
+        <span class="sd-btns"><button class="soft-b bad" data-act="wipe">데이터 초기화</button><small class="dim">팀 없는 상태로 · 서버의 팀 자료는 그대로</small></span></section>
       <section class="sd-card"><h3>계정</h3>${acct}</section></div>`;
     return `<div class="home settings-only">${right}</div>`;
   }
@@ -3742,6 +3743,18 @@
       render();
     } catch (e) { /* 다음에 */ }
   }
+  // 데이터 초기화(11-23 사용자): 이 브라우저의 lolban 자료(밴픽 진행·저장한 밴픽·챔프폭 입력·명단 사본·팀 연결·화면 상태)를 지우고
+  //  팀 없는 상태로 다시 연다. 서버의 팀 자료는 그대로(로그인했으면 「내 팀」에서 다시 열 수 있음). 탈퇴 뒤에는 로그인 정보까지 지움
+  function wipeAll(msg, signOut) {
+    const keep = ["lolban.theme", "lolban.cid.v1", "lolban.reset.v1", "lolban.a2hs.v1"].concat(signOut ? [] : [KEY_SESS, KEY_AUTH]);
+    try {
+      Object.keys(localStorage).filter((k) => (k.startsWith("sentrix-draft") || k.startsWith("lolban.")) && !keep.includes(k)).forEach((k) => localStorage.removeItem(k));
+      if (SESS && !signOut) localStorage.setItem("lolban.space.v1", "none");
+      sessionStorage.setItem("lolban.wiped", msg);
+    } catch (e) { /* 저장소를 못 쓰는 환경 */ }
+    try { if (LIVE && LIVE.ws) LIVE.ws.close(); } catch (e) { /* 이미 닫힘 */ }
+    location.reload();
+  }
   function logoutLocal(msg) {
     SESS = ""; AUTH.user = null; AUTH.spaces = []; AUTH.msg = msg || "";
     try { localStorage.removeItem(KEY_SESS); localStorage.removeItem(KEY_AUTH); } catch (e) { /* 무시 */ }
@@ -3767,7 +3780,7 @@
         const d = await authPost("team/join", { code: all.length ? all[all.length - 1] : v("lgCode") }); TM2.list = null; try { localStorage.setItem("lolban.space.v1", d.space.id); } catch (e) { /* 이번만 */ } AUTH.msg = `「${d.space.name}」 팀에 들어왔습니다`; }
       else if (a === "lgcode") { const d = await authPost("team/code", { space: SPACE.id }); AUTH.msg = `새 초대 코드 ${d.code} — ${d.exp}까지`; }
       else if (a === "lgleave") { const me1 = (AUTH.spaces || []).find((x) => x.id === SPACE.id) || {}; if (!confirm(me1.owner && (me1.members || 1) <= 1 ? `「${SPACE.name}」에 혼자 남아 있어 나가면 팀과 팀 자료(명단·노트·세트 결과 등)가 모두 지워집니다. 되돌릴 수 없습니다. 나갈까요?` : `「${SPACE.name}」 팀에서 나갈까요?`)) { AUTH.busy = false; render(); return; } await authPost("team/leave", { space: SPACE.id }); try { localStorage.removeItem("lolban.space.v1"); } catch (e) { /* 무시 */ } SPACE = null; AUTH.msg = "팀에서 나왔습니다"; }
-      else if (a === "lgdel") { if (!confirm("탈퇴할까요? 로그인 정보와 소속이 지워지고, 혼자 있는 팀은 팀 자료까지 지워집니다. 되돌릴 수 없습니다.")) { AUTH.busy = false; render(); return; } await authPost("delete", {}); AUTH.busy = false; logoutLocal("탈퇴했습니다 — 로그인 정보를 지웠습니다"); return; }
+      else if (a === "lgdel") { if (!confirm("탈퇴할까요? 로그인 정보와 소속이 지워지고, 혼자 있는 팀은 팀 자료까지 지워집니다. 되돌릴 수 없습니다.")) { AUTH.busy = false; render(); return; } await authPost("delete", {}); AUTH.busy = false; wipeAll("탈퇴했습니다 — 로그인 정보와 이 브라우저 자료를 지웠습니다", true); return; }
       else if (a === "lgout") { try { await authPost("logout", {}); } catch (e) { /* 서버에서 이미 끝남 */ } AUTH.busy = false; logoutLocal("로그아웃했습니다"); return; }
       else if (a === "lgcopy") { const c = SPACE && SPACE.code; if (c) { try { await navigator.clipboard.writeText(c); AUTH.msg = `초대 코드 ${c} 복사 — 팀원은 로그인 뒤 「초대 코드로 들어가기」에 붙여 넣으면 됩니다`; S.ui.invited = true; save(); } catch (e) { AUTH.msg = `초대 코드: ${c}`; } } }
       AUTH.busy = false; await loadMe();
@@ -3786,7 +3799,8 @@
     if (!SPACE || !SPACE.viaLogin) {
       return `<div class="lg"><p class="lg-who">${who}<button class="nc-a del" data-act="lgout">로그아웃</button></p>
         <div class="lg-two"><section><b>팀 만들기</b><span class="help">내가 팀장 · 초대 코드로 팀원을 부름</span><input class="input" id="lgTeam" maxlength="30" placeholder="팀 이름"><button class="n-new" data-act="lgnew" ${AUTH.busy ? "disabled" : ""}>팀 만들기</button></section>
-        <section><b>초대 코드로 들어가기</b><span class="help">팀장에게 받은 6자리</span><input class="input lg-code" id="lgCode" maxlength="60" placeholder="예: K7P2QX" autocomplete="off"><button class="soft-b" data-act="lgjoin" ${AUTH.busy ? "disabled" : ""}>들어가기</button></section></div>${note}</div>`;
+        <section><b>초대 코드로 들어가기</b><span class="help">팀장에게 받은 6자리</span><input class="input lg-code" id="lgCode" maxlength="60" placeholder="예: K7P2QX" autocomplete="off"><button class="soft-b" data-act="lgjoin" ${AUTH.busy ? "disabled" : ""}>들어가기</button></section></div>
+        ${AUTH.spaces.length ? `<p class="help">내 팀 다시 열기: ${AUTH.spaces.map((x) => `<button class="nc-a" data-act="lgswitch" data-id="${esc(x.id)}">${esc(x.name)}</button>`).join(" · ")}</p>` : ""}${note}</div>`;
     }
     const others = AUTH.spaces.filter((x) => x.id !== SPACE.id);
     return `<div class="lg"><p class="lg-who">${who}<button class="nc-a del" data-act="lgout">로그아웃</button></p>
@@ -4068,7 +4082,7 @@
           <span class="set-inline"><button class="btn sm" data-act="export">엑셀 내보내기</button><button class="btn sm" data-act="import">엑셀 불러오기</button></span></div>`,
       browser: () => `<h3>이 브라우저</h3>
         <div class="set-row"><div class="set-l"><b>저장한 것</b><span class="help">밴픽 진행·저장한 밴픽·팀 공간 열쇠·화면 상태는 이 브라우저에만 있습니다. 다른 기기는 초대 링크로 팀 공간에 들어오면 팀 자료를 같이 봅니다.</span></div></div>
-        <div class="set-row"><div class="set-l"><b>처음 상태로</b><span class="help">팀·챔프폭 입력·밴픽·피어리스를 처음 상태로 되돌립니다(팀 공간 열쇠와 팀 공유 자료는 그대로).</span></div><button class="btn sm ghost" data-act="wipe">처음 상태로</button></div>`,
+        <div class="set-row"><div class="set-l"><b>데이터 초기화</b><span class="help">이 브라우저 자료를 모두 지우고 팀 없는 상태로 돌아갑니다. 서버의 팀 자료는 그대로입니다.</span></div><button class="btn sm ghost" data-act="wipe">데이터 초기화</button></div>`,
     }[key]();
     return `<div class="section-title"><h2>설정</h2><p>${SPACE && !SPACE.bad ? `팀 공간 · ${esc(SPACE.name || "")}` : "팀 공간 없음 — 이 브라우저에만 저장"}</p><button class="ib btn sm" data-act="setback" aria-label="돌아가기" title="돌아가기">${ico("back")}</button></div>
       <div class="ensec set"><nav class="ensec-nav" role="tablist" aria-label="설정 목차">${SET_SECS.map(([k, n]) => `<button role="tab" data-act="setsec" data-k="${k}" aria-selected="${k === key}">${n}</button>`).join("")}</nav>
@@ -5359,7 +5373,7 @@
   const AP = { team: "", code: "", nick: null };
   function authMsg() {
     const m = AUTH.msg || (LOGIN_ERR ? { cancel: "로그인을 취소했습니다", state: "로그인 시간이 지났습니다 — 다시 눌러 주세요", provider: "로그인 공급자 응답에 문제가 있었습니다 — 잠시 뒤 다시", not_ready: "그 로그인은 아직 준비 중입니다" }[LOGIN_ERR] || "로그인하지 못했습니다" : "");
-    const ok = !!AUTH.msg && /만들었습니다|들어왔습니다|팀에서 나왔습니다|새 초대 코드|복사 —|^초대 코드:/.test(AUTH.msg);   // 11-21 QA: 성공 안내가 빨간 오류 모양이었음
+    const ok = !!AUTH.msg && /만들었습니다|들어왔습니다|팀에서 나왔습니다|새 초대 코드|복사 —|^초대 코드:|초기화했습니다|탈퇴했습니다/.test(AUTH.msg);   // 11-21 QA: 성공 안내가 빨간 오류 모양이었음
     return m ? `<p class="ap-msg${ok ? " ok" : ""}" role="status">${esc(m)}</p>` : "";
   }
   const AP_FOOT = `<div class="ap-foot"><a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a> · <a href="mailto:wonseo151@naver.com">문의</a></div>`;
@@ -5413,7 +5427,7 @@
             <div class="ap-c"><span class="ap-role">팀원</span><h2>초대 코드로 들어가기</h2><p>팀장에게 받은 6자리 코드를 붙여 넣으세요.</p>
               <div class="ap-code" role="group" aria-label="초대 코드 6자리">${boxes}</div><input type="hidden" id="lgCode" value="${esc(AP.code)}">
               <button class="n-new" data-act="lgjoin" ${AUTH.busy ? "disabled" : ""}>${AUTH.busy ? "확인 중…" : "들어가기"}</button></div>
-          </div>${authMsg()}${skip}</section>${AP_FOOT}</div>`;
+          </div>${authMsg()}${AUTH.spaces.length ? `<p class="ap-mine">내 팀 다시 열기 ${AUTH.spaces.map((x) => `<button class="nc-a" data-act="lgswitch" data-id="${esc(x.id)}">${esc(x.name)}</button>`).join("")}</p>` : ""}${skip}</section>${AP_FOOT}</div>`;
     }
     if (el.__h !== h) { el.innerHTML = h; el.__h = h; }
   }
@@ -5812,7 +5826,7 @@
       case "ipparse": { if (IMP.src !== "image") IMP.alts = null; const ta = document.getElementById("ipText"); if (ta) IMP.text = ta.value; const tm = document.getElementById("ipTeam"); if (tm) IMP.team = tm.value; if (IMP.src !== "image") IMP.src = "text"; IMP.file = IMP.src === "image" ? IMP.file : "텍스트"; IMP.msg = ""; parseText(); break; }
       case "ipour": { const tm = document.getElementById("ipTeam"); if (tm) IMP.team = tm.value; const ta = document.getElementById("ipText"); if (ta) IMP.text = ta.value; IMP.our = el.dataset.v === "1"; if (IMP.parsed && IMP.src !== "file") parseText(); else render(); break; }
       case "impclear": IMP.parsed = null; IMP.diff = null; IMP.json = null; IMP.file = ""; IMP.msg = ""; render(); break;
-      case "wipe": if (confirm("모든 입력(챔프폭·밴픽·피어리스)을 처음 상태로 되돌릴까요?")) { S = fresh(); E.setOurTeam(S.ourTeam); save(); render(); } break;
+      case "wipe": if (confirm(`이 브라우저의 lolban 자료(밴픽 진행·저장한 밴픽·챔프폭 입력·팀 연결)를 모두 지우고 팀 없는 상태로 돌아갈까요?\n서버에 있는 팀 자료${SESS ? "와 로그인" : ""}은 그대로입니다.`)) wipeAll("데이터를 초기화했습니다 — 새 팀을 만들거나 초대 코드로 들어오세요"); break;
     }
   });
   // ---- 챔프 찾기 목록(11-22 사용자: 미리 밴·목표 챔프·챔프폭 넣기를 「초상화 + 이름」으로, 「리 신」 Enter에 신 짜오가 같이 들어가던 문제) ----
@@ -6486,6 +6500,7 @@
   ensureSpaceTeam(JUST_JOINED);
   if (guest() && S.tab === "our") S.tab = "live";   // 손님은 실시간 밴픽으로 시작(로그인 화면은 사이드바에서)
   if ((JUST_LOGGED || LOGIN_ERR) && guest()) S.tab = "our";   // 막 로그인했는데 팀이 없거나 로그인이 실패했으면 그 화면(안내가 보이게)
+  { let m = ""; try { m = sessionStorage.getItem("lolban.wiped") || ""; sessionStorage.removeItem("lolban.wiped"); } catch (e) { m = ""; } if (m) { AUTH.msg = m; S.tab = "our"; } }   // 데이터 초기화·탈퇴 뒤: 팀 만들기 화면 + 안내
   render();
   checkSpace();
   loadSelfEval();
