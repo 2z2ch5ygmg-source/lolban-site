@@ -238,10 +238,12 @@
     return games;
   }
   // 시리즈 끝(11-21 사용자: 3연패로 끝났는데 5세트까지 계속 감): 5판 3선승 — 한쪽이 3승이면 끝, 최종 결과를 저장한 밴픽에 남김
-  const SERIES_WIN = 3;
+  //   11-22 사용자: 3판 2선승·5판 3선승을 시작할 때 고름(sr.bo = 3 | 5, 고르기 전·예전 기록은 5판 3선승)
+  const seriesBo = (sr) => (sr && sr.bo === 3 ? 3 : 5);
+  const boTxt = (bo) => (bo === 3 ? "3판 2선승" : "5판 3선승");
   function seriesOver(sr) {
-    const g = (sr && sr.games) || [], w = g.filter((x) => x.result === "W").length, l = g.filter((x) => x.result === "L").length;
-    return w >= SERIES_WIN ? { r: "W", w, l } : l >= SERIES_WIN ? { r: "L", w, l } : null;
+    const g = (sr && sr.games) || [], w = g.filter((x) => x.result === "W").length, l = g.filter((x) => x.result === "L").length, need = seriesBo(sr) === 3 ? 2 : 3;
+    return w >= need ? { r: "W", w, l } : l >= need ? { r: "L", w, l } : null;
   }
   const finalTxt = (o) => (o ? `최종 ${o.r === "W" ? "승리" : "패배"} ${o.w}:${o.l}` : "");
   // 팀 공유 연습 기록(11-21 사용자): 서버 /series(팀 공간마다) + 이 브라우저 기록을 합쳐 보여 줌. 팀 방에서는 진행자만 올림(같은 시리즈가 두 번 생기지 않게)
@@ -275,7 +277,7 @@
     const games = seriesRecord();
     if (!games.length) { if (!quiet) alert("저장할 밴픽이 없습니다."); return; }
     if (!S.series.sid) S.series.sid = "s" + Date.now().toString(36);
-    const rec = { sid: S.series.sid, at: nowKST(), ourTeam: S.ourTeam, ourName: teamName(S.ourTeam), enemyTeam: S.enemyTeam, enemyName: teamName(S.enemyTeam), mode: S.series.mode, games, final: seriesOver(S.series) };
+    const rec = { sid: S.series.sid, at: nowKST(), ourTeam: S.ourTeam, ourName: teamName(S.ourTeam), enemyTeam: S.enemyTeam, enemyName: teamName(S.enemyTeam), mode: S.series.mode, bo: seriesBo(S.series), games, final: seriesOver(S.series) };
     games.forEach((g) => { if (g.enemyTeam) g.enemyName = teamName(g.enemyTeam); });
     const prev = loadSaved().find((x) => x.sid === rec.sid);   // 저장 목록에서 고른 승·패는 다시 저장해도 유지
     if (prev) games.forEach((g) => { const o = prev.games.find((x) => x.game === g.game); if (!g.result && o && o.result) g.result = o.result; });
@@ -556,7 +558,7 @@
     const vs = `<span class="mh-t">${side("our", ourName, crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b"), "tb")}<span class="vs">VS</span>${side("enemy", en && !en.solo ? en.name : "솔랭·자랭", crestOf(en && !en.solo ? en : { name: "솔" }, "r"), "tr")}</span>`;
     const since = md(PREP.since || (window.RECENT && window.RECENT.since) || "2026-11-10");
     let c;
-    if (S.tab === "live") c = `${vs}<span class="mh-s">${seriesOver(S.series) ? `시리즈 끝 · ${finalTxt(seriesOver(S.series))}` : `${S.series.game}세트${S.series.mode !== "off" ? ` · 피어리스 잠금 ${(S.series.locked || []).length}` : " · 피어리스 끔"}`}</span>`;
+    if (S.tab === "live") c = `${vs}<span class="mh-s">${seriesOver(S.series) ? `시리즈 끝 · ${finalTxt(seriesOver(S.series))}` : `${S.series.game}세트 · ${boTxt(seriesBo(S.series))}${S.series.mode !== "off" ? ` · 피어리스 잠금 ${(S.series.locked || []).length}` : " · 피어리스 끔"}`}</span>`;
     else if (S.tab === "enemy") c = `${vs}<span class="mh-s">${S.ui.enView === "comps" ? "예상 조합 · 상황별" : "상대 분석"} · ${since}~ 랭크 기준</span>`;
     else if (S.tab === "our" && needOnboard()) c = `<b class="mh-t">${SESS ? "팀 만들기 · 들어가기" : "로그인"}</b><span class="mh-s">${SESS ? "팀장은 팀을 만들고 6자리 초대 코드를 팀원에게" : "구글·네이버로 로그인 · 팀원은 초대 코드로 들어옴"}</span>`;
     else if (S.tab === "our") {
@@ -895,10 +897,10 @@
     const list = allSaved().filter((r) => r.enemyTeam === en.id && (!r.ourTeam || r.ourTeam === S.ourTeam));
     const head = `<h3 class="h-h">우리 팀과 한 연습 결과<small>${list.length ? `${list.length}번 · ${seriesCanSrv() ? "팀 공유" : "이 브라우저에 저장"}` : "실시간 밴픽 기록"}</small></h3>`;
     if (!list.length) return `<section class="h-sec">${head}${emptyBox("draft", "아직 우리 팀과 한 연습 기록이 없습니다", "실시간 밴픽에서 세트 결과(승·패)를 고르면 여기에 쌓입니다")}</section>`;
-    const tot = list.reduce((a, r) => { const f = r.final || seriesOver({ games: r.games }); if (f) a[f.r]++; r.games.forEach((g) => { if (g.result) a["g" + g.result]++; }); return a; }, { W: 0, L: 0, gW: 0, gL: 0 });
+    const tot = list.reduce((a, r) => { const f = r.final || seriesOver({ games: r.games, bo: r.bo }); if (f) a[f.r]++; r.games.forEach((g) => { if (g.result) a["g" + g.result]++; }); return a; }, { W: 0, L: 0, gW: 0, gL: 0 });
     const picks = (g, who) => { const ids = g.partial ? g.picks.filter((x) => x.who === who).map((x) => x.id) : (g.steps || []).filter((s) => s.t === "pick" && s.champ && (s.side === g.ourSide) === (who === "our")).map((s) => s.champ);
       return ids.filter((id) => CH[id]).map((id) => `<span title="${esc(CH[id].ko)}">${icon(id, "xs")}</span>`).join(""); };
-    const rows = list.slice(0, 8).map((r) => { const f = r.final || seriesOver({ games: r.games });
+    const rows = list.slice(0, 8).map((r) => { const f = r.final || seriesOver({ games: r.games, bo: r.bo });
       return `<div class="vr"><span class="vr-h"><b>${esc(r.at)}</b>${r.by ? `<span class="help">진행 ${esc(r.by)}</span>` : ""}${f ? `<b class="sv-fin ${f.r === "W" ? "w" : "l"}">${finalTxt(f)}</b>` : `<span class="help">진행 중 저장</span>`}</span>
         <div class="vr-gs">${r.games.map((g) => `<span class="vr-g"><i class="${g.result === "W" ? "w" : g.result === "L" ? "l" : ""}">${g.game}</i><span class="vr-p our">${picks(g, "our")}</span><small>vs</small><span class="vr-p">${picks(g, "enemy")}</span></span>`).join("")}</div></div>`; }).join("");
     return `<section class="h-sec">${head}<div class="vr-sum"><span>시리즈 <b class="w">${tot.W}승</b> <b class="l">${tot.L}패</b></span><span>세트 <b class="w">${tot.gW}승</b> <b class="l">${tot.gL}패</b></span></div><div class="vr-list">${rows}</div></section>`;
@@ -2463,7 +2465,7 @@
   const liveCan = () => !!(SPACE && !SPACE.bad && WURL() && typeof WebSocket !== "undefined");
   function liveSnap() {
     const sr = S.series;
-    return JSON.stringify({ draft: { ourSide: S.draft.ourSide, steps: S.draft.steps, idx: S.draft.idx }, series: { game: sr.game, mode: sr.mode, locked: sr.locked || [], games: sr.games || [] },
+    return JSON.stringify({ draft: { ourSide: S.draft.ourSide, steps: S.draft.steps, idx: S.draft.idx }, series: { game: sr.game, mode: sr.mode, locked: sr.locked || [], games: sr.games || [], ...(sr.bo ? { bo: sr.bo } : {}) },
       enemyTeam: S.tab === "live" || !LIVE.data ? S.enemyTeam : LIVE.data.enemyTeam,
       // 고른 추천 조합·목표 챔프(11-20 사용자: 브라우저마다 추천이 달랐음 — 팀원이 각자 고른 조합으로 계산됐기 때문). 진행자 것으로 모두 같게
       plan: { scen: S.ui.scen || "", goals: glIds("goal").slice(0, 3), bans: glIds("ban").slice(0, 5) } });
@@ -2485,6 +2487,7 @@
       S.draft.idx = Math.max(0, Math.min(S.draft.steps.length, d.draft.idx | 0));
       const sr = d.series || {};
       S.series.game = sr.game || 1; S.series.mode = sr.mode === "off" ? "off" : "hard";
+      if (sr.bo === 3 || sr.bo === 5) S.series.bo = sr.bo;   // 판수는 진행자가 고름(앱처럼 판수를 안 보내는 진행자면 이 브라우저 것 그대로)
       S.series.locked = (sr.locked || []).filter((x) => CH[x.id]); S.series.games = sr.games || [];
       if (d.plan && typeof d.plan === "object") { S.ui.scen = typeof d.plan.scen === "string" ? d.plan.scen : ""; S.ui.goal = { ids: (Array.isArray(d.plan.goals) ? d.plan.goals : []).filter((id) => CH[id]).slice(0, 3) }; S.ui.banGoal = { ids: (Array.isArray(d.plan.bans) ? d.plan.bans : []).filter((id) => CH[id]).slice(0, 5) }; }
       LIVE.last = liveSnap();
@@ -2560,7 +2563,7 @@
     if (!LIVE.fresh || LIVE.status !== "on") return;
     if (!isHost()) { if (liveOwner() && LIVE.ws && LIVE.ws.readyState === 1) LIVE.ws.send(JSON.stringify({ t: "take" })); return; }
     LIVE.fresh = false;
-    S.draft.steps = emptySteps(); S.draft.idx = 0; S.series.game = 1; S.series.locked = []; S.series.games = [];
+    S.draft.steps = emptySteps(); S.draft.idx = 0; S.series.game = 1; S.series.locked = []; S.series.games = []; delete S.series.bo;   // 판수는 새로 고름
     LIVE.seenTab = "live";   // 막 들어온 페이지: 저장할 때 방의 옛 상태로 되돌리지 않게
     save(); liveSend(); render(); toast("새 밴픽을 시작합니다");
   }
@@ -2575,11 +2578,24 @@
     try { const res = await wfetch("/draft/peek"); const d = await res.json().catch(() => ({})); if (res.ok && d.status === "ok") LIVE.peek = d; } catch (e) { /* 연결 없음 → 기본 선택 */ }
     clearTimeout(t); liveEntryUpdate();
   }
+  // 판수 고르기(11-22 사용자: 실시간·혼자 하기를 먼저, 그다음 3판 2선승·5판 3선승): 새 시리즈를 시작할 때 한 번.
+  //   팀 방에 참가만 한 팀원은 진행자가 고른 판수를 받음 · 솔랭·자랭 상대는 시리즈가 없어 묻지 않음
+  const freshSeries = () => S.series.game === 1 && S.draft.idx === 0 && !(S.series.games || []).length && !(S.series.locked || []).length;
+  const boAsk = () => S.tab === "live" && !S.series.bo && !isSolo(S.enemyTeam) && freshSeries()
+    && (!liveCan() || (LIVE.entry === "done" && (S.ui.soloDraft || isHost() || liveOwner())));
+  function boPick(v) {
+    const bo = v === "3" ? 3 : 5;
+    S.series.bo = bo; save(); if (liveOn() && isHost()) liveSend();
+    liveEntryUpdate(); render(); toast(`${boTxt(bo)} 시리즈로 시작합니다`);
+  }
   function liveEntryHtml() {
     const pk = LIVE.peek, owner = liveOwner();
     const B = (v, txt, cls) => `<button class="lve-b ${cls || ""}" data-act="lventry" data-v="${v}">${txt}</button>`;
     let h, p, btns;
-    if (owner && pk && pk.progress) {
+    if (LIVE.entry !== "ask") {
+      h = "몇 판으로 할까요?"; p = S.series.mode !== "off" ? "시리즈가 끝나기 전까지 쓴 챔프는 다시 못 씁니다(피어리스)." : "";
+      btns = ["3", "5"].map((v, i) => `<button class="lve-b ${i ? "" : "pri"}" data-act="lvbo" data-v="${v}">${boTxt(Number(v))}</button>`).join("");
+    } else if (owner && pk && pk.progress) {
       h = "하다가 멈춘 밴픽이 있습니다";
       p = pk.idx > 0 ? `${pk.game}세트 · ${pk.idx} / 20까지 진행했습니다. 이어서 할까요?` : `${pk.game}세트 시작 전 · 앞 세트 ${pk.games}개 기록이 있습니다. 이어서 할까요?`;
       btns = B("resume", "이어서 하기", "pri") + B("fresh", "새로 시작") + B("solo", "혼자 하기", "ghost");
@@ -2591,11 +2607,11 @@
       p = !pk ? "팀원과 같은 화면으로 볼까요, 혼자 할까요?" : pk.ownerOn ? `팀장이 들어와 있습니다${pk.host ? ` · 진행 ${esc(pk.host)}` : ""}` : "팀장이 아직 들어오지 않았습니다 — 참가하면 팀장을 기다립니다";
       btns = B("live", "실시간 밴픽 참가", "pri") + B("solo", "혼자 하기");
     }
-    return `<div class="lve-bg"></div><section class="lve" role="dialog" aria-modal="true" aria-labelledby="lveH"><span class="lve-ic" aria-hidden="true">${lbi("draft", 28)}</span><h2 id="lveH">${h}</h2><p>${p}</p><div class="lve-bs">${btns}</div></section>`;
+    return `<div class="lve-bg"></div><section class="lve" role="dialog" aria-modal="true" aria-labelledby="lveH"><span class="lve-ic" aria-hidden="true">${lbi("draft", 28)}</span><h2 id="lveH">${h}</h2>${p ? `<p>${p}</p>` : ""}<div class="lve-bs">${btns}</div></section>`;
   }
   function liveEntryUpdate() {
     let el = document.getElementById("lventry");
-    const on = S.tab === "live" && LIVE.entry === "ask" && liveCan() && (LIVE.peek || !LIVE.ws);
+    const on = (S.tab === "live" && LIVE.entry === "ask" && liveCan() && (LIVE.peek || !LIVE.ws)) || boAsk();
     if (!on) { if (el) el.remove(); return; }
     if (!el) { el = document.createElement("div"); el.id = "lventry"; document.body.appendChild(el); }
     const h = liveEntryHtml(); if (el.__h !== h) { el.innerHTML = h; el.__h = h; const b = el.querySelector(".lve-b.pri"); if (b) b.focus({ preventScroll: true }); }
@@ -5124,7 +5140,7 @@
       ${st[1] === "ban" ? `<button class="ib btn" data-act="skip" aria-label="넘기기" title="넘기기">${ico("skip")}</button>` : ""}<button class="ib btn" data-act="undo" ${S.draft.idx ? "" : "disabled"} aria-label="되돌리기" title="되돌리기">${ico("undo")}</button>`;
     return `<div class="mv mv-live">
       <header class="mv-h mv-lh"><span class="mv-side ${ourSide}">${ourSide === "B" ? "블루" : "레드"}</span><b class="mv-vs"><span class="o">${esc(E.teamOf(S, "our").name)}</span><small>vs</small><span class="e">${esc(E.teamOf(S, "enemy").name)}</span></b><button class="mv-more" data-act="mmore" aria-label="세트·데이터 메뉴" aria-expanded="${MV.more}">${DOTS}</button></header>
-      <div class="mv-turnbar ${st ? (who === "our" ? "o" : "e") : "done"}"><span class="dot" aria-hidden="true"></span><b>${turn}</b><span class="n">${st ? S.draft.idx + 1 : 20} / 20</span><span class="set">${S.series.game}세트</span></div>
+      <div class="mv-turnbar ${st ? (who === "our" ? "o" : "e") : "done"}"><span class="dot" aria-hidden="true"></span><b>${turn}</b><span class="n">${st ? S.draft.idx + 1 : 20} / 20</span><span class="set">${S.series.game}세트 · ${seriesBo(S.series)}판</span></div>
       ${liveCan() ? `<div class="livebar mv-livebar" aria-live="polite">${liveBarHtml()}</div>` : ""}
       <section class="mv-board" aria-label="밴픽 판">${row("our", ourSide)}${row("enemy", enSide)}<div class="mv-bans"><span>밴</span>${bans(ourSide)}${bans(enSide)}</div></section>
       <section class="mv-now" aria-label="지금 차례 추천">${renderNow()}</section>
@@ -5521,6 +5537,7 @@
       case "livecancel": LIVE.popOpen = false; if (LIVE.ws && LIVE.ws.readyState === 1) LIVE.ws.send('{"t":"cancel"}'); liveBarUpdate(); break;
       case "livesolo": LIVE.popOpen = false; liveSolo(el.dataset.v === "1"); liveBarUpdate(); break;
       case "lventry": liveEntry(el.dataset.v); break;
+      case "lvbo": boPick(el.dataset.v); break;
       case "liveretry": LIVE.retry = 0; clearTimeout(LIVE.timer); LIVE.status = "connecting"; liveBarUpdate(); liveConnect(); break;
       case "pick": choose(el.dataset.id, el.dataset.role); break;
       case "chdet": openChampDetail(el.dataset.id, el.dataset.role, el); break;
@@ -5547,7 +5564,7 @@
         break;
       }
       case "savedRes": { const list = loadSaved(), loc = list.find((x) => x.sid === el.dataset.sid), r = loc || allSaved().find((x) => x.sid === el.dataset.sid), g = r && r.games.find((x) => String(x.game) === el.dataset.g);
-        if (g) { g.result = g.result === el.dataset.v ? null : el.dataset.v; r.final = seriesOver({ games: r.games }); if (loc) writeSaved(list); if (seriesCanSrv()) seriesPost({ op: "put", rec: r }).then(() => render()).catch(() => {}); S.ui.savedOpen = r.sid; render(); } break; }
+        if (g) { g.result = g.result === el.dataset.v ? null : el.dataset.v; r.final = seriesOver({ games: r.games, bo: r.bo }); if (loc) writeSaved(list); if (seriesCanSrv()) seriesPost({ op: "put", rec: r }).then(() => render()).catch(() => {}); S.ui.savedOpen = r.sid; render(); } break; }
       case "saveSeries": saveSeries(); break;
       case "savedDel": { const list = loadSaved(), r = allSaved().find((x) => x.sid === el.dataset.sid);
         if (r && confirm(`${r.at} · ${r.enemyName} 상대 ${r.games.length}세트 기록을 지울까요? 팀원 모두에게서 지워집니다.`)) { writeSaved(list.filter((x) => x.sid !== r.sid)); if (seriesCanSrv()) seriesPost({ op: "del", sid: r.sid }).then(() => render()).catch(() => {}); render(); } break; }
