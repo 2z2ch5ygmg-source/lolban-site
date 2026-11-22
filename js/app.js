@@ -6055,10 +6055,12 @@
     if (!SH.url) return;
     let changed = false;
     try {
-      const res = await wfetch(`/selfeval?team=all`);
+      // 읽기 줄이기(11-22): 이 팀 공간에서 받은 마지막 판 번호를 보내면 서버는 그새 저장이 없을 때 칸을 읽지 않고 unchanged만 줌
+      const sid = SPACE && SPACE.id, since = SH.rev && SH.revSpace === sid ? `&since=${SH.rev}` : "";
+      const res = await wfetch(`/selfeval?team=all${since}`);
       const d = await res.json().catch(() => ({}));
       if (!res.ok || d.status !== "ok") throw new Error(d.reason || "HTTP " + res.status);
-      S.teams.filter((t) => shareable(t.id)).forEach((t) => ROLES.forEach((r) => {
+      if (!d.unchanged) S.teams.filter((t) => shareable(t.id)).forEach((t) => ROLES.forEach((r) => {
         if (SH.pending[t.id + "|" + r]) return;   // 내가 방금 바꾼 칸은 저장이 끝날 때까지 그대로
         const v = d.teams && d.teams[t.id] && d.teams[t.id][r], p = t.players[r];
         // 공유 저장소는 읽기가 최대 60초 늦게 바뀐다: 이 브라우저가 방금 저장한 것보다 옛 값이면 덮지 않는다
@@ -6078,7 +6080,7 @@
         if (!sameJ(p.hide || [], v.hide || [])) { p.hide = v.hide || []; changed = true; }   // 기록에서 뺀 챔프도 팀원끼리 같게
         p.sharedAt = v.at; if (v.rev) p.sharedRev = v.rev;
       }));
-      Object.assign(SH, { status: "ok", err: "" });
+      Object.assign(SH, { status: "ok", err: "", rev: Number(d.rev) || 0, revSpace: sid });
     } catch (err) { Object.assign(SH, { status: "error", err: String(err.message || err) }); }
     if (changed) {
       save(); render();
