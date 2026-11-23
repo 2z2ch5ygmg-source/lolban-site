@@ -383,6 +383,10 @@ window.Engine = (function () {
     if (tot < 30) return null;
     PRO_TIMING = {};
     ROLES.forEach((r) => { PRO_TIMING[r] = { first: Math.round(((first[r] || 0) / tot) * 100), avg: ord[r] ? Math.round((ord[r][0] / ord[r][1]) * 100) / 100 : 3 }; });
+    // 픽 칸별 라인 비율(%): slot[0] = 1픽 … slot[9] = 10픽. 칸마다 300판 이상일 때만
+    if (Array.isArray(P.slotRole) && P.slotRole.length === 10) {
+      PRO_TIMING.slot = P.slotRole.map((x) => { const n = ROLES.reduce((a, r) => a + (x[r] || 0), 0); if (n < 300) return null; const o = {}; ROLES.forEach((r) => { o[r] = Math.round(((x[r] || 0) / n) * 100); }); return o; });
+    }
     return PRO_TIMING;
   }
   // 먼저 보여도 되는 챔프인가: 그 라인 맞상대 전적(META.mu, 80판 이상)에서 아직 남아 있는 상대 중 불리한(승률 47.5% 미만) 상대 비율
@@ -1105,9 +1109,22 @@ window.Engine = (function () {
           // 선픽 판단: 그 라인 상대가 아직 안 보였을 때만(보였으면 아래 카운터 계산이 대신함)
           if (!theirs.some((t) => t.role === r)) {
             const early = mine.length < 2, T = timing && timing[r];
-            if (early && T) {
+            // 지금 픽 칸(전체 10칸 중 몇 번째)에서 대회 팀이 이 라인을 뽑은 비율 — 5라인 고르게면 20%
+            const slot = mine.length + theirs.length, sr = timing && timing.slot && timing.slot[slot];
+            if (early && sr && sr[r] != null) {
+              const v = Math.max(-2, Math.min(3, Math.round((sr[r] - 20) / 6 * 2) / 2));
+              if (v >= 1) { s += v; reasons.push({ t: "선픽 라인", d: `대회에서 ${slot + 1}번째 픽 칸의 ${sr[r]}%가 ${ROLE_KO[r]} → 이 순서에 많이 뽑는 라인`, v }); }
+              else if (v <= -1) { s += v; reasons.push({ t: "후픽 라인", d: `대회에서 ${slot + 1}번째 픽 칸은 ${ROLE_KO[r]}가 ${sr[r]}%뿐 → 보통 상대를 보고 뽑는 라인`, v }); }
+            } else if (early && T) {
               if (T.first >= 20) { s += 3; reasons.push({ t: "선픽 라인", d: `대회 1픽의 ${T.first}%가 ${ROLE_KO[r]} · 평균 ${T.avg}번째 픽 → 먼저 뽑아도 손해가 적음`, v: 3 }); }
               else if (T.avg >= 3.3) { s -= 2; reasons.push({ t: "후픽 라인", d: `${j(ROLE_KO[r], "은", "는")} 대회에서 평균 ${T.avg}번째 픽 → 상대를 보고 뽑는 라인`, v: -2 }); }
+            }
+            // 대회에서 맞라인을 모른 채 뽑았을 때(먼저 보였을 때)의 승률: 40판 이상인 챔프만
+            const pb = early && window.PRO && window.PRO.blind && window.PRO.blind[c.id + "|" + r];
+            if (pb && pb[0] >= 40) {
+              const bw = Math.round((pb[1] / pb[0]) * 100), sw = pb[2] >= 20 ? Math.round((pb[3] / pb[2]) * 100) : null;
+              if (bw >= 53) { s += 2; reasons.push({ t: "대회 선픽 승률", d: `대회에서 먼저 뽑은 ${pb[0]}판 승률 ${bw}% → 먼저 보여도 잘 버팀`, v: 2 }); }
+              else if (bw <= 46 && (sw == null || sw - bw >= 6)) { s -= 2; reasons.push({ t: "대회 선픽 약함", d: `대회에서 먼저 뽑은 ${pb[0]}판 승률 ${bw}%${sw != null ? `(보고 뽑으면 ${sw}%)` : ""} → 뒤에 뽑는 게 나음`, v: -2 }); }
             }
             const po = early && window.PRO && window.PRO.pickOrder && window.PRO.pickOrder[c.id];
             if (po && po[1] >= 20 && po[0] <= 2.3) { s += 3; reasons.push({ t: "대회 선픽", d: `대회 평균 ${po[0]}번째 픽(${po[1]}판) → 먼저 가져가는 챔프`, v: 3 }); }
