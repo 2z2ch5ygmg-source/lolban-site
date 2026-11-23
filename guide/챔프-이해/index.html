@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>롤 챔프 이해 공부 - 핵심 정리 59가지 | 롤벤</title>
+<meta name="description" content="리그 오브 레전드 챔프 이해 이론 59가지를 정리했습니다. 솔랭용 미드 챔프 기준, 르블랑 콤보와 딜교, 딜량 1등 제대로 보기 등 — 언제 쓰는지와 흔한 실수까지.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://lolban.com/guide/%EC%B1%94%ED%94%84-%EC%9D%B4%ED%95%B4/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="롤벤 lolban">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:url" content="https://lolban.com/guide/%EC%B1%94%ED%94%84-%EC%9D%B4%ED%95%B4/">
+<meta property="og:title" content="롤 챔프 이해 공부 - 핵심 정리 59가지 | 롤벤">
+<meta property="og:description" content="리그 오브 레전드 챔프 이해 이론 59가지를 정리했습니다. 솔랭용 미드 챔프 기준, 르블랑 콤보와 딜교, 딜량 1등 제대로 보기 등 — 언제 쓰는지와 흔한 실수까지.">
+<meta property="og:image" content="https://lolban.com/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="/img/lolban-favicon.svg">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","@id":"https://lolban.com/guide/%EC%B1%94%ED%94%84-%EC%9D%B4%ED%95%B4/#page","url":"https://lolban.com/guide/%EC%B1%94%ED%94%84-%EC%9D%B4%ED%95%B4/","headline":"롤 챔프 이해 — 핵심 정리 59가지","name":"롤 챔프 이해 공부 - 핵심 정리 59가지 | 롤벤","description":"리그 오브 레전드 챔프 이해 이론 59가지를 정리했습니다. 솔랭용 미드 챔프 기준, 르블랑 콤보와 딜교, 딜량 1등 제대로 보기 등 — 언제 쓰는지와 흔한 실수까지.","inLanguage":"ko-KR","isPartOf":{"@id":"https://lolban.com/#site"},"publisher":{"@type":"Organization","name":"롤벤 lolban","url":"https://lolban.com/"},"image":"https://lolban.com/img/og.png"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"롤벤","item":"https://lolban.com/"},{"@type":"ListItem","position":2,"name":"가이드","item":"https://lolban.com/guide/"},{"@type":"ListItem","position":3,"name":"롤 챔프 이해 — 핵심 정리 59가지","item":"https://lolban.com/guide/%EC%B1%94%ED%94%84-%EC%9D%B4%ED%95%B4/"}]}]}</script>
+<style>:root{--bg:#F4F3EF;--panel:#fff;--text:#16161A;--muted:#5C5D66;--dim:#8A8B94;--line:#E4E3DD;--hi:#5B3FE0;--hi-bg:rgba(91,63,224,.08)}
+@media (prefers-color-scheme:dark){:root{--bg:#0D0D0F;--panel:#17171A;--text:#F2F2F4;--muted:#A9AAB0;--dim:#74757E;--line:#27272C;--hi:#C8F031;--hi-bg:rgba(200,240,49,.10)}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.7;word-break:keep-all;overflow-wrap:anywhere}
+a{color:var(--hi)}
+.top{border-bottom:1px solid var(--line)}.top-in,main,footer{max-width:760px;margin:0 auto;padding:0 20px}
+.top-in{display:flex;align-items:center;gap:18px;height:60px}
+.logo{font-weight:800;font-size:20px;letter-spacing:-.02em;color:var(--text);text-decoration:none}.logo i{color:var(--hi);font-style:normal}
+.top nav{display:flex;gap:14px;margin-left:auto;font-size:14px;font-weight:600;white-space:nowrap;overflow-x:auto}.top nav a{color:var(--muted);text-decoration:none}.top nav a:hover{color:var(--text)}
+main{padding-top:28px;padding-bottom:48px}
+.crumb{font-size:13px;color:var(--dim);margin:0 0 10px}.crumb a{color:var(--dim)}
+h1{font-size:28px;line-height:1.3;letter-spacing:-.02em;margin:0 0 12px}
+.lead{font-size:16px;color:var(--muted);margin:0 0 26px}
+h2{font-size:20px;line-height:1.4;letter-spacing:-.01em;margin:34px 0 8px}
+h3{font-size:15px;margin:14px 0 4px;color:var(--muted)}
+p{margin:0 0 12px}ul{margin:0 0 12px;padding-left:20px}li{margin:3px 0}
+.it{background:var(--panel);border-radius:16px;padding:18px 20px;margin:14px 0}.it h2{margin:0 0 8px;font-size:18px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--hi-bg);color:var(--hi);margin-right:6px}
+.src{font-size:13px;color:var(--dim);margin:8px 0 0}.src a{color:var(--dim)}
+.cta{display:block;background:var(--hi-bg);border-radius:16px;padding:16px 20px;margin:28px 0 0;font-weight:700;text-decoration:none}
+.list{list-style:none;padding:0;display:grid;gap:10px}.list li{margin:0}.list a{display:block;background:var(--panel);border-radius:14px;padding:14px 18px;text-decoration:none;color:var(--text)}.list a b{display:block;font-size:16px}.list a span{font-size:13.5px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:0 0 14px}th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:700}
+footer{padding-top:18px;padding-bottom:40px;border-top:1px solid var(--line);font-size:12.5px;color:var(--dim)}footer a{color:var(--dim)}</style>
+</head>
+<body>
+<header class="top"><div class="top-in"><a class="logo" href="/">lolban<i>.</i></a><nav aria-label="메뉴"><a href="/draft/">피어리스 밴픽</a><a href="/scrim/">내전 구인</a><a href="/study/">공부자료</a><a href="/guide/">가이드</a></nav></div></header>
+<main>
+<p class="crumb"><a href="/">롤벤</a> › <a href="/guide/">가이드</a> › 챔프 이해</p>
+<h1>롤 챔프 이해 — 핵심 정리 59가지</h1>
+<p class="lead">미드·운영·탑·정글·원딜·서폿 관점에서 본 챔프 이해 이론 59가지입니다. 항목마다 핵심, 쓰는 때, 흔한 실수를 정리했고, 문제 풀이는 공부자료에서 이어서 할 수 있습니다.</p>
+<section class="it"><h2>솔랭용 미드 챔프 기준</h2>
+<p><span class="tag">미드</span></p>
+<p>지금 미드는 혼자 캐리하기보다 판을 만들어 주는 자리라, 라인 클리어가 좋고 CC가 있어 6레벨 이후 한타 기여가 큰 챔프가 좋다. 티어를 올리려면 쉽고 저점이 높은 챔프를 고른다.</p>
+<ul><li>오리아나·갈리오·애니·탈리야: 라인 푸시·CC·한타 기여</li><li>야스오·요네·아칼리·사일러스는 메타와 안 맞음(영상 올린 2025-10 기준)</li><li>손이 많이 가는 챔프보다 쉬운 챔프가 승률에 유리</li><li>저점이 높은 챔프 = 못 풀려도 최소 역할은 하는 챔프</li></ul>
+<h3>언제 쓰나</h3><p>솔로 랭크 주력 미드 챔프를 고를 때</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=6sFgY4xdfxQ" rel="noopener nofollow" target="_blank">브실골이 티어 못올리는 이유</a> (롤미키 [LoL Mickey]) · <a href="https://www.youtube.com/watch?v=dxgZCpMNYcQ" rel="noopener nofollow" target="_blank">전프로가 알려주는 솔랭 이기는 팁</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>르블랑 콤보와 딜교</h2>
+<p><span class="tag">미드</span></p>
+<p>르블랑은 W로 붙고 바로 Q를 쓰는 순서가 상대가 움직일 틈을 줄인다. 라인전에선 W로 미니언을 깎아 두고 평타·Q로 딜하며, 킬각에서는 표식을 한 번 더 터뜨리려고 E를 늦게 쓴다.</p>
+<ul><li>W로 붙고 바로 Q: 상대가 피할 틈이 적어 E·표식 연결이 쉽다</li><li>W·Q 거리가 안 나오면 W로 미니언을 깎아 두고 평타+Q로 딜</li><li>초반 딜은 감전 위주로 넣는다</li><li>킬각이면 E를 아껴 두고 Q·W로 감전을 터뜨린 뒤 평타를 친다</li><li>Q 쿨이 2초쯤 남았을 때 E를 써 표식을 한 번 더 터뜨린다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=OPCxY5SvXsU" rel="noopener nofollow" target="_blank">전프로 미드가 알려주는 르블랑 팁</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>딜량 1등 제대로 보기</h2>
+<p><span class="tag">운영</span></p>
+<p>멀리서 긁는 포킹 챔피언은 이기든 지든 딜량이 높게 나오니 딜 1등이 자랑이 아니다. 적진으로 파고들어야 딜이 나오는 챔피언이 1등이면 정말 잘한 것이고, 탱커가 딜 1등이면 보통 진 판이다.</p>
+<ul><li>포킹 챔프(예: 이즈리얼)는 딜 넣기가 쉬워 딜량이 높다</li><li>포킹 챔프의 딜 1등은 실력 증거가 아니다</li><li>파고들어야 하는 챔프(예: 라이즈)의 딜 1등은 잘한 것</li><li>탱커가 딜 1등이면 보통 딜러들이 못 해서 진 판</li><li>딜량은 챔피언 특성과 함께 본다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=dQCTMWD1l04" rel="noopener nofollow" target="_blank">클템이 말하는 딜량 1등 (이즈리얼 1등은 자랑이 아닌 이유)</a> (한판 더)</p>
+</section>
+<section class="it"><h2>빅토르: 언제 뽑고 무엇을 조심하나</h2>
+<p><span class="tag">미드</span></p>
+<p>빅토르는 라인전 1대1에서는 거의 지지 않지만 생존기가 없어 갱·로밍·2대2에 약하다. 상대 조합을 보고 뽑는다.</p>
+<ul><li>라인전 카운터가 거의 없어 선픽도 무난하다</li><li>암살자는 1대1보다 갱·2대2·로밍으로 빅토르를 잡는다</li><li>로밍 서폿(레오나·블리츠·노틸러스·파이크) 상대가 가장 힘들다</li><li>탱커+하이퍼캐리 원딜 조합 상대로 특히 좋다</li><li>딜교는 주로 레이저로, Q는 평타까지 넣을 수 있을 때 쓴다</li></ul>
+<h3>언제 쓰나</h3><p>밴픽에서 빅토르 픽 여부를 정할 때</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=o6Re0dptxYw" rel="noopener nofollow" target="_blank">【빅토르 강의】카운터 없는 라인전 1황 【미드 강의】【전프로미드】【챌린저 미드】</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>갈리오: 라인전보다 게임 조율</h2>
+<p><span class="tag">미드</span></p>
+<p>갈리오는 라인을 이기려는 픽이 아니라 궁으로 맵 전체에 개입하는 픽이다. 라인전은 반반이면 성공, 대신 빠른 푸시와 합류가 핵심이다.</p>
+<ul><li>우리 정글이 AD거나 상대 미드·정글이 AP면 뽑기 좋다</li><li>루시안·코르키나 W를 끊는 챔프 상대 라인전은 힘들다</li><li>Q로 미니언 5마리 이상 맞혀 빨리 밀고 궁으로 로밍한다</li><li>붙어 있을 땐 E를 뒤로 써서 바로 띄우는 연습이 필수</li><li>싸움이 나면 미니맵 보고 텔+궁으로 합류, 1대1만 하지 않는다</li><li>한타에선 점멸로 적극 이니시하고 어그로를 받아준다</li></ul>
+<h3>언제 쓰나</h3><p>밴픽·갈리오로 게임을 풀어갈 때</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=fvbVIlSHj6s" rel="noopener nofollow" target="_blank">【갈리오 강의】페이커 쵸비 그리고 당신들 영웅 출현 차례입니다 【미드 강의】【전프로미드】【챌린저 미드】</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>저티어에서 쓰기 좋은 미드 챔프</h2>
+<p><span class="tag">미드</span></p>
+<p>쉬우면서 라인 클리어·교전이 무난한 챔프를 1~2개 파는 게 좋다. 어려운 챔프는 티어가 오른 뒤에 한다. (2025년 10월 영상 기준, 메타에 따라 바뀜)</p>
+<ul><li>추천: 갈리오·말자하·모르가나·제라스·조이·트페·피즈·오로라</li><li>벡스는 야스오·아칼리·사일러스·요네·르블랑 상대로 필수급</li><li>르블랑·애니도 돌진형 미드 상대로 쓸 만하다</li><li>티어 오른 뒤: 라이즈·아지르·탈리야·빅토르·사일러스</li><li>비추천: 럭스, 2대2가 약한 베이가, 라인전 뒤 수동적인 야스오</li><li>제드·제이스는 숙련도 대비 저티어 효율이 낮다</li></ul>
+<h3>언제 쓰나</h3><p>주력 미드 챔프를 정할 때</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=nY9zxBGjoUA" rel="noopener nofollow" target="_blank">저티어들이 쓸만한 미드 챔프들 정리해봤습니다</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>제드: 룬 선택과 표창 맞히기</h2>
+<p><span class="tag">미드</span></p>
+<p>낮은 티어에선 감전이 쉽고 킬각이 잘 나온다. 정복자는 난이도가 높은 대신 지속 견제와 어그로 돌리기에 강하다.</p>
+<ul><li>감전: 저점이 높고 W·궁으로 순간 암살에 유리</li><li>정복자: 고점이 높고 견제·그림자로 어그로 핑퐁하는 역할</li><li>그림자를 정면이 아닌 대각선 옆에 두면 표창이 덜 빗나간다</li><li>CC가 날아올 때 옆에 깔아 둔 W로 바로 바꿔 피한다</li><li>확실히 맞힐 거리면 W 뒤 바로 Q, 미리 W를 보여주지 않는다</li><li>(영상 시점 기준) 관통보다 쿨감이 중요한 흐름</li></ul>
+<h3>언제 쓰나</h3><p>제드 룬·딜교 연습</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=hJtA21okDUU" rel="noopener nofollow" target="_blank">【제드 강의】많은 분들이 요청하신 미키갓의 제드 강의【미드 강의】【전프로미드】【챌린저 미드】</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>탈리야 기초 세 가지</h2>
+<p><span class="tag">미드</span></p>
+<p>탈리야는 선픽해도 라인 카운터가 적다. 초반 선푸시, 스킬 아끼기, 3~4번째 웨이브 뒤 귀환 세 가지만 지켜도 쉽게 이긴다.</p>
+<ul><li>초반 라인 선푸시로 주도권부터 잡는다</li><li>Q는 미니언과 챔프를 함께 맞혀야 나중에 마나가 남는다</li><li>W는 확실할 때만, 이속 빠른 상대에겐 오히려 아낀다</li><li>3~4번째 웨이브 밀고 귀환해 템과 제어와드를 산다</li><li>사이드에 강한 요네·제드 상대로는 한타 합류 위주로 간다</li><li>존야(나를 무는 상대) vs 대천사(딜 필요) 상황 따라 고른다</li></ul>
+<h3>언제 쓰나</h3><p>탈리야 플레이·상대할 때</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=OQQaqcY4rD8" rel="noopener nofollow" target="_blank">【탈리야 강의】탈리야 최초로 한 사람이 해주는 기초 가이드 ! 【미드 강의】【전프로미드】【챌린저 미드】</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>신드라: 콤보와 E 아끼기</h2>
+<p><span class="tag">미드</span></p>
+<p>신드라는 구체 위치를 미리 깔아두면 스턴을 쉽게 맞힌다. E는 공격보다 나를 살리는 스킬이라 함부로 쓰지 않는다.</p>
+<ul><li>Q를 먼저 깔고 W로 집어 던진 뒤 E로 밀면 스턴이 쉽다</li><li>급할 땐 Q-E를 빠르게 이어 바로 밀어낸다</li><li>가까이 붙는 르블랑 같은 돌진 상대로는 E 뒤 Q를 써야 한다</li><li>E는 생존 수단이라 견제로 막 쓰지 않는다</li><li>로밍하지 않는 파밍형이라 첫 귀환은 도란링</li><li>탱커를 잡아야 해서 공허 지팡이를 빨리 올린다</li></ul>
+<h3>언제 쓰나</h3><p>신드라 라인전·한타</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=HX8tVS_6SAQ" rel="noopener nofollow" target="_blank">【신드라 강의】 아무도 몰랐던 신드라의 꿀팁?! 미드 신드라 완벽 강의! (미드 신드라, 미드 신드라 강의,미드 신드라 콤보)</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>미드 트린다미어 기본 (2021 기준)</h2>
+<p><span class="tag">미드</span></p>
+<p>트린다미어는 분노를 채우고 W 둔화로 추격하는 단순한 챔프다. 라인을 밀고 신발을 빨리 사서 로밍을 반복한다.</p>
+<ul><li>싸움 전에 분노를 미리 채워 치명타 확률을 올린다</li><li>도망가는 상대가 등을 돌렸을 때 W로 둔화를 건다</li><li>첫 템보다 광전사의 군화를 빨리 올려 로밍 속도를 높인다</li><li>라인 밀고 로밍을 반복하는 것이 기본 흐름</li><li>사이드는 바론 버프나 클리어 좋은 팀원 같은 근거가 있을 때 민다</li></ul>
+<h3>언제 쓰나</h3><p>미드 트린다미어를 쓰거나 상대할 때</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=8q8fDtnEwp4" rel="noopener nofollow" target="_blank">【트린다미어 강의】 무조건 평타 3방?! 요즘 핫한 1티어 사기챔프 미드 트린다미어 강의! (미드 트린다미어, 미드 트린다미어,미드 트린다미어 강의)</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>말자하는 밀어서 이긴다</h2>
+<p><span class="tag">미드</span></p>
+<p>말자하는 스킬로 상대를 때려 이기는 챔프가 아니라, 빠른 라인 푸시로 먼저 움직일 턴을 만드는 챔프다.</p>
+<ul><li>맞딜하면 다른 미드보다 약하다, 견제 싸움을 하지 않는다</li><li>Q는 근접 미니언과 겹쳐 맞혀 체력을 깎고 E·W로 정리</li><li>적이 미니언 앞으로 나오면 그때 Q 침묵을 맞혀 딜교 손해를 준다</li><li>멀리 있는 적에게 Q 견제는 맞히기 어렵고 기대값이 낮다</li><li>E로 미니언을 잡으면 마나가 돌아와 거의 공짜로 라인을 민다</li><li>민 뒤 생긴 시간을 어디에 쓸지(로밍·시야) 정해야 한다</li></ul>
+
+<h3>흔한 실수</h3><ul><li>일반 메이지처럼 Q로 계속 상대를 견제함</li><li>라인만 밀고 미드에 가만히 서 있음</li></ul>
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=Fa_guH2-bNQ" rel="noopener nofollow" target="_blank">【말자하 강의】초보자가 말자하를 할 때 꼭 알아야 할 것들</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>말자하 공허충·궁·템</h2>
+<p><span class="tag">미드</span></p>
+<p>공허충은 적 스킬을 대신 맞아 주니 아끼지 말고, 궁은 계산하지 말고 각이 보이면 바로 쓴다.</p>
+<ul><li>공허충(W)은 적 견제 스킬을 대신 맞아 주니 아끼지 말고 쓴다</li><li>스몰더·나서스·트페 상대로는 Q 침묵 뒤 W를 쓴다</li><li>공허충은 최대 3마리, 스택을 보고 스킬 순서를 짠다</li><li>포탑 칠 때 Q를 허공에 써서 공허충을 더 뽑는다</li><li>정글 갱 땐 다른 스킬 섞지 말고 궁부터 바로 건다</li><li>핵심템은 횃불·라일라이 (2025.9 영상 기준)</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=Fa_guH2-bNQ" rel="noopener nofollow" target="_blank">【말자하 강의】초보자가 말자하를 할 때 꼭 알아야 할 것들</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>챔프 장단점부터 생각하기</h2>
+<p><span class="tag">미드</span></p>
+<p>챔피언을 할 때 장점은 어디서 나오고 단점은 어떻게 피할지 생각해야 챔프 이해도가 쌓인다. 피지컬보다 이 기본 개념이 승률을 만든다.</p>
+<ul><li>장점(예: 빠른 푸시)이 실제로 무엇을 가능하게 하는지 생각</li><li>단점(예: 약한 맞딜)을 피하는 라인전 방식을 정한다</li><li>조이는 초반 푸시력으로 초반 교전에 먼저 합류한다</li><li>조이는 프리징으로 얻을 게 없으니 라인을 바로 민다</li><li>피지컬이 좋지 않아도 챔프 기본 개념만 지키면 1인분 이상</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=Fa_guH2-bNQ" rel="noopener nofollow" target="_blank">【말자하 강의】초보자가 말자하를 할 때 꼭 알아야 할 것들</a> (롤미키 [LoL Mickey]) · <a href="https://www.youtube.com/watch?v=mX7Wv0sG9Tg" rel="noopener nofollow" target="_blank">【조이 강의】 스킬 못맞춰도 '이거' 하나만 알면 됩니다! 저티어를 위한 조이 완벽강의! (미드 조이, 미드 조이 강의, 미드 조이 운영법)</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>라이즈 딜·운영 포인트</h2>
+<p><span class="tag">미드</span></p>
+<p>라이즈는 W 속박을 아껴 Q를 한 번 더 돌리는 게 딜의 핵심이고, 라인 정리가 끝난 중반에 궁 로밍으로 힘을 쓴다.</p>
+<ul><li>1레벨엔 E: W와 피해 차이는 작고 쿨이 짧다 (2026.2 기준)</li><li>킬각엔 E·Q로 딜하고 W 속박은 최대한 늦게 쓴다</li><li>W는 Q 쿨을 한 번 더 돌린다는 느낌으로 쓴다</li><li>E를 두 번 쓰면 이속이 붙어 킬각을 볼 수 있다</li><li>잡았어도 끝까지 쫓지 말고 다음 웨이브가 밀리기 전 멈춘다</li><li>원거리 메이지 상대론 부패 물약·재생의 바람으로 버틴다 (2021)</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=uWmGxyc0DCg" rel="noopener nofollow" target="_blank">【라이즈 강의】미드를 좀 할 줄 알게 됐다면 꼭 해보면 좋은 챔프입니다</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>트페 픽 순서와 팀 조합</h2>
+<p><span class="tag">미드</span></p>
+<p>트페는 핵심이 라인 밀고 로밍이라 먼저 뽑아도 부담이 적다. 팀이 싸움을 받아 줄 라이너를 고르면 로밍이 쉬워진다. (2025.6 영상 기준)</p>
+<ul><li>트페는 상대가 후픽으로 카운터 칠 챔프가 거의 없어 먼저 뽑는다</li><li>먼저 뽑아 팀원이 상대를 보고 고를 수 있게 해 준다</li><li>팀에 싸움 위주 라이너(피오라·카밀, 렐·노틸러스)를 부탁한다</li><li>말파이트·밀리오 같은 픽은 트페 로밍과 덜 맞는다</li><li>룬은 불굴의 의지·뼈방패, 상대가 둔화·속박이 많으면 더 좋다</li><li>한타에선 모습을 숨기고 미드 뒤 원딜 푸시를 봐준다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=Nxi5WHbM3jk" rel="noopener nofollow" target="_blank">【트페 강의】트페는 미드라이너의 기본소양 입니다 【미드 강의】【전프로미드】【챌린저 미드】</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>저티어 탑 챔프 고르는 기준</h2>
+<p><span class="tag">탑</span></p>
+<p>저티어(브실골) 탑은 쉽고 센 챔프, 또는 한타가 괜찮고 포탑을 빨리 미는 챔프가 이기기 쉽다. (2025.12 영상 기준)</p>
+<ul><li>강추: 가렌·다리우스·말파이트·모데카이저·올라프·요릭</li><li>추천: 잭스·세트·사이온·하이머딩거</li><li>숙련도가 많이 필요한 갱플랭크·야스오는 비추천</li><li>탱만 하는 픽(마오카이 등)은 쉬워도 게임 이기기 힘들다</li><li>탑은 후픽이 중요: 선픽이면 카운터를 덜 당하고 후반이 좋은 챔프</li><li>결국 한두 챔프를 깊게 파는 게 가장 중요하다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=ij3W0QGRW68" rel="noopener nofollow" target="_blank">저티어들이 쓸만한 탑 챔프들 정리해봤습니다</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>저점 높은 미드로 티어 올리기</h2>
+<p><span class="tag">미드</span></p>
+<p>티어를 올리려면 카운터가 적고 망해도 1인분 하는 미드 챔프를 여러 개 다룰 줄 알아야 한다. 말자하·리산드라·벡스·갈리오·애니·라이즈를 예로 든다.</p>
+<ul><li>망해도 1인분 하는 챔프는 저점이 높다</li><li>카운터가 적은 챔프는 선픽 부담이 없다</li><li>라이즈는 인파이팅하는 근접 미드 상대로 거의 다 좋다</li><li>솔랭에서 라이즈를 한다면 오리아나 밴을 추천(영상 시점)</li><li>트페는 라인전을 비슷하게만 버텨도 제 몫을 하는 챔프</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=EIw7A6omYco" rel="noopener nofollow" target="_blank">【말자하 강의】티어 올리고 싶으면 걍 얘 하세요 날먹임</a> (롤미키 [LoL Mickey]) · <a href="https://www.youtube.com/watch?v=up7km7sKEd0" rel="noopener nofollow" target="_blank">【라이즈 강의】잘봤다 월즈 다음은 우리가 보여줄차례</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>말자하 스킬 디테일</h2>
+<p><span class="tag">미드</span></p>
+<p>말자하는 공허충을 많이 소환하고 지속 피해를 길게 유지하는 게 핵심이다. 궁은 다른 스킬 없이 바로 써야 상대가 반응을 못 한다.</p>
+<ul><li>공허충은 스택을 쌓아 여러 마리 소환해야 강하다</li><li>E 지속 피해는 Q·R을 맞히면 다시 늘어난다 — 그래서 Q를 조금 늦게 쓴다</li><li>궁은 바로 꽂고 나머지 스킬은 그 뒤에 넣는다</li><li>2레벨은 W를 배운 뒤 스킬을 써야 공허충이 더 나온다</li><li>한타는 멀리서 Q 침묵, 들어오는 적에게 궁</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=EIw7A6omYco" rel="noopener nofollow" target="_blank">【말자하 강의】티어 올리고 싶으면 걍 얘 하세요 날먹임</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>흐웨이 언제 뽑고 어떻게 쓰나</h2>
+<p><span class="tag">미드</span></p>
+<p>흐웨이는 들어오는 모션이 보이는 탱커 조합을 상대로 가장 강하고, 피하는 암살자에게 약하다. CC 정글과 쓰면 스킬 맞추기가 쉬워진다.</p>
+<ul><li>세주아니·자크·스카너처럼 들어오는 모습이 미리 보이는 탱커 상대로 강함</li><li>르블랑·아칼리·제드 같은 암살자에게 약하다</li><li>CC 있는 정글과 시너지, AP 딜 정글과는 서로 각을 못 만든다</li><li>궁은 느려서 아군 CC나 적을 모으는 스킬이 먼저 들어간 뒤 쓴다</li><li>한타는 광역 장판 Q를 자주 쓰는 게 핵심</li><li>CC 많은 상대면 헤르메스 신발을 빨리 산다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=OJxyF3lQ9nc" rel="noopener nofollow" target="_blank">【흐웨이 강의】꼭 알아야 할 기본기들 다 담았습니다</a> (롤미키 [LoL Mickey]) · <a href="https://www.youtube.com/watch?v=TXMZFjz0UYY" rel="noopener nofollow" target="_blank">【흐웨이 강의】버프 먹고 선픽감 1티어가 됐어요</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>트페 라인전과 로밍 계획</h2>
+<p><span class="tag">미드</span></p>
+<p>트페는 라인전을 이기기보다 안 죽고 라인을 밀며 궁으로 로밍하는 챔프다. 상대에 따라 1·2레벨 딜교 계획을 미리 세운다.</p>
+<ul><li>게임 시작 때 상대 미드에 맞춰 1레벨 계획을 세운다</li><li>접근기 없는 근접 상대로는 먼저 밀어 2레벨 주도권</li><li>킬이 필요한 상대에게 절대 죽어주지 않는다</li><li>5레벨부터 라인 클리어가 쉬워져 로밍각이 생긴다</li><li>골드 카드를 아끼면 잘 안 죽는다</li><li>텔을 들면 운영 챔프로 쓸 일이 많다(영상 시점)</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=IbsCGB0aan4" rel="noopener nofollow" target="_blank">【트페 강의】매 시즌 1티어인 데는 이유가 있습니다</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>갈리오 숙련도 차이</h2>
+<p><span class="tag">미드</span></p>
+<p>갈리오는 E·W 연계와 패시브를 얼마나 잘 섞느냐에서 실력 차가 난다. 궁은 작은 킬에 쓰지 말고, 라인 손해를 보더라도 팀 싸움엔 합류한다.</p>
+<ul><li>짧은 딜교: E를 맞히고 평타 뒤 W로 도발, 바로 빠진다</li><li>W는 1초쯤만 모아 쓰면 패시브를 자주 돌릴 수 있다</li><li>E를 뒤로 쓰듯 활용하면 상대가 반응하기 어렵다</li><li>작은 킬에 궁을 쓰지 말고 아낀다</li><li>라인 손해가 있어도 팀 싸움이 나면 합류한다</li><li>푸시 주도권으로 상대 정글을 괴롭히는 게 포인트</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=lHiSW0ST7Xo" rel="noopener nofollow" target="_blank">【갈리오 강의】못하는 갈리오랑 잘하는 갈리오의 차이</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>벡스 기본 사용법</h2>
+<p><span class="tag">미드</span></p>
+<p>벡스는 돌진이 있는 근접 미드에 강하고 사거리 긴 메이지에 약하다. 공포 게이지가 찼을 때만 딜교하고, 돌진은 W로 받아친다.</p>
+<ul><li>야스오·이렐리아·요네 같은 돌진 챔프 상대로 강함</li><li>공포 게이지가 찼을 때 딜교가 일방적으로 유리</li><li>돌진하는 상대는 스킬을 아꼈다가 W로 받아친다</li><li>갱이 걱정되면 E를 아껴 둔다(유일한 생존 수단)</li><li>앞에서 쏘는 궁은 실제 사거리보다 짧게 생각하고 쓴다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=3qIXNHaL-Ys" rel="noopener nofollow" target="_blank">【벡스 강의】전프로가 추천해주는 쉬운 미드챔프</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>카타리나 기본기</h2>
+<p><span class="tag">미드</span></p>
+<p>카타리나는 초반 라인전이 약해 체력 관리와 CS에 집중하고, 순보로 생존·로밍을 한다. 상대 CC가 빠졌는지에 따라 진입 순서를 바꾼다(2021년 영상).</p>
+<ul><li>3레벨 전엔 Q를 견제보다 CS 먹는 데 쓴다</li><li>물약을 아끼며 체력을 최대한 유지한다</li><li>카타리나는 보통 라인이 우리 포탑 쪽으로 당겨져 있어 갱 위험이 낮은 편</li><li>상대 CC가 빠졌으면 안전하게 단검 연계로 진입</li><li>위험이 남아 있으면 순간 폭딜이 큰 순서로 들어간다</li><li>단검과 순보로 벽을 넘어 로밍 길을 줄인다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=LBwMI-k1l4Q" rel="noopener nofollow" target="_blank">【카타리나 강의】 카타리나 어렵다구요? 쉽게 알려드리겠습니다!</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>탈리야 1레벨 라인 압박</h2>
+<p><span class="tag">미드</span></p>
+<p>탈리야는 첫 Q를 근접이 아닌 원거리 미니언에 써서 먼저 지우면 상대가 CS도 딜교도 힘들어진다.</p>
+<ul><li>원거리 미니언은 상대를 도와주는 유일한 미니언이라 먼저 지운다</li><li>원거리를 지우고 옆에 서 있으면 상대는 근접 CS를 못 먹는다</li><li>원거리 하나는 한 대만 맞혀도 된다, 남은 Q는 상대 챔프에게</li><li>근접 미니언엔 스킬을 쓰지 말고, 2레벨을 먼저 찍어 주도권 유지</li><li>마나 관리를 잘하면 4번째 웨이브까지 밀고 귀환할 수 있다</li><li>탈리야 상대 땐 대포 웨이브 전에 피를 많이 깎아 둔다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=zmCMx42NaIY" rel="noopener nofollow" target="_blank">【롤 강의】모든 티어 주목 끝까지 보시면 실력 증진 보장【미드 강의】【전프로미드】【챌린저 미드】</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>저티어 미드 픽 고르기</h2>
+<p><span class="tag">미드</span></p>
+<p>브론즈~골드 구간에서 많이 하는 야스오·요네·아칼리·사일러스는 클리어가 느리고 주도권과 정글 개입력이 약하다. 라인 클리어와 한타 CC가 좋은 챔프가 이기기 쉽다 (2025년 10월 기준).</p>
+<ul><li>오브젝트·한타 싸움이 필연적이라 한쪽만 뚫는 게임이 어렵다</li><li>클리어·CC·한타 좋은 미드: 오리아나, 갈리오, 애니, 탈리야</li><li>저점이 높아 1인분 하기 좋은 픽: 말자하, 리산드라, 벡스, 애니, 갈리오</li><li>쉽고 센 편(본인 의견): 나피리, 에코, 다이애나, 조이</li><li>기본이 부족하면 어려운 챔프보다 쉽고 좋은 챔프가 승률을 올린다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=iwOPGpqNztc" rel="noopener nofollow" target="_blank">브실골이 티어 못 올리는 이유 (티어 올리고 싶으면 무조건 보세요)</a> (롤미키 [LoL Mickey]) · <a href="https://www.youtube.com/watch?v=tNeuiiBzG4c" rel="noopener nofollow" target="_blank">브실골이 티어 못올리는 이유2 (티어 올리고 싶으면 무조건 보세요)</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>인기 미드 4종 상대법</h2>
+<p><span class="tag">미드</span></p>
+<p>야스오·요네·아칼리·사일러스를 상대로 고를 만한 챔프들. 다만 미드는 라인이 짧아 상성보다 본인 실력이 더 크게 작용한다 (2025년 10월 기준).</p>
+<ul><li>야스오·요네: 클리어 되는 탑 챔프(레넥톤·판테온·세트·말파이트)</li><li>손에 자신 있으면 피즈·아칼리·르블랑, 없으면 말자하·리산드라</li><li>요네는 라인전이 더 약해 웬만한 AP 미드로 상대할 만하다</li><li>아칼리: 갈리오, 트페(장막 속 노출·골드 카드), 묶는 CC 챔프</li><li>사일러스: 궁을 뺏겨도 쓸모없는 조이·탈리야·라이즈</li><li>미드는 하드 카운터가 적어 밀려도 라인 밀고 로밍으로 풀 수 있다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=tNeuiiBzG4c" rel="noopener nofollow" target="_blank">브실골이 티어 못올리는 이유2 (티어 올리고 싶으면 무조건 보세요)</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>갈리오 기본 콤보</h2>
+<p><span class="tag">미드</span></p>
+<p>갈리오는 폭전 룬과 텔을 들고, E-Q-평타로 룬을 터뜨린 뒤 얻은 이동속도로 W 도발을 거는 콤보가 핵심이다 (2026년 11월 영상 기준).</p>
+<ul><li>솔킬보다 사이드·한타가 중요해 감전·여진 대신 폭전 룬</li><li>딜교: E Q 평타로 폭전을 터뜨리고 이속 받으며 W로 빠진다</li><li>적이 먼저 들어오면 W 먼저, 붙어 있으면 E를 뒤로 써 반응을 어렵게</li><li>스킬 맞힐 때마다 패시브 쿨이 줄어, W를 길게 충전해 평타를 한 번 더</li><li>클리어: 돌풍 한쪽에 미니언 5~6마리를 맞히는 연습</li><li>사이드에선 미니언을 끌고 가 한데 모은 뒤 Q로 정리</li><li>궁 착지 후 적이 멀면 E Q W, 아군이 잘 들어갔으면 바로 W</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=oojVJghNcdM" rel="noopener nofollow" target="_blank">【갈리오 강의】이 콤보 모르고 하면 못이깁니다</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>멜 사용법</h2>
+<p><span class="tag">미드</span></p>
+<p>멜은 포킹하다 주요 스킬을 W로 반사하고, 패시브 스택을 쌓아 궁으로 마무리하는 챔프다. W만 잘 써도 절반 이상이다 (2025년 12월 너프 직후 기준).</p>
+<ul><li>원딜·미드·서폿이 다 가능해 선픽으로 라인을 숨기기 좋다</li><li>투사체 많은 상대(바루스·이즈리얼·애쉬)가 나오면 후픽으로 좋다</li><li>게임 시작 전 상대의 어떤 스킬을 반사할지 미리 정한다</li><li>반사할 만한 스킬이 없으면 W를 무적기로 쓴다</li><li>Q 사거리가 길어 CS 먹으러 올 때마다 견제, 스킬 뒤 평타도 섞는다</li><li>마나가 부족해 침착 룬을 꼭 하나 챙긴다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=sNzL46-P6dc" rel="noopener nofollow" target="_blank">【멜 강의】미드 선픽감으로 추천드립니다【미드 강의】【전프로미드】【챌린저 미드】</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>요네 Q3·궁 연계</h2>
+<p><span class="tag">미드</span></p>
+<p>요네 숙련도는 Q3(에어본)와 궁을 얼마나 확실히 잇느냐에서 갈린다.</p>
+<ul><li>Q3를 코앞에서 맞히면 적이 뒤로 넘어가 궁을 점멸로 피할 수 있다</li><li>E Q 뒤 점멸을 뒤로 써 모션을 캔슬하고 바로 궁을 쓴다</li><li>안 맞을 Q3를 점멸로 억지로 맞혀 띄우는 것도 고수 기술</li><li>연습 모드에서 이 연계부터 익히면 절반은 먹고 들어간다</li><li>원거리 상대로는 첫 Q를 근접 미니언에 맞혀 스택을 유지한다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=ie0qrInUT0g" rel="noopener nofollow" target="_blank">【요네 강의】페이커 쵸비 제카 그리고 당신차례입니다【미드 강의】【전프로미드】【챌린저 미드】</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>벡스 패시브와 궁</h2>
+<p><span class="tag">미드</span></p>
+<p>벡스는 공포 패시브가 있을 때 딜교하고, 궁은 확실할 때만 쓰는 한타형 메이지다 (2021년 영상 기준).</p>
+<ul><li>1레벨 E: 맞히면 표식이 생겨 평타·Q로 추가 피해</li><li>공포 패시브가 있을 때만 딜교하고, 없으면 빠졌다 다시 간다</li><li>표식 걸린 적·미니언을 맞히면 패시브 쿨이 돌아온다</li><li>궁은 쿨이 길어 아군 CC 뒤나 E 공포 뒤에 맞힌다</li><li>진영을 무너뜨리는 한타형이라 존야를 일찍 산다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=ThdS4ahrTYQ" rel="noopener nofollow" target="_blank">【벡스 강의】 영상 하나로 나도 벡스 장인?! 벡스의 숨겨졌던 꿀팁 대방출! 미드 벡스 완벽 강의!(벡스 강의, 벡스 룬, 벡스 콤보)</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>제드 초반과 로밍</h2>
+<p><span class="tag">미드</span></p>
+<p>제드는 초반 라인 주도권이 약해 조심하고, 라인을 밀어 둔 뒤 로밍·교전으로 킬을 먹으며 크는 챔프다 (2021년 영상 기준).</p>
+<ul><li>초반엔 라인 주도권이 없어 갱 센 정글 상대로 위치를 조심한다</li><li>이동기 적은 상대엔 W를 정면 말고 옆에 깔고 E·Q를 맞힌다</li><li>라인 밀어 놓고 로밍, 교전에서 킬 먹고 성장</li><li>원딜이나 미드 한 명만 잘 자르면 돼서 암살 아이템을 더 올린다</li><li>회복이 많은 상대엔 궁 쓸 때 점화를 같이 건다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=MprdqQjCcZE" rel="noopener nofollow" target="_blank">【제드 강의】 프로들 사이에서 필밴이었던 LCK승률100% 미키의 제드! (미드 제드 강의,미드 제드 룬,미드 제드 템트리)</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>저티어 정글 챔프 고르기</h2>
+<p><span class="tag">정글</span></p>
+<p>저티어 정글은 정글링이 쉽고 스킬 구성이 단순한 챔프가 좋다 (2025년 11월 기준).</p>
+<ul><li>기준: 정글링이 쉽고 스킬이 단순할 것</li><li>강추: 녹턴, 람머스, 문도 박사, 트런들</li><li>추천: 나피리, 다이애나, 자르반, 자크, 잭스, 신짜오, 워윅, 릴리아</li><li>비추: 그레이브즈, 니달리, 킨드레드, 이블린(손이 많이 가는 챔프)</li><li>결국 자기가 잘하는 챔프 하나를 깊게 파는 게 제일 중요</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=R_aVbiP9KJE" rel="noopener nofollow" target="_blank">저티어들이 쓸만한 정글 챔프들 정리해봤습니다</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>신드라 핵심과 상대법</h2>
+<p><span class="tag">미드</span></p>
+<p>신드라의 핵심은 궁이 아니라 E(광역 기절)다. E가 있으면 돌진 챔프를 받아치고, 빠지면 매우 약해진다.</p>
+<ul><li>가장 강한 스킬은 E: 여러 명을 한 번에 기절시킬 수 있다</li><li>E가 빠지면 돌진 챔프에 약해 E를 언제 쓰느냐가 실력 차</li><li>상대가 헤르메스의 발걸음을 사면 후속 기절이 잘 안 들어간다</li><li>우리 정글은 AP보다 리신·자르반 같은 AD 정글이 시너지</li><li>첫 귀환 돈이 애매하면 부품보다 신발 먼저(2026년 6월 기준)</li><li>갱 강한 정글이 근처면 E는 아끼고 Q로만 딜교</li></ul>
+
+<h3>흔한 실수</h3><ul><li>회복 강한 상대에게 치유 감소템부터 사기: 보통 주문력템이 낫다</li></ul>
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=MyE6m_VPKZk" rel="noopener nofollow" target="_blank">【신드라 강의】버프먹고 OP 됐습니다 너프전 꿀빠세요</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>모르가나 미드 운영</h2>
+<p><span class="tag">미드</span></p>
+<p>모르가나는 W로 라인을 밀고 계속 움직이는 챔프다. 느린 Q는 숨어서나 가까이서 던지고, 목표는 반반 라인전과 오브젝트 지원이다.</p>
+<ul><li>W는 원거리 미니언(가능하면 챔프까지)에 맞게 깔아 라인을 민다</li><li>Q는 느려서 멀리서 던지면 안 맞는다: 부시에 숨거나 붙어서</li><li>못 맞춰도 위험 없을 때만 대놓고 던진다</li><li>6레벨 이후엔 궁을 먼저 걸고 기절 들어갈 때 Q를 이어도 된다</li><li>W는 몬스터에 추가 피해가 있어 오브젝트 지원에 좋다</li><li>킬 욕심보다 반반 라인전 + 밀고 움직이기가 기본 마음가짐</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=d0WFyZVZ3l4" rel="noopener nofollow" target="_blank">【모르가나 강의】티어 올리고 싶으면 하세요 얘도 날먹임</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>아리 매혹 쓰는 법</h2>
+<p><span class="tag">미드</span></p>
+<p>아리의 매혹은 맞추느냐보다 언제 쓰느냐가 중요하다. 궁으로 거리를 좁혀 피할 수 없는 각을 만든 뒤 쓴다.</p>
+<ul><li>멀리서 던진 매혹은 조금만 움직여도 피한다</li><li>궁으로 붙은 뒤 평타·Q로 각을 보고, 궁으로 한 번 더 붙어서 매혹</li><li>상대 점멸이 없거나 아군 CC가 있을 때가 확실한 각</li><li>안 보이는 시야에서 나오면 매혹을 먼저 써도 잘 맞는다</li><li>근접 챔프 상대로는 1레벨 W, 원거리 상대로는 1레벨 Q</li><li>세 번째 아이템 존야: 상대 공격을 끌어 주며 버티는 역할</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=mt8DDhfz2zA" rel="noopener nofollow" target="_blank">【아리 강의】버프 계속 받아서 OP 됐습니다 선픽으로도 추천드림</a> (롤미키 [LoL Mickey]) · <a href="https://www.youtube.com/watch?v=Uk1adY-xNNw" rel="noopener nofollow" target="_blank">【아리 강의】 아리혐오 김동준해설도 인정하게만들었던 근본 아리장인 미키의 아리강의</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>오리아나 라인 운영</h2>
+<p><span class="tag">미드</span></p>
+<p>오리아나는 로밍보다 라인 압박이 주 역할이다. 긴 사거리로 거리를 주지 않고 견제하며 라인 주도권을 잡는다.</p>
+<ul><li>주 역할은 로밍이 아니라 라인을 계속 압박하는 것</li><li>거리를 주지 않고 공으로 멀리서 툭툭 견제한다</li><li>같은 대상에게 연속 평타가 강해지니 평타를 자주 섞는다</li><li>초반엔 프리징으로 이득, 템이 나온 뒤엔 빨리 밀어 포탑 압박</li><li>근접 상대는 도란 반지, 원거리 상대는 체력 물약 시작(2021년 영상)</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=s7atQ7s_2vU" rel="noopener nofollow" target="_blank">【오리아나 강의】 저티어들을 위한 미키갓의 오리아나 운영법,꿀팁 강의</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>피즈 초반 라인전</h2>
+<p><span class="tag">미드</span></p>
+<p>피즈는 3레벨 전엔 약하므로 라인을 당겨 버티고, E로 CS와 스킬 회피를 챙긴 뒤 3레벨부터 콤보로 압박한다.</p>
+<ul><li>3레벨 전엔 약해 라인을 당기고 물약 관리를 잘한다</li><li>근접 미니언 체력이 거의 없을 때 E로 들어가 CS를 챙긴다</li><li>원거리 미니언 먹으려다 많이 맞을 바엔 버린다</li><li>기본 콤보: Q로 진입 → W → E로 빠지기</li><li>궁은 미니언에 Q를 타고 가까이서 던지면 쉽게 맞는다</li><li>E 착지를 한 박자 늦추면 상대가 점멸 콤보를 못 읽는다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=T5xOZ3dFNxk" rel="noopener nofollow" target="_blank">【피즈 강의】 티어 올리고 싶으세요? 보기만 해도 티어 상승! 미드 피즈 완벽 강의!</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>요네 딜교와 한타</h2>
+<p><span class="tag">미드</span></p>
+<p>요네는 Q를 쌓아 상대가 CS 먹으러 올 때 치고, 한타에선 궁을 서두르지 말고 상대가 들어온 뒤 딜러 쪽으로 진입한다.</p>
+<ul><li>미니언에 Q를 맞혀 스택을 쌓고, 띄우는 세 번째 Q를 들고 딜교를 건다</li><li>라인을 치기보다 상대가 CS 먹으러 올 때 때린다</li><li>핵심 신발 돈이 되면 바로 귀환해 템포를 올린다</li><li>근접 상대로는 라인을 밀면 견제가 어려워 당겨서 싸운다</li><li>한타에선 Q 스택을 모아 궁과 연계, 급하게 궁을 쓰지 않는다</li><li>상대가 들어오면 살짝 빠졌다가 딜러 쪽으로 파고든다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=t5OrmM9-qXc" rel="noopener nofollow" target="_blank">【요네 강의】 요네 궁극기 잘 활용하는법? 아이템트리? 꿀팁 전부다 넣어봤습니다!</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>제이스 망치 폼 딜교</h2>
+<p><span class="tag">미드</span></p>
+<p>제이스가 망치 폼으로 붙으면 쓸 수 있는 스킬 수가 상대의 두 배라 딜교에서 거의 진다. 정복자는 사거리 짧은 상대에게 효율이 좋다.</p>
+<ul><li>망치 폼으로 붙으면 스킬 6개 대 3개라 딜교에서 유리하다</li><li>상대는 망치 거리를 안 주려 하니 원거리 폼으로 압박해 붙는다</li><li>정복자는 아칼리·탈론처럼 사거리 짧은 상대에게 효율이 좋다</li><li>신드라처럼 밀어내는 상대면 정복자 스택이 잘 안 쌓인다</li><li>변신 전에 W를 눌러 두면 정복자 스택이 빨리 쌓인다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=NQ3-vfsLlNs" rel="noopener nofollow" target="_blank">【제이스 강의】 라인전 강한 챔피언 좋아하시는분? 이거 무조건 하세요! 정복자 미드 제이스 강의!</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>아지르 초반 라인전</h2>
+<p><span class="tag">미드</span></p>
+<p>아지르는 1레벨이 약하므로 병사로 라인 푸시 위주로 시작하고, 상대가 다가오면 병사를 상대 쪽에 깔아 압박한다.</p>
+<ul><li>1레벨이 약해 초반엔 병사로 라인 푸시 위주</li><li>상대가 다가오면 병사 하나를 상대 쪽에 깔아 압박한다</li><li>상대 오리아나가 공을 앞에 두면 자리를 옮겨 공을 빼게 만든다</li><li>원거리 상대 초반엔 미니언보다 견제를 우선해 주도권 지키기</li><li>궁이 있으면 무작정 빠지지 말고 붙는 상대를 궁으로 밀어낸다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=vp37v5871o8" rel="noopener nofollow" target="_blank">【아지르 강의】버프먹고 티어 급 상승한 미드 아지르 강의</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>리산드라 운영 핵심</h2>
+<p><span class="tag">미드</span></p>
+<p>리산드라는 라인전 반반 가고 로밍과 한타에서 빛나는 챔프다. 들어오는 챔프에 강하고 사거리 긴 메이지에는 약하다.</p>
+<ul><li>Q는 미니언·챔프를 맞히면 뒤까지 뻗어 딜교가 된다</li><li>미니언 없이는 딜교가 거의 안 되니 미니언 뒤에 붙는다</li><li>라인 밀고 E로 벽을 넘어 로밍 가는 챔프다</li><li>한타는 정면보다 옆·뒤로 돌아 이니시한다</li><li>궁은 대체로 자기에게 써 존야처럼 버틴다</li><li>존야가 있고 꼭 잡을 대상이 있으면 적에게 쓴다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=SkEpQO_KyVk" rel="noopener nofollow" target="_blank">【리산드라 강의】저티어 추천 쉽고 좋은 딸깍 미드</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>벡스 공포 활용</h2>
+<p><span class="tag">미드</span></p>
+<p>벡스는 체력바 아래 공포 게이지가 찼을 때 쓰는 스킬로 공포를 거는 챔프다. 상대가 돌진기·점멸을 쓸 때마다 그 상대에게 표식이 생겨 돌진형 상대로 카운터가 된다.</p>
+<ul><li>게이지가 차면 Q·W·E 중 하나로 공포를 건다</li><li>라인 클리어는 E로 미니언 여럿에 표식을 묻힌 뒤 Q</li><li>게이지가 없을 때는 약하니 거리를 벌리고 사린다</li><li>궁은 상대가 사거리 절반쯤 안에 있을 때나 상대 시야 밖 옆쪽에서 쓴다</li><li>궁을 맞히면 W부터 써서 공포를 확실히 건다</li><li>게이지가 없으면 궁 재시전을 잠시 늦춰 다시 채운다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=_UmQSH9gzMA" rel="noopener nofollow" target="_blank">【벡스 강의】브실골 탈출 최적의 챔프</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>아칼리 딜교와 궁 순서</h2>
+<p><span class="tag">미드</span></p>
+<p>아칼리는 상대가 CS를 먹으러 올 때 장막으로 선택을 강요하고, 짧게 치고 빠지는 딜교를 한다. 점멸 있는 상대에게는 궁 2타를 가장 마지막에 쓴다.</p>
+<ul><li>원거리 상대 도란 방패, 만만한 근접 상대 도란 반지</li><li>상대가 막타 치러 오면 장막으로 'CS냐 딜이냐' 강요</li><li>E를 미니언에 맞혀 붙고 Q·평타 후 빠진다</li><li>점멸 있는 상대에겐 궁 2타를 제일 마지막에 쓴다</li><li>라인에 오래 있지 말고 교전·로밍을 다닌다</li><li>앞에서 라인을 밀어 상대가 CS와 싸움 중 고르게 한다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=EHDRFOquwwk" rel="noopener nofollow" target="_blank">【아칼리 강의】양학 1티어 챔프, 초보자도 할수있게 쉽게 알려드립니다!</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>제이스 자리와 폼 관리</h2>
+<p><span class="tag">미드</span></p>
+<p>제이스는 초반 공격력이 세서 근접 미니언을 빨리 밀고 라인 주도권을 잡아야 한다. 미니언 바로 뒤가 아니라 옆에서 사선으로 서야 Q 각이 나온다.</p>
+<ul><li>초반 근접 미니언을 빠르게 밀어 주도권을 잡는다</li><li>미니언 바로 뒤가 아니라 옆에서 사선으로 서서 친다</li><li>탱커 뒤 딜러를 맞히려면 한타에서도 사선 자리를 잡는다</li><li>좁은 곳보다 넓은 평지 싸움이 유리하다</li><li>싸움에 들어가기 전에 지금 무슨 폼인지 확인한다</li><li>망치 폼 이속으로 추격하거나 도망친다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=4ATnLBXkKBM" rel="noopener nofollow" target="_blank">선픽하기 좋은 AD미드챔프 제이스 강의 (feat.듀단)</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>오리아나 공 위치 습관</h2>
+<p><span class="tag">미드</span></p>
+<p>오리아나는 공을 항상 상대 근처에 두어 견제 압박을 주고, 시작하자마자 공으로 부시 시야를 확인한다. 내 포탑 근처에 공을 숨겨 상대 실수를 유도할 수 있다.</p>
+<ul><li>1렙 시작 때 아래 부시에 공을 던져 시야를 본다</li><li>초반엔 하프라인을 너무 넘지 않는다</li><li>Q로 원거리·근접 미니언을 같이 맞혀 주도권을 잡는다</li><li>공을 상대 근처에 두면 견제가 쉬워진다</li><li>수비 때 내 포탑 근처에 공을 숨겨 들어오는 적을 노린다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=bC49eWk60TY" rel="noopener nofollow" target="_blank">【오리아나 강의】현 미드 1티어 오리아나 미드라이너라면 필수 장착</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>르블랑 W평타 딜링</h2>
+<p><span class="tag">미드</span></p>
+<p>르블랑은 W로 들어가 평타를 치고 W로 돌아오는 짧은 딜교가 핵심이다. 뭉친 적에게 W·궁으로 깊게 들어가면 돌아올 수단이 없어진다.</p>
+<ul><li>미니언 어그로를 끊고 W-평타-복귀로 짧게 딜교</li><li>사슬(E)은 확실할 때만 신중하게 쓴다</li><li>뭉친 적에게 W·궁으로 들어가면 살아 돌아올 수 없다</li><li>한타에선 W 평타로 치고 빠지기를 반복한다</li><li>궁은 쿨이 길어 확실히 잡을 때 쓴다</li><li>카사딘 상대론 라인을 밀고 로밍해 카사딘이 약한 초반에 격차를 벌린다</li></ul>
+<h3>언제 쓰나</h3><p>르블랑 라인전과 소규모 교전(일부 빌드는 2023년 패치 기준)</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=RSIy-54BHXI" rel="noopener nofollow" target="_blank">스태틱너프? 하지만 여전히 1티어죠ㅋㅋㅋ #르블랑 강의</a> (롤미키 [LoL Mickey]) · <a href="https://www.youtube.com/watch?v=wuyrVzy_N-w" rel="noopener nofollow" target="_blank">【르블랑 강의】현재 독보적인 미드 1티어 르블랑 보고 배워가세요</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>카사딘 초반 버티기</h2>
+<p><span class="tag">미드</span></p>
+<p>카사딘은 초반이 약하니 라인을 건드리지 말고 레벨업에 집중해 버틴다. 궁 스택을 관리해 라인 복귀·로밍에 쓰고, 상대 미드가 로밍 가면 텔로 따라간다.</p>
+<ul><li>초반엔 라인을 밀지 않고 받아먹으며 레벨을 우선한다</li><li>라인전이 힘들면 Q를 먼저 올리고 그다음 E로 라인 클리어를 챙긴다</li><li>궁으로 진입할 땐 E 둔화를 먼저 맞히고 R-W-Q</li><li>이동용 궁은 스택을 적게 써서 다음 궁을 아낀다</li><li>상대 미드가 로밍 가면 텔포로 따라간다</li><li>핵심 아이템 구성은 패치에 따라 다름(2021년 기준)</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=GTkG1RlX8HE" rel="noopener nofollow" target="_blank">【카사딘 강의】 카사딘은 더이상 후픽이 아닙니다! 이제는 선픽하세요!</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>키아나 라인전 기본</h2>
+<p><span class="tag">미드</span></p>
+<p>키아나는 1대1 초반이 약한 챔프라 원거리 상대로는 W부터 찍고 아군 원거리 미니언 근처에서 버틴다. 원소를 들고 있는 것만으로 갱 압박이 된다.</p>
+<ul><li>원거리 상대로는 1렙에 W를 찍는다, E·Q 사거리가 짧아서</li><li>아군 원거리 미니언 근처에 있어야 상대가 못 친다</li><li>3렙 전엔 물약을 최대한 아끼며 버틴다</li><li>물 원소를 들고 있으면 상대가 갱을 의식한다</li><li>궁은 E로 붙은 뒤 써야 상대가 반응을 못 한다</li></ul>
+<h3>언제 쓰나</h3><p>키아나 라인전(룬·템은 2021년 패치 기준)</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=RKkHkXpVJbY" rel="noopener nofollow" target="_blank">【키아나 강의】 보고 따라만해도 점수 수직상승 티어 날로올리는법</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>판테온·루시안 미드 굴리기</h2>
+<p><span class="tag">미드</span></p>
+<p>판테온 같은 로밍형 미드는 웨이브를 천천히 밀 이유가 없어 빠르게 밀고 다른 라인에 개입해 킬을 만들고 격차를 벌려야 한다. 루시안은 W로 시작해 이속을 받아 추격한다.</p>
+<ul><li>판테온은 웨이브를 빨리 밀고 바로 로밍 간다</li><li>로밍 가서도 CS를 살짝 챙기며 갱각을 본다</li><li>6렙 뒤 궁으로 바텀 로밍이 가장 효과적이다</li><li>판테온은 초반 격차를 벌려 빨리 끝내는 챔프, 후반 운영형이 아니다</li><li>루시안은 1렙 스킬을 안 찍고 상대 행동을 보고 찍는다</li><li>루시안 추격 콤보는 W부터, 맞히면 이속이 오른다</li></ul>
+<h3>언제 쓰나</h3><p>로밍형 AD 미드(2020년 패치 기준 영상)</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=hCyqG7txjLs" rel="noopener nofollow" target="_blank">[강의]미키갓 상위티어 미드 판테온 다 알려드릴께요..</a> (롤미키 [LoL Mickey]) · <a href="https://www.youtube.com/watch?v=oS2r4Aaan6c" rel="noopener nofollow" target="_blank">[미키갓]저라뎃합방에서 보여준 미드1타 강사의 그 루시안!! 모든걸 알려드립니다</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>저티어 원딜 픽 고르기</h2>
+<p><span class="tag">원딜</span></p>
+<p>저티어에서는 쉽고, 못 크더라도 팀에 기여하는 기술이 있는 원딜이 좋다. 어렵거나 라인전을 꼭 이겨야만 하는 원딜은 피한다.</p>
+<ul><li>추천: 미스 포츈·스몰더·애쉬·진·징크스·카이사·트리스타나</li><li>피할 픽: 아펠리오스·드레이븐·칼리스타·제리·유나라</li><li>애쉬·진은 캐리 못 해도 CC·사거리로 기여해 팀 승리를 돕는다</li><li>케이틀린은 라인전을 지면 쓸모가 크게 줄어든다</li><li>자야는 돌진 조합이 나왔을 때 후픽으로 쓴다</li></ul>
+<h3>언제 쓰나</h3><p>브론즈~골드 솔랭 밴픽(2026년 1월 기준)</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=lLOz1m6RqT8" rel="noopener nofollow" target="_blank">저티어들이 쓸만한 원딜 서폿들 정리해봤습니다</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>저티어 서포터 픽 고르기</h2>
+<p><span class="tag">서폿</span></p>
+<p>저티어 서포터는 쉽고 라인전이 세거나 CC가 확실해야 원딜이 편하다. 딜 서포터는 라인전을 지면 할 게 없으니 자신 있을 때만 쓴다.</p>
+<ul><li>추천: 노틸러스·레오나·블리츠크랭크·브라움·룰루·카르마·니코</li><li>비추천: 소나·세나·질리언·샤코·조이·럭스·갈리오</li><li>노틸러스는 쉽고 CC가 많아 그랩 서포터 중 최고</li><li>블리츠는 유틸 서폿 상대로 강한 캐리형 서폿</li><li>딜 서포터는 라인전 지면 후반 기대가 거의 없다</li></ul>
+<h3>언제 쓰나</h3><p>브론즈~골드 솔랭 밴픽(2026년 1월 기준)</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=lLOz1m6RqT8" rel="noopener nofollow" target="_blank">저티어들이 쓸만한 원딜 서폿들 정리해봤습니다</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>로밍형 미드 vs 성장형 미드</h2>
+<p><span class="tag">미드</span></p>
+<p>미드 챔프는 라인을 조금 버리고 팀을 돕는 로밍형과, 라인에 오래 서서 자기 성장이 우선인 성장형으로 나눠 생각한다. 장신구 선택도 이 구분을 따른다.</p>
+<ul><li>로밍형(조이·갈리오 등): 팀이 커야 이기므로 라인을 조금 버리고 도와도 된다</li><li>성장형(멜·말자하·직스·베이가 등): 다른 라인 일에 덜 신경 쓰고 라인에 오래 선다</li><li>성장형은 도우러 가도 판이 크게 안 바뀐다</li><li>로밍형은 9레벨쯤 렌즈(예언자의 렌즈)로 바꿔 로밍길 와드를 지운다</li><li>성장형·생존기 없는 챔프(트페 등)는 파란 장신구로 멀리서 깊은 시야를 본다</li></ul>
+<h3>언제 쓰나</h3><p>챔프를 고르거나 장신구를 바꿀 때, 로밍을 얼마나 다닐지 정할 때</p>
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=iCUryLgQ710" rel="noopener nofollow" target="_blank">2026년 롤 미드의 기본기 여기 다 담았습니다</a> (롤미키 [LoL Mickey]) · <a href="https://www.youtube.com/watch?v=fbSLe4PN9P0" rel="noopener nofollow" target="_blank">【트페 강의】 트페로 무조건 감전을 드는 이유? (감전 트페 강의, 미드 트페 강의, 트페 룬)</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>오리아나가 선픽인 이유</h2>
+<p><span class="tag">미드</span></p>
+<p>오리아나는 라인전이 강하고 성장 기대치가 높아 누구 상대로도 무난하다. 조합이 이상해도 완성시켜 주는 챔프라 선픽이나 밴 대상이 된다.</p>
+<ul><li>사거리가 더 긴 메이지(신드라·제라스·빅토르·조이)는 라인전에서 오리아나를 상대하기 좋다</li><li>초반부터 붙는 야스오·다이애나도 오리아나 상대로 좋다</li><li>그래도 오리아나는 성장 상한이 높아 파밍만 잘해도 후반엔 그 챔프들보다 낫다</li><li>진입기 있는 정글(신짜오·리신·자르반)과 시너지가 좋다</li><li>공을 상대 근처에 계속 두어 압박하고, 공으로 시야도 확인</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=9uuWVmUeBJ8" rel="noopener nofollow" target="_blank">【오리아나 강의】현재 그냥 독보적인 1티어 라이엇의 딸【미드 강의】</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>애니 스턴 스택 관리</h2>
+<p><span class="tag">미드</span></p>
+<p>애니는 스턴 스택을 어떻게 들고 있느냐가 핵심이다. 라인전에선 3스택을 보여 주며 압박하고, 사이드로 이동할 때도 최소 스택을 미리 쌓아 둔다.</p>
+<ul><li>라인전에선 3스택을 들고 있으면 상대가 함부로 못 들어온다</li><li>4스택을 일부러 안 채우고, Q를 던진 뒤 W로 채워 스턴을 만든다</li><li>사이드로 갈 땐 2스택쯤 미리 쌓아 둔다(최소 1스택)</li><li>점멸 뒤 궁은 요즘 상대가 잘 피하니, Q 사거리면 Q 스턴 후 궁이 확실하다</li><li>말자하 상대론 실드로 미니언 어그로·스킬 피해를 줄이며 평타 견제</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=8MT3rDlGlUU" rel="noopener nofollow" target="_blank">【애니 강의】현 메타에서 필수로 장착해야하는 챔프【미드 강의】</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>벡스는 견제보다 합류</h2>
+<p><span class="tag">미드</span></p>
+<p>벡스 초반 딜은 공포 패시브에서 나온다. 패시브 없이 스킬을 흘리지 말고 마나를 아껴 원하는 때 귀환하며, 견제보다 빠른 이동으로 교전에 합류하는 챔프다.</p>
+<ul><li>E는 평타나 다른 스킬로 이어질 때만, 혼자 쓰면 마나·공포 낭비</li><li>공포가 없을 땐 무리하게 Q를 잇지 말고 붙어서 가까이 쓴다</li><li>마나 관리가 되면 5레벨에 원하는 때 귀환할 수 있다</li><li>포탑 앞 상대를 계속 견제하기보다 강가 2:2·3:3 싸움에 빠르게 합류</li><li>근접 챔프 상대론 공포를 먼저 걸고 평타로 카이팅</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=ZFTphO5_qmU" rel="noopener nofollow" target="_blank">【벡스 강의】야스오 요네 아칼리 이렐 사일러스 박살 낼수있는 챔피언</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>사일러스 라인 클리어 요령</h2>
+<p><span class="tag">미드</span></p>
+<p>사일러스는 클리어 속도가 로밍을 가능하게 한다. 원거리 미니언을 먼저 정리하고 스킬 사이에 평타를 섞으며, 딜교는 Q 견제와 E·W 묶음으로 나눠 생각한다.</p>
+<ul><li>원거리 미니언 정리가 핵심, 앞쪽 근접은 아군 미니언이 때린다</li><li>스킬 사이사이 평타를 섞어야 패시브로 빠르게 클리어된다</li><li>E 두 번째는 피 많은 미니언에게 날아간다</li><li>Q는 견제용, E·W는 상대가 앞으로 나올 때 쓰는 세트</li><li>초반이 약한 편이라 라인전은 반반만 가도 사이드에서 강하다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=fIFADsoaqlE" rel="noopener nofollow" target="_blank">칼챔에 입문하고싶은 저티어 맞춤 사일러스 강의 (feat.듀단)</a> (롤미키 [LoL Mickey]) · <a href="https://www.youtube.com/watch?v=KLkzfPIMq7Y" rel="noopener nofollow" target="_blank">【사일러스 강의】 미드 1티어 개사기챔프 찾았습니다! 빨리 보고 꿀 빠세요!</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>흐웨이는 미드에 남는 유틸 메이지</h2>
+<p><span class="tag">미드</span></p>
+<p>흐웨이는 하드 캐리형보다 유틸형이라 쿨감 위주로 간다. 사이드가 약해 미드에 머물며 긴 사거리로 포킹하고, 궁은 투사체가 느려 CC 뒤에 연계한다.</p>
+<ul><li>쿨감 세팅이 좋고 광역·퍼센트 딜이라 스킬을 많이 쓸수록 딜이 난다</li><li>한타에선 뒤에 서서 멀리서 포킹한다</li><li>궁은 느려서 아군이나 내 CC가 들어간 뒤에 쓴다</li><li>갱이 오면 상대가 가까이 올 때까지 기다렸다 공포로 끊고 이속으로 빠진다</li><li>사이드는 약하니 웨이브를 라인 가운데쯤 맞춰 두고 미드로 합류</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=SPaVdvU_TVc" rel="noopener nofollow" target="_blank">그냥 선픽 때려박기 좋은 미드 흐웨이 강의</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>탈론은 밀고 사라지기</h2>
+<p><span class="tag">미드</span></p>
+<p>탈론은 라인을 프리징하지 않고 빠르게 밀어 미니맵에서 사라지는 것 자체가 압박이다. 로밍을 안 가더라도 모습을 감춰 상대가 라인을 편히 못 잡게 만든다.</p>
+<ul><li>탈론은 라인 프리징 금지, 빠르게 밀고 움직인다</li><li>탈론이 라인을 밀고 사라지면 모든 라인이 긴장한다</li><li>안 내려가도 모습을 감추면 상대는 프리징을 못 하고 라인을 민다</li><li>불리한 매치업은 체력 관리하며 정글 싸움을 돕거나, 한쪽을 내주고 반대로 로밍</li><li>후반엔 무리한 스플릿보다 암살할 대상을 찾아 들어간다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=Wcd5OAj40c0" rel="noopener nofollow" target="_blank">【탈론 강의】 미드 솔랭 1티어 챔피언 감전탈론! 정확하게 알려드립니다!</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>오로라 기본 사용법</h2>
+<p><span class="tag">미드</span></p>
+<p>오로라는 3타 패시브와 늦게 터뜨리는 Q가 딜의 핵심이다. 궁은 상대 진영에 쓰고 넘어가 때린 뒤 돌아오는 것이 최선이다.</p>
+<ul><li>스킬·평타 3번에 추가 피해가 붙으니 Q-평타-Q처럼 섞는다</li><li>Q 재사용은 잃은 체력 비례라 최대한 때린 뒤 늦게 터뜨린다</li><li>궁은 상대 쪽에 펼쳐 넘어가 때리고 다시 돌아오는 게 베스트</li><li>교전은 웬만하면 Q로 체력을 깎고 시작한 뒤 궁 각을 본다</li><li>궁도 없이 라인전이 싫어 도망치듯 가는 로밍은 나쁜 로밍이다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=gWziGe1bB7A" rel="noopener nofollow" target="_blank">【NEW 오로라 강의】미드 초심자분들 위해 꼼꼼히 넣어봤습니다</a> (롤미키 [LoL Mickey])</p>
+</section>
+<a class="cta" href="/study/">공부자료에서 문제로 확인하기 → 장면을 보고 보기 중 하나를 고르는 문제 풀이</a>
+</main>
+<footer>챔피언 이름: Riot Games Data Dragon. 이 사이트는 Riot Games가 보증하거나 후원하지 않습니다. 글의 판단은 참고용입니다. · <a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a><br><span lang="en">LolBan isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.</span></footer>
+</body>
+</html>

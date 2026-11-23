@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>롤 적 위치 모를 때 공부 - 핵심 정리 2가지 | 롤벤</title>
+<meta name="description" content="리그 오브 레전드 적 위치 모를 때 이론 2가지를 정리했습니다. 보이는 정보로 적 위치 읽기, 안 보이는 적은 어디 있나 등 — 언제 쓰는지와 흔한 실수까지.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://lolban.com/guide/%EC%A0%81-%EC%9C%84%EC%B9%98-%EB%AA%A8%EB%A5%BC-%EB%95%8C/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="롤벤 lolban">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:url" content="https://lolban.com/guide/%EC%A0%81-%EC%9C%84%EC%B9%98-%EB%AA%A8%EB%A5%BC-%EB%95%8C/">
+<meta property="og:title" content="롤 적 위치 모를 때 공부 - 핵심 정리 2가지 | 롤벤">
+<meta property="og:description" content="리그 오브 레전드 적 위치 모를 때 이론 2가지를 정리했습니다. 보이는 정보로 적 위치 읽기, 안 보이는 적은 어디 있나 등 — 언제 쓰는지와 흔한 실수까지.">
+<meta property="og:image" content="https://lolban.com/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="/img/lolban-favicon.svg">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","@id":"https://lolban.com/guide/%EC%A0%81-%EC%9C%84%EC%B9%98-%EB%AA%A8%EB%A5%BC-%EB%95%8C/#page","url":"https://lolban.com/guide/%EC%A0%81-%EC%9C%84%EC%B9%98-%EB%AA%A8%EB%A5%BC-%EB%95%8C/","headline":"롤 적 위치 모를 때 — 핵심 정리 2가지","name":"롤 적 위치 모를 때 공부 - 핵심 정리 2가지 | 롤벤","description":"리그 오브 레전드 적 위치 모를 때 이론 2가지를 정리했습니다. 보이는 정보로 적 위치 읽기, 안 보이는 적은 어디 있나 등 — 언제 쓰는지와 흔한 실수까지.","inLanguage":"ko-KR","isPartOf":{"@id":"https://lolban.com/#site"},"publisher":{"@type":"Organization","name":"롤벤 lolban","url":"https://lolban.com/"},"image":"https://lolban.com/img/og.png"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"롤벤","item":"https://lolban.com/"},{"@type":"ListItem","position":2,"name":"가이드","item":"https://lolban.com/guide/"},{"@type":"ListItem","position":3,"name":"롤 적 위치 모를 때 — 핵심 정리 2가지","item":"https://lolban.com/guide/%EC%A0%81-%EC%9C%84%EC%B9%98-%EB%AA%A8%EB%A5%BC-%EB%95%8C/"}]}]}</script>
+<style>:root{--bg:#F4F3EF;--panel:#fff;--text:#16161A;--muted:#5C5D66;--dim:#8A8B94;--line:#E4E3DD;--hi:#5B3FE0;--hi-bg:rgba(91,63,224,.08)}
+@media (prefers-color-scheme:dark){:root{--bg:#0D0D0F;--panel:#17171A;--text:#F2F2F4;--muted:#A9AAB0;--dim:#74757E;--line:#27272C;--hi:#C8F031;--hi-bg:rgba(200,240,49,.10)}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.7;word-break:keep-all;overflow-wrap:anywhere}
+a{color:var(--hi)}
+.top{border-bottom:1px solid var(--line)}.top-in,main,footer{max-width:760px;margin:0 auto;padding:0 20px}
+.top-in{display:flex;align-items:center;gap:18px;height:60px}
+.logo{font-weight:800;font-size:20px;letter-spacing:-.02em;color:var(--text);text-decoration:none}.logo i{color:var(--hi);font-style:normal}
+.top nav{display:flex;gap:14px;margin-left:auto;font-size:14px;font-weight:600;white-space:nowrap;overflow-x:auto}.top nav a{color:var(--muted);text-decoration:none}.top nav a:hover{color:var(--text)}
+main{padding-top:28px;padding-bottom:48px}
+.crumb{font-size:13px;color:var(--dim);margin:0 0 10px}.crumb a{color:var(--dim)}
+h1{font-size:28px;line-height:1.3;letter-spacing:-.02em;margin:0 0 12px}
+.lead{font-size:16px;color:var(--muted);margin:0 0 26px}
+h2{font-size:20px;line-height:1.4;letter-spacing:-.01em;margin:34px 0 8px}
+h3{font-size:15px;margin:14px 0 4px;color:var(--muted)}
+p{margin:0 0 12px}ul{margin:0 0 12px;padding-left:20px}li{margin:3px 0}
+.it{background:var(--panel);border-radius:16px;padding:18px 20px;margin:14px 0}.it h2{margin:0 0 8px;font-size:18px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--hi-bg);color:var(--hi);margin-right:6px}
+.src{font-size:13px;color:var(--dim);margin:8px 0 0}.src a{color:var(--dim)}
+.cta{display:block;background:var(--hi-bg);border-radius:16px;padding:16px 20px;margin:28px 0 0;font-weight:700;text-decoration:none}
+.list{list-style:none;padding:0;display:grid;gap:10px}.list li{margin:0}.list a{display:block;background:var(--panel);border-radius:14px;padding:14px 18px;text-decoration:none;color:var(--text)}.list a b{display:block;font-size:16px}.list a span{font-size:13.5px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:0 0 14px}th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:700}
+footer{padding-top:18px;padding-bottom:40px;border-top:1px solid var(--line);font-size:12.5px;color:var(--dim)}footer a{color:var(--dim)}</style>
+</head>
+<body>
+<header class="top"><div class="top-in"><a class="logo" href="/">lolban<i>.</i></a><nav aria-label="메뉴"><a href="/draft/">피어리스 밴픽</a><a href="/scrim/">내전 구인</a><a href="/study/">공부자료</a><a href="/guide/">가이드</a></nav></div></header>
+<main>
+<p class="crumb"><a href="/">롤벤</a> › <a href="/guide/">가이드</a> › 적 위치 모를 때</p>
+<h1>롤 적 위치 모를 때 — 핵심 정리 2가지</h1>
+<p class="lead">운영 관점에서 본 적 위치 모를 때 이론 2가지입니다. 항목마다 핵심, 쓰는 때, 흔한 실수를 정리했고, 문제 풀이는 공부자료에서 이어서 할 수 있습니다.</p>
+<section class="it"><h2>보이는 정보로 적 위치 읽기</h2>
+<p><span class="tag">운영</span></p>
+<p>적이 안 보여도 알림·미니맵·스킬 사용으로 위치를 거의 알 수 있다. 정보를 읽으면 위험한 길과 안전한 길이 갈린다.</p>
+<ul><li>'상대가 용을 처치했다' 알림이 뜨면 상대가 우리 정글에 없다는 뜻</li><li>알림 전이면 상대가 우리 정글에 숨어 있을 수 있어 정글 대신 라인 길로 간다</li><li>상대가 미드에 없고 두 명이 탑에 보이면 나머지는 바텀 쪽에 있다</li><li>상대가 다른 곳에 궁을 쓰면 쿨이 도는 동안 그 궁은 걱정 없다</li><li>웨이브가 왔는데 상대 미드가 라인에 안 오면 다른 곳에 가 있다</li><li>상대 정글이 2분 30초까지 안 보이면 우리 정글에 들어왔을 수 있다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=5QBvBrKXRJQ" rel="noopener nofollow" target="_blank">【롤 강의】게임을 계속 역전당한다면 문제를 찾아야합니다</a> (롤미키 [LoL Mickey]) · <a href="https://www.youtube.com/watch?v=EIw7A6omYco" rel="noopener nofollow" target="_blank">【말자하 강의】티어 올리고 싶으면 걍 얘 하세요 날먹임</a> (롤미키 [LoL Mickey])</p>
+</section>
+<section class="it"><h2>안 보이는 적은 어디 있나</h2>
+<p><span class="tag">운영</span></p>
+<p>맵에 오래 안 보인 적은 대개 우리가 지키지 않는 오브젝트 쪽에 있다. 보인 적의 위치로 반대편이 안전한지, 상대가 무엇을 할지 짐작한다.</p>
+<ul><li>한 번도 안 보인 적 정글은 전령 같은 오브젝트에 있을 가능성이 크다</li><li>상대 서폿이 미드에 보이면 우리 바텀이 라인을 밀기 쉽다</li><li>상대가 용을 먹었으면 다음은 바텀 다이브나 우리 정글 침투를 의심</li><li>보이는 적이 많은 쪽 반대로 오브젝트·포탑을 챙긴다</li></ul>
+
+
+<p class="src">참고 영상: <a href="https://www.youtube.com/watch?v=ZYWlaeCydqA" rel="noopener nofollow" target="_blank">【전 라인 필수시청】롤 못하는 사람들 특징 다 담았습니다</a> (롤미키 [LoL Mickey]) · <a href="https://www.youtube.com/watch?v=SPaVdvU_TVc" rel="noopener nofollow" target="_blank">그냥 선픽 때려박기 좋은 미드 흐웨이 강의</a> (롤미키 [LoL Mickey])</p>
+</section>
+<a class="cta" href="/study/">공부자료에서 문제로 확인하기 → 장면을 보고 보기 중 하나를 고르는 문제 풀이</a>
+</main>
+<footer>챔피언 이름: Riot Games Data Dragon. 이 사이트는 Riot Games가 보증하거나 후원하지 않습니다. 글의 판단은 참고용입니다. · <a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a><br><span lang="en">LolBan isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.</span></footer>
+</body>
+</html>

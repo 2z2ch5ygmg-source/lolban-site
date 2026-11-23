@@ -357,6 +357,44 @@ window.Engine = (function () {
     const score = Math.min(1, prio / 60) * 0.6 + (sq ? TIER_SCORE[sq.tier] || 0.1 : 0.1) * 0.4;
     return { prio, rp: pro ? pro.rp : 0, games: pro ? pro.p + pro.b : 0, tier: sq ? sq.tier : null, br: sq ? sq.br : 0, wr: sq ? sq.wr : null, score, q };
   }
+  // ---- 솔랭·자랭(팀 챔프폭 자료 없음) 추천용(11-24 사용자 「1픽이 람머스·문도·볼리베어」) ----
+  //  예전엔 챔프폭이 비면 점수가 「픽 순서 +8」「앞라인 보강 +5」뿐이라 탱커 정글이 가나다순으로 나왔고,
+  //  메타 점수는 대회 우선도 60%라 솔랭 1티어도 대회에 안 나오면 0점이었음 → 랭크 통계(op.gg 티어·승률·픽률·밴률)를 주 점수로.
+  //  선픽 판단은 대회 기록(PRO)에서: 1픽은 원딜·정글이 많고 탑·미드는 뒤에 뽑음 — 숫자는 자료에서 그때그때 계산.
+  function rankInfo(id, role) {
+    const M = window.META; if (!M) return null;
+    const flex = queueMode() === "flex" && M.flex && M.flex[id] && M.flex[id][role];
+    const q = flex || (M.soloq && M.soloq[id] && M.soloq[id][role]);
+    return q ? { tier: q.tier, wr: q.wr, pr: q.pr, br: q.br, q: flex ? "flex" : "solo" } : null;
+  }
+  const RANK_PTS = { 0: 15, 1: 13, 2: 9, 3: 5, 4: 1, 5: -3 };
+  const rankPts = (q) => (RANK_PTS[q.tier] != null ? RANK_PTS[q.tier] : 0) + Math.max(-4, Math.min(4, (q.wr - 50) * 1.2));
+  const rankText = (q, role, ban) => `${q.q === "flex" ? "자랭" : "솔랭"} ${ROLE_KO[role]} ${q.tier === 0 ? "OP" : q.tier + "티어"} · 승률 ${q.wr}% · ${ban ? `밴률 ${q.br}%` : `픽률 ${q.pr}%`}`;
+  // 대회 기록으로 본 라인별 선픽 성향: 1픽 비율, 평균 픽 순번(1~5). 자료가 없으면 null
+  let PRO_TIMING;
+  function proTiming() {
+    if (PRO_TIMING !== undefined) return PRO_TIMING;
+    const P = window.PRO; PRO_TIMING = null;
+    if (!P || !P.firstPick || !P.pickOrder || !P.roles) return null;
+    const main = (id) => { const r = P.roles[id]; return r ? Object.entries(r).sort((a, b) => b[1] - a[1])[0][0] : null; };
+    const first = {}, ord = {}; let tot = 0;
+    for (const [id, n] of Object.entries(P.firstPick)) { const r = main(id); if (r) { first[r] = (first[r] || 0) + n; tot += n; } }
+    for (const [id, v] of Object.entries(P.pickOrder)) { const r = main(id); if (r) { (ord[r] = ord[r] || [0, 0]); ord[r][0] += v[0] * v[1]; ord[r][1] += v[1]; } }
+    if (tot < 30) return null;
+    PRO_TIMING = {};
+    ROLES.forEach((r) => { PRO_TIMING[r] = { first: Math.round(((first[r] || 0) / tot) * 100), avg: ord[r] ? Math.round((ord[r][0] / ord[r][1]) * 100) / 100 : 3 }; });
+    return PRO_TIMING;
+  }
+  // 먼저 보여도 되는 챔프인가: 그 라인 맞상대 전적(META.mu, 80판 이상)에서 아직 남아 있는 상대 중 불리한(승률 47.5% 미만) 상대 비율
+  function blindSafety(id, role, avail) {
+    const M = window.META, mu = M && M.mu && M.mu[id] && M.mu[id][role];
+    if (!mu) return null;
+    const es = Object.entries(mu).filter(([x, v]) => v[1] >= 80 && avail.has(x));
+    if (es.length < 8) return null;
+    const bad = es.filter(([, v]) => v[0] < 47.5).sort((a, b) => a[1][0] - b[1][0]);
+    return { n: es.length, bad: bad.length, share: bad.length / es.length, worst: bad.slice(0, 2).map(([x]) => x) };
+  }
+
   // 카드 근거 한 줄씩(분류 + 한 문장): 그 라인 선수의 이 챔프 기록. 라인·선수 이름은 카드 밖에서 보이므로 뺀다
   //  k: self(자기평가) · season(시즌 전체) · recent(11/10 이후) · team(팀 경기) · pro(대회) · solo(솔랭)
   function facts(team, role, id) {
@@ -407,7 +445,8 @@ window.Engine = (function () {
   }
   // 근거 하나 → 알약(문장을 자르지 않는다: 줄일 수 있으면 줄이고, 아니면 근거 이름)
   const SHORT_T = { "앞라인 보강": "good", "딜러 보강": "good", "AP 딜 보강": "good", "AD 딜 보강": "good", "탱커 녹이기": "good", "갱 대비": "good",
-    "탱커에 약함": "bad", "딜 부족": "bad", "궁 보호 밴": "info", "사일러스 주의": "bad" };
+    "탱커에 약함": "bad", "딜 부족": "bad", "궁 보호 밴": "info", "사일러스 주의": "bad",
+    "선픽 안정": "good", "선픽 라인": "good", "대회 선픽": "info", "받아치기 쉬움": "bad", "후픽 라인": "bad" };
   function shortR(r, threat) {
     if (r.pill) return { t: r.pill, c: threat ? "good" : "bad" };
     const p = r.d ? shortNow(r.d, threat) : null;
@@ -829,6 +868,7 @@ window.Engine = (function () {
     const candidates = available(state);
     const myAvail = new Set(candidates.map((c) => c.id));
     const myOpen = openRoles(state, who);
+    const oppNoPool = !teamHasPools(oppTeam);   // 솔랭·자랭(상대 챔프폭 자료 없음)
     const myComfort = [];
     myOpen.filter((r) => oppOpen.includes(r)).forEach((r) => Object.entries(poolMap(myTeam, r)).forEach(([id, e]) => (e.lv >= 3 || e.one) && myAvail.has(id) && !myComfort.find((x) => x.id === id) && myComfort.push({ id, r })));
     const res = [];
@@ -899,7 +939,13 @@ window.Engine = (function () {
       }
       if (c.pos.length >= 2 && onRole) s += 1;
       const mi = onRole ? metaInfo(c.id, c.pos.find((r) => oppOpen.includes(r))) : null;
-      if (mi && mi.score >= 0.5) { const v = mi.score * (s >= 10 ? 4 : 7); s += v; reasons.push({ t: "메타 강세", d: metaText(mi), v }); }
+      if (oppNoPool && onRole) {
+        // 솔랭·자랭: 상대 자료가 없으니 랭크에서 센 챔프(티어·승률·밴률)를 밴 — 대회 우선도는 조금만
+        let bq = null, br = null;
+        for (const r of c.pos) { if (!oppOpen.includes(r)) continue; const q = rankInfo(c.id, r); if (q && q.pr >= 1 && (!bq || rankPts(q) > rankPts(bq))) { bq = q; br = r; } }
+        if (bq) { const v = Math.max(0, rankPts(bq)) + Math.min(6, bq.br / 4); if (v > 0) { s += v; reasons.push({ t: bq.tier <= 1 ? `랭크 ${bq.tier === 0 ? "OP" : "1티어"}` : "랭크 강세", d: rankText(bq, br, true), v }); tgt = tgt || br; } }
+        if (mi && mi.prio >= 30) { const v = Math.min(3, mi.prio / 20); s += v; reasons.push({ t: "대회 우선도", d: metaText(mi), v }); }
+      } else if (mi && mi.score >= 0.5) { const v = mi.score * (s >= 10 ? 4 : 7); s += v; reasons.push({ t: "메타 강세", d: metaText(mi), v }); }
       if (s < 3) continue;
       reasons.sort((a, b) => b.v - a.v);
       res.push({ id: c.id, score: s, label: reasons[0] ? reasons[0].t : "견제", reasons, tgt });
@@ -995,6 +1041,8 @@ window.Engine = (function () {
       if (grp.length) nowRoles = grp;
     }
     const hasFront = mine.some((p) => CH[p.champ].st.includes("front"));
+    const noPool = !teamHasPools(team);   // 솔랭·자랭(우리 챔프폭 자료 없음): 랭크 통계 + 대회 선픽 성향으로 추천
+    const timing = noPool ? proTiming() : null, availIds = noPool ? new Set(available(state).map((x) => x.id)) : null;
     // 딜 계산은 실제 딜러만 센다(말파이트·누누·갈리오 같은 탱커는 AP여도 딜러가 아님)
     const dealers = mine.filter((p) => isDealer(CH[p.champ]));
     const ad = dealers.filter((p) => CH[p.champ].dmg === "AD").length;
@@ -1049,14 +1097,32 @@ window.Engine = (function () {
         const br = bctx && blindRisk(bctx, r, c.id);
         if (br) { const v = br.v * (myBanLeft ? 0.6 : 1); s -= v; reasons.push({ t: "받아치기 위험", d: `상대 ${br.names}가 아직 남음 → ${ROLE_KO[r]}를 먼저 보이면 라인전 불리${myBanLeft ? " · 2차 밴으로 막을 수 있음" : ""}`, v: -v, pill: `${br.short} 받아치기 위험`, banFix: myBanLeft }); }
         const mi = metaInfo(c.id, r);
-        if (mi && mi.score >= 0.45) { const v = mi.score * 4; s += v; reasons.push({ t: "메타 강세", d: metaText(mi), v }); }
+        if (noPool) {
+          const q = rankInfo(c.id, r);
+          if (q && q.pr >= 0.5) { const v = rankPts(q); s += v; reasons.push({ t: q.tier <= 1 ? `랭크 ${q.tier === 0 ? "OP" : "1티어"}` : `랭크 ${q.tier}티어`, d: rankText(q, r), v, rank: true }); }
+          else s -= 4;   // 그 라인 통계가 거의 없는 챔프
+          if (mi && mi.prio >= 30) { const v = Math.min(3, mi.prio / 20); s += v; reasons.push({ t: "대회 우선도", d: metaText(mi), v }); }
+          // 선픽 판단: 그 라인 상대가 아직 안 보였을 때만(보였으면 아래 카운터 계산이 대신함)
+          if (!theirs.some((t) => t.role === r)) {
+            const early = mine.length < 2, T = timing && timing[r];
+            if (early && T) {
+              if (T.first >= 20) { s += 3; reasons.push({ t: "선픽 라인", d: `대회 1픽의 ${T.first}%가 ${ROLE_KO[r]} · 평균 ${T.avg}번째 픽 → 먼저 뽑아도 손해가 적음`, v: 3 }); }
+              else if (T.avg >= 3.3) { s -= 2; reasons.push({ t: "후픽 라인", d: `${j(ROLE_KO[r], "은", "는")} 대회에서 평균 ${T.avg}번째 픽 → 상대를 보고 뽑는 라인`, v: -2 }); }
+            }
+            const po = early && window.PRO && window.PRO.pickOrder && window.PRO.pickOrder[c.id];
+            if (po && po[1] >= 20 && po[0] <= 2.3) { s += 3; reasons.push({ t: "대회 선픽", d: `대회 평균 ${po[0]}번째 픽(${po[1]}판) → 먼저 가져가는 챔프`, v: 3 }); }
+            const bs = blindSafety(c.id, r, availIds);
+            if (bs && bs.share <= 0.15) { s += 4; reasons.push({ t: "선픽 안정", d: `남은 ${ROLE_KO[r]} 상대 ${bs.n}명 중 불리한 상대 ${bs.bad}명 → 먼저 뽑아도 받아치기 어려움`, v: 4 }); }
+            else if (bs && bs.share >= 0.4) { const v = bs.share >= 0.55 ? 6 : 4; s -= v; reasons.push({ t: "받아치기 쉬움", d: `남은 ${ROLE_KO[r]} 상대 ${bs.n}명 중 ${bs.bad}명에게 불리(${bs.worst.map(ko).join("·")} 등) → 뒤에 뽑는 게 안전`, v: -v }); }
+          }
+        } else if (mi && mi.score >= 0.45) { const v = mi.score * 4; s += v; reasons.push({ t: "메타 강세", d: metaText(mi), v }); }
         const tr = stackChampRecord(team, r, c.id);
         if (tr) { const v = Math.max(-6, Math.min(6, tr.w * 2 - (tr.g - tr.w))); s += v; if (v > 0) reasons.push({ t: "팀 경기 기록", d: `팀원과 함께 ${tr.g}판 ${tr.w}승`, v }); }
         if (dir) {
           const f = fit(c, dir);
           if (f >= 2) { s += f * 2.5; reasons.push({ t: `${COMPS[dir].short} 조합`, d: `${COMPS[dir].name}에 맞음`, v: f * 2.5, comp: true }); }
         }
-        if (!hasFront && c.st.includes("front") && "TJS".includes(r)) { s += 5; reasons.push({ t: "앞라인 보강", d: "아직 탱커가 없음", v: 5 }); }
+        if (!hasFront && c.st.includes("front") && "TJS".includes(r) && (!noPool || mine.length >= 2)) { s += 5; reasons.push({ t: "앞라인 보강", d: "아직 탱커가 없음", v: 5 }); }
         const blk = blockedBy(c, anti);
         // 원딜은 앞라인 뒤에서 칠 수 있어 돌진 차단 감점을 절반만
         if (blk) { const v = Math.min(26, 5 * blk.sum) * (r === "A" && blk.kind === "돌진" ? 0.5 : 1); s -= v; reasons.push({ t: `${blk.kind} 차단 주의`, d: `${blk.ids.map(ko).join("·")}가 ${blk.kind}을 막음`, v: -v }); }
@@ -1095,7 +1161,7 @@ window.Engine = (function () {
         }
         const rv = guess && revealed[r];
         if (rv && rv.w >= 0.3) { const v = rv.w * COUNTER_TIMING[r]; s += v; reasons.push({ t: "맞대응 차례", d: `우리 ${ko(rv.champ)} ${ROLE_KO[r]} 공개 → 맞대응`, v }); }
-        if (nowRoles.length) {
+        if (nowRoles.length && !noPool) {   // 솔랭·자랭은 각자 자기 라인을 뽑으니 「지금은 ○○ 차례」를 두지 않음(선픽 라인·후픽 라인이 대신함)
           const on = guess ? 4 : 8, off = guess ? 6 : 18;
           if (nowRoles.includes(r)) { s += on; reasons.push({ t: "픽 순서", d: `지금은 ${nowRoles.map((x) => ROLE_KO[x]).join("+")} 차례`, v: on, order: true }); }
           else { s -= off; reasons.push({ t: "나중에", d: `${j(ROLE_KO[r], "은", "는")} 뒤 순서에서`, v: -off }); }
@@ -1115,7 +1181,9 @@ window.Engine = (function () {
         answers: guess ? ourAnswers(state, who, best.r, c.id) : undefined,
       });
     }
-    res.sort((a, b) => b.score - a.score);
+    // 점수가 같으면 랭크 승률 높은 쪽부터(예전엔 가나다순으로 나왔음)
+    const wrOf = (x) => { const q = rankInfo(x.id, x.role); return q ? q.wr : 0; };
+    res.sort((a, b) => b.score - a.score || wrOf(b) - wrOf(a));
     if (!guess) return res.slice(0, N);
     // 상대 예상(전체): 한 라인이 여섯 칸을 다 차지하지 않게 라인당 최대 수를 두고(지금 차례로 본 라인은 한 칸 더),
     // 다른 라인은 같은 라인 두 번째부터 조금씩 낮춰 라인을 섞는다
