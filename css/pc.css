@@ -1961,3 +1961,7 @@ html[data-theme="dark"] .scr-k { color: var(--hi); }
 .pt-tbl thead th:nth-child(3), .pt-tbl td.pt-def { width: 40%; text-align: right; }
 .pt-tbl .pt-in { width: 96px; max-width: 100%; text-align: center; }
 .pt-act { justify-content: center; }
+
+/* 구인 글(11-24 사용자 수정): 보이스 필수는 팀원 구함에만 · 카드 아래 롤 닉네임 */
+.scr-form[data-kind="team"] .scf-voice { display: none; }
+.scr-ct { display: flex; align-items: center; gap: 6px; } .scr-nick { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

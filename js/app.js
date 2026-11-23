@@ -5484,7 +5484,6 @@
   const SCR_TIER = [["any", "티어 무관"], ["iron", "아이언"], ["bronze", "브론즈"], ["silver", "실버"], ["gold", "골드"], ["platinum", "플래티넘"], ["emerald", "에메랄드"], ["diamond", "다이아몬드"], ["master", "마스터"], ["grandmaster", "그랜드마스터"], ["challenger", "챌린저"]];
   const SCR_MODE = [["hard", "하드 피어리스"], ["soft", "소프트 피어리스"], ["off", "일반 밴픽"]];
   const SCR_BO = [[1, "단판"], [3, "3판 2선승"], [5, "5판 3선승"]];
-  const SCR_WHEN = ["지금 바로", "오늘 밤", "내일", "주말"];
   const scrLabel = (list, v) => (list.find((x) => x[0] === v) || [, ""])[1];
   const scrMine = () => { try { return JSON.parse(localStorage.getItem("lolban.scrim.mine.v1") || "{}") || {}; } catch (e) { return {}; } };
   const scrMineSet = (m) => { try { localStorage.setItem("lolban.scrim.mine.v1", JSON.stringify(m)); } catch (e) { /* 저장 막힘: 이번 창에서만 */ } };
@@ -5553,15 +5552,15 @@
     const kindTag = p.kind === "team" ? `<span class="scr-kind team">상대 팀 구함</span>` : `<span class="scr-kind mem">팀원 구함</span>`;
     const need = p.kind === "member" ? `<div class="scr-need" aria-label="구하는 라인">${ROLES.map((r) => `<span class="scr-ln ${p.need.includes(r) ? "on" : ""}" title="${ROLE_KO[r]}${p.need.includes(r) ? " 구함" : ""}">${laneIco(r, 18)}</span>`).join("")}<b>${p.need.map((r) => ROLE_KO[r]).join(" · ")}</b></div>`
       : `<div class="scr-need full" aria-label="5명 모두 있음">${ROLES.map((r) => `<span class="scr-ln on">${laneIco(r, 18)}</span>`).join("")}<b>5명 준비됨</b></div>`;
-    const okLink = /^https:\/\/(open\.kakao\.com|discord\.gg|discord\.com\/invite)\/[A-Za-z0-9/_-]+$/.test(p.contact);
-    const contact = okLink ? `<a href="${esc(p.contact)}" target="_blank" rel="noopener noreferrer nofollow">${esc(p.contact.replace(/^https:\/\//, ""))}</a>` : `<span>${esc(p.contact)}</span>`;
+    const who = p.riot || p.contact || "";   // 11-24: 연락 방법 대신 롤 닉네임(친추) — 예전 글은 연락처
+    const contact = `<span class="scr-nick">${esc(who)}</span>${p.riot ? (p.verified ? `<i class="scr-ok">인증</i>` : `<i class="scr-no" title="라이엇 인증 전이라 본인 계정인지 확인되지 않았어요">미인증</i>`) : ""}`;
     return `<article class="scr" aria-label="${esc(p.team)} · ${p.kind === "team" ? "상대 팀 구함" : "팀원 구함"}">
       <div class="scr-h">${kindTag}<span class="scr-tier t-${esc(p.tier)}">${esc(scrLabel(SCR_TIER, p.tier))}</span><time class="scr-at" datetime="${new Date(p.at).toISOString()}" title="${esc(scrLeft(p.exp))}">${scrAgo(p.at)}</time></div>
-      <div class="scr-t">${crestOf({ name: p.team })}<div class="scr-tn"><b title="${esc(p.team)}">${esc(p.team)}</b>${p.riot ? `<small>${esc(p.riot)}${p.verified ? `<i class="scr-ok">인증</i>` : `<i class="scr-no" title="라이엇 인증 전이라 본인 계정인지 확인되지 않았어요">미인증</i>`}</small>` : ""}</div></div>
+      <div class="scr-t">${crestOf({ name: p.team })}<div class="scr-tn"><b title="${esc(p.team)}">${esc(p.team)}</b></div></div>
       ${need}
-      <div class="scr-chips"><span>${esc(scrLabel(SCR_MODE, p.mode))}</span><span>${esc(scrLabel(SCR_BO, p.bo))}</span>${p.when ? `<span class="when">${esc(p.when)}</span>` : ""}${p.voice ? `<span>보이스 필수</span>` : ""}</div>
+      <div class="scr-chips"><span>${esc(scrLabel(SCR_MODE, p.mode))}</span><span>${esc(scrLabel(SCR_BO, p.bo))}</span>${p.voice && p.kind === "member" ? `<span>보이스 필수</span>` : ""}</div>
       ${p.memo ? `<p class="scr-memo">${esc(p.memo)}</p>` : ""}
-      <div class="scr-f"><span class="scr-ct" title="연락 방법">${contact}</span><button class="ib btn sm" data-act="scrcopy" data-v="${esc(p.contact)}" aria-label="연락 방법 복사">${ico("copy")}</button>${mine ? `<button class="ib btn sm" data-act="scrdel" data-id="${esc(p.id)}" aria-label="내 글 지우기">${ico("trash")}</button>` : ""}</div>
+      <div class="scr-f"><span class="scr-ct" title="롤 닉네임 · 친추해서 연락">${contact}</span><button class="ib btn sm" data-act="scrcopy" data-v="${esc(who)}" aria-label="롤 닉네임 복사">${ico("copy")}</button>${mine ? `<button class="ib btn sm" data-act="scrdel" data-id="${esc(p.id)}" aria-label="내 글 지우기">${ico("trash")}</button>` : ""}</div>
     </article>`;
   }
   function renderScrim() {
@@ -5608,15 +5607,13 @@
         <label class="scf-f"><span>밴픽 방식</span><select class="input" id="scfMode">${opt(SCR_MODE, "hard")}</select></label>
         <label class="scf-f"><span>판수</span><select class="input" id="scfBo">${opt(SCR_BO.map(([v, n]) => [String(v), n]), "3")}</select></label>
       </div>
-      <div class="scf-f"><span>언제</span><div class="scf-when"><input class="input" id="scfWhen" maxlength="24" placeholder="예: 오늘 밤 10시" autocomplete="off">${SCR_WHEN.map((w) => `<button type="button" class="soft-b" data-act="scrwhen" data-v="${w}">${w}</button>`).join("")}</div></div>
-      <label class="scf-f"><span>연락 방법<em>필수</em></span><input class="input" id="scfContact" maxlength="60" placeholder="디스코드 아이디 또는 오픈카톡 링크" autocomplete="off" required></label>
-      <label class="scf-f"><span>라이엇 ID<em class="opt">선택</em></span><input class="input" id="scfRiot" maxlength="40" placeholder="이름#태그" autocomplete="off"><small class="help">지금은 인증 없이 「미인증」으로 표시돼요</small></label>
-      <label class="scf-f"><span>하고 싶은 말<em class="opt">선택</em></span><textarea class="input" id="scfMemo" maxlength="300" rows="3" placeholder="예: 피어리스 하드로 3판 연습해요. 매너 게임!"></textarea></label>
-      <label class="scf-chk"><input type="checkbox" id="scfVoice"> 보이스(디스코드) 필수</label>
+      <label class="scf-f"><span>롤 닉네임<em>필수</em></span><input class="input" id="scfRiot" maxlength="40" placeholder="닉네임#태그" autocomplete="off" required><small class="help">보고 친추할 수 있게 글에 보여요 · 지금은 인증 없이 「미인증」으로 표시돼요</small></label>
+      <label class="scf-f"><span>하고 싶은 말<em class="opt">선택</em></span><textarea class="input" id="scfMemo" maxlength="300" rows="3" placeholder="예: 피어리스 하드 3판 하실 팀 친추 주세요!"></textarea></label>
+      <label class="scf-chk scf-voice"><input type="checkbox" id="scfVoice"> 보이스(디스코드) 필수</label>
       <p class="scf-err" id="scfErr" role="alert"></p>
       <div class="scf-foot"><small>글은 24시간 뒤 저절로 사라지고, 이 브라우저에서 언제든 지울 수 있어요</small><button type="submit" class="n-new" id="scfGo">올리기</button></div>
     </form></div>`;
-    setTimeout(() => { const t = document.getElementById(nm ? "scfContact" : "scfTeam"); if (t) t.focus(); }, 0);
+    setTimeout(() => { const t = document.getElementById(nm ? "scfRiot" : "scfTeam"); if (t) t.focus(); }, 0);
   }
   const scrClose = () => { const r = document.getElementById("scrmodal"); if (r) r.innerHTML = ""; };
   async function scrSubmit() {
@@ -5626,10 +5623,10 @@
     const err = (m) => { const e = document.getElementById("scfErr"); if (e) e.textContent = m; };
     if (!v("scfTeam").trim()) { err("팀 이름을 적어 주세요"); document.getElementById("scfTeam").focus(); return; }
     if (kind === "member" && !need.length) { err("구하는 라인을 하나 이상 골라 주세요"); return; }
-    if (!v("scfContact").trim()) { err("연락 방법을 적어 주세요"); document.getElementById("scfContact").focus(); return; }
-    if (v("scfRiot").trim() && !/^[^#]{1,24}\s*#\s*[^#\s]{2,8}$/.test(v("scfRiot").trim())) { err("라이엇 ID는 이름#태그 형식으로 적어 주세요"); document.getElementById("scfRiot").focus(); return; }
+    if (!v("scfRiot").trim()) { err("롤 닉네임을 적어 주세요"); document.getElementById("scfRiot").focus(); return; }
+    if (!/^[^#]{1,24}\s*#\s*[^#\s]{2,8}$/.test(v("scfRiot").trim())) { err("롤 닉네임은 닉네임#태그 형식으로 적어 주세요"); document.getElementById("scfRiot").focus(); return; }
     const delKey = scrKey();
-    const body = { kind, team: v("scfTeam"), need, tier: v("scfTier"), mode: v("scfMode"), bo: +v("scfBo"), when: v("scfWhen"), contact: v("scfContact"), riot: v("scfRiot"), memo: v("scfMemo"), voice: !!(document.getElementById("scfVoice") || {}).checked, delKey };
+    const body = { kind, team: v("scfTeam"), need, tier: v("scfTier"), mode: v("scfMode"), bo: +v("scfBo"), riot: v("scfRiot"), memo: v("scfMemo"), voice: kind === "member" && !!(document.getElementById("scfVoice") || {}).checked, delKey };
     F.dataset.busy = "1"; const go = document.getElementById("scfGo"); if (go) { go.disabled = true; go.textContent = "올리는 중…"; } err("");
     try {
       const res = await fetch(`${WURL()}/scrim/posts`, { method: "POST", cache: "no-store", credentials: "omit", headers: scrHead(true), body: JSON.stringify(body) });
@@ -5672,12 +5669,11 @@
       case "scrreload": loadScrim(true); loadRank(true); render(); break;
       case "scrkind": SCR.f.kind = el.dataset.v; if (SCR.f.kind === "team") SCR.f.role = ""; render(); break;
       case "scrrole": SCR.f.role = SCR.f.role === el.dataset.v ? "" : el.dataset.v; if (SCR.f.role) SCR.f.kind = "member"; render(); break;
-      case "scrcopy": { const v = el.dataset.v || ""; (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(() => toast("연락 방법을 복사했어요"), () => toast(v)); break; }
+      case "scrcopy": { const v = el.dataset.v || ""; (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(() => toast("롤 닉네임을 복사했어요 · 친추해서 연락하세요"), () => toast(v)); break; }
       case "scrdel": scrDelete(el.dataset.id); break;
       case "scrhide": scrHideToggle(); break;
       case "scrfk": { const F = document.getElementById("scForm"); if (!F) break; F.dataset.kind = el.dataset.v; F.querySelectorAll('[data-act="scrfk"]').forEach((b) => { const on = b === el; b.setAttribute("aria-checked", String(on)); b.setAttribute("aria-pressed", String(on)); }); break; }
       case "scrfr": el.setAttribute("aria-pressed", String(el.getAttribute("aria-pressed") !== "true")); break;
-      case "scrwhen": { const w = document.getElementById("scfWhen"); if (w) { w.value = el.dataset.v; w.focus(); } break; }
     }
   });
   document.addEventListener("change", (ev) => { const t = ev.target; if (t && t.dataset && t.dataset.act === "scrf") { SCR.f[t.dataset.k] = t.value; render(); } });
