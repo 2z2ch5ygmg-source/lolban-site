@@ -5554,15 +5554,20 @@
     const who = p.riot || p.contact || "", cut = p.riot ? who.lastIndexOf("#") : -1, nm = cut > 0 ? who.slice(0, cut) : who, tag = cut > 0 ? who.slice(cut) : "";
     const badge = p.riot ? (p.verified ? `<i class="scr-ok">인증</i>` : `<i class="scr-no" title="라이엇 인증 전이라 본인 계정인지 확인되지 않았어요">미인증</i>`) : "";
     const when = new Date(p.at).toLocaleString("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
-    const need = p.kind === "member" ? `<span class="scr-need" aria-label="구하는 라인">${p.need.map((r) => `<span class="scr-ln" title="${ROLE_KO[r]} 구함">${laneIco(r, 15)}</span>`).join("")}<b>${p.need.map((r) => ROLE_KO[r]).join(" · ")} 구함</b></span>` : "";
+    // 칸(11-24 사용자: 컬럼이 있어야 — 구하는 라인·티어·밴픽 방식·판수·보이스). 밴픽 방식·보이스 필수는 색으로 구분. 좁은 화면에선 칸이 꼬리표로 접힘
+    const none = `<span class="scr-c is-none" aria-hidden="true">–</span>`;
+    const need = p.kind === "member" ? `<span class="scr-c scr-need" aria-label="구하는 라인: ${p.need.map((r) => ROLE_KO[r]).join(", ")}">${p.need.map((r) => `<span class="scr-ln" title="${ROLE_KO[r]} 구함">${laneIco(r, 16)}</span>`).join("")}<b>${p.need.map((r) => ROLE_KO[r]).join(" · ")}</b></span>` : none;
+    const voice = p.voice && p.kind === "member" ? `<span class="scr-c scr-voice" title="보이스(디스코드) 필수"><i><em>보이스 </em>필수</i></span>` : none;
     return `<article class="scr" aria-label="${esc(who)} · ${p.kind === "team" ? "상대 팀 구함" : "팀원 구함"}">
       ${kindTag}
       <div class="scr-who" title="롤 닉네임 · 친추해서 연락"><b><span class="scr-nick">${esc(nm)}</span>${tag ? `<span class="scr-tag">${esc(tag)}</span>` : ""}</b>${badge}</div>
-      <div class="scr-body">${p.memo ? `<p class="scr-memo">${esc(p.memo)}</p>` : ""}
-        <div class="scr-chips">${need}<span class="scr-tier t-${esc(p.tier)}">${esc(scrLabel(SCR_TIER, p.tier))}</span><span>${esc(scrLabel(SCR_MODE, p.mode))}</span><span>${esc(scrLabel(SCR_BO, p.bo))}</span>${p.voice && p.kind === "member" ? `<span>보이스 필수</span>` : ""}</div></div>
-      <div class="scr-end"><time class="scr-at" datetime="${new Date(p.at).toISOString()}" title="${esc(when)}">${scrAgo(p.at)}</time><button class="ib btn sm" data-act="scrcopy" data-v="${esc(who)}" aria-label="롤 닉네임 복사" title="롤 닉네임 복사">${ico("copy")}</button>${mine ? `<button class="ib btn sm" data-act="scrdel" data-id="${esc(p.id)}" aria-label="내 글 지우기" title="내 글 지우기">${ico("trash")}</button>` : ""}</div>
+      <div class="scr-meta">${need}<span class="scr-c scr-tier t-${esc(p.tier)}">${esc(scrLabel(SCR_TIER, p.tier))}</span><span class="scr-c scr-mode m-${esc(p.mode)}"><i>${esc(scrLabel(SCR_MODE, p.mode))}</i></span><span class="scr-c scr-bo">${esc(scrLabel(SCR_BO, p.bo))}</span>${voice}</div>
+      <time class="scr-at" datetime="${new Date(p.at).toISOString()}" title="${esc(when)}">${scrAgo(p.at)}</time>
+      <div class="scr-end"><button class="ib btn sm" data-act="scrcopy" data-v="${esc(who)}" aria-label="롤 닉네임 복사" title="롤 닉네임 복사">${ico("copy")}</button>${mine ? `<button class="ib btn sm" data-act="scrdel" data-id="${esc(p.id)}" aria-label="내 글 지우기" title="내 글 지우기">${ico("trash")}</button>` : ""}</div>
+      ${p.memo ? `<p class="scr-memo">${esc(p.memo)}</p>` : ""}
     </article>`;
   }
+  const SCR_HEAD = `<div class="scr scr-hd" aria-hidden="true"><span>구분</span><span>롤 닉네임</span><div class="scr-meta"><span>구하는 라인</span><span>티어</span><span>밴픽 방식</span><span>판수</span><span>보이스</span></div><span class="scr-at">올린 때</span><span></span></div>`;
   function renderScrim() {
     loadScrim();
     const f = SCR.f, all = SCR.posts || [];
@@ -5574,7 +5579,7 @@
       : `<button class="n-new" data-act="scrnew">${lbi("plus", 18)}구인 글쓰기</button>`;
     const sel = (k, list, first) => `<select class="input scr-sel" data-act="scrf" data-k="${k}" aria-label="${first}"><option value="">${first}</option>${list.map(([v, n]) => `<option value="${v}" ${f[k] === v ? "selected" : ""}>${n}</option>`).join("")}</select>`;
     const body = SCR.posts === null ? (SCR.err ? emptyBox("warn", SCR.err, `<button class="soft-b" data-act="scrreload">다시 불러오기</button>`) : `<div class="scr-list">${[0, 1, 2, 3].map(() => `<div class="scr is-sk" aria-busy="true"></div>`).join("")}</div>`)
-      : shown.length ? `<div class="scr-list">${shown.map(scrCard).join("")}</div>`
+      : shown.length ? `<div class="scr-list">${SCR_HEAD}${shown.map(scrCard).join("")}</div>`
       : emptyBox("invite", all.length ? "조건에 맞는 글이 없습니다" : "아직 올라온 구인 글이 없습니다", all.length ? "거르기를 풀어 보세요" : "첫 글을 올려 같이 밴픽 연습할 팀을 찾아보세요");
     return `<div class="scrim">
       <section class="scr-hero"><div class="scr-hero-t"><span class="scr-k">5:5 내전 구인</span><h1>피어리스 밴픽, 실전처럼 연습할 상대 찾기</h1><p>롤벤은 밴픽·내전 연습하는 팀이 모인 곳이에요. 상대 팀이나 빈 라인 팀원을 구해 보세요.</p></div>
