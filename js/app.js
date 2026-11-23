@@ -490,6 +490,16 @@
   const crestOf = (t, cls) => `<span class="crest ${cls || ""}" aria-hidden="true">${esc([...String((t && t.name) || "?")][0] || "?")}</span>`;
   // ---------- 새 디자인(PC) 사이드바·머리줄 ----------
   const guest = () => !(SPACE && !SPACE.bad);
+  // 이용자 분석(11-24): 페이지를 열 때 한 번 — 화면·들어온 곳(도메인만 서버에 남음)·utm·기기. 방문자 번호는 이 브라우저에서 만든 무작위 값(서버엔 날마다 바뀌는 해시만)
+  function sendHit() {
+    if (!WURL()) return;
+    let vid = "", newv = false;
+    try { vid = localStorage.getItem("lolban.vid") || ""; if (!vid) { vid = Array.from(crypto.getRandomValues(new Uint8Array(16)), (x) => x.toString(16).padStart(2, "0")).join(""); localStorage.setItem("lolban.vid", vid); newv = true; } } catch (e) { vid = ""; }
+    const q = new URLSearchParams(location.search), pick = (k) => (q.get(k) || "").slice(0, 40);
+    const body = { vid, newv, route: location.pathname.replace(/index\.html$/, ""), ref: document.referrer || "", mob: MOB.matches, pwa: window.matchMedia("(display-mode: standalone)").matches || q.get("src") === "app",
+      utm_source: pick("utm_source"), utm_medium: pick("utm_medium"), utm_campaign: pick("utm_campaign") };
+    try { fetch(`${WURL()}/stat/hit`, { method: "POST", credentials: "omit", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {}); } catch (e) { /* 통계만 빠짐 */ }
+  }
   // 기능별 주소(11-24 SEO): 내전 구인 = /scrim/ · 실시간 밴픽 = /draft/ · 그 밖은 / — 검색에 기능마다 따로 잡히게. 페이지는 tools/build-pages.cjs가 만듦
   const ROUTES = { scrim: "/scrim/", live: "/draft/", vision: "/study/" };
   const ROUTE_TITLE = { scrim: "롤 5:5 내전 구인 - 스크림 상대 팀·팀원 찾기 | 롤벤", live: "피어리스 밴픽 시뮬레이터 - 카운터·밴 추천 | 롤벤", vision: "롤 공부자료 - 시야·운영 이론과 문제 풀이 | 롤벤" };
@@ -4581,7 +4591,8 @@
         // 챔프 자리가 벽 안에 조금 걸린 것은 가장 가까운 걸을 수 있는 칸으로(11-19 검사: 1,653곳 중 182곳이 2% 안쪽으로 걸림)
         const sn = (o) => (o && o.at && window.WORLD ? { ...o, at: window.WORLD.snap(o.at) } : o);
         const fixA = (A) => Object.fromEntries(Object.entries(A || {}).map(([k, o]) => [k, sn(o)]));
-        const m = { ...q.map, scene: { ...q.map.scene, a: fixA(q.map.scene.a) }, opts: q.map.opts.map((o) => (o.after ? { ...o, after: { ...o.after, a: fixA(o.after.a) } } : o)) };
+        const m = { ...q.map, scene: { ...q.map.scene, ph: "", a: fixA(q.map.scene.a) },   // 영상 문제는 기본 출연진(말파이트·누누…)을 채우지 않음(11-24: 엉뚱한 챔프가 보이고 정답 때 순간이동)
+           opts: q.map.opts.map((o) => (o.after ? { ...o, after: { ...o.after, a: fixA(o.after.a) } } : o)) };
         V.drills.push({ ...m, id: q.id, ytsrc: q.src, cat: "영상", sub: q.topic }); V._all = null;
       }
       return { ...q, drill: true };
@@ -4805,7 +4816,8 @@
       const t = sc.autoFog && t0.s === "them" && !t0.fog && !inSight(t0.at) ? { ...t0, fog: 1 } : t0;
       if (t.ctx) return `<span class="sc-tok ${t.s} s-${side(t.s)} ctx" style="${pct(t.at)}" title="${t.s === "us" ? "우리" : "상대"} ${esc(CH[t.c] ? CH[t.c].ko : t.c)}${t.s === "them" ? " — 우리 시야 안" : ""}">${icon(t.c, "sm")}</span>`;
       const from = pa[id] ? pa[id].at : null;
-      const pts = from ? [from, ...(t.via || []), t.at] : [...(t.via || []), t.at];
+      const pts0 = from ? [from, ...(t.via || []), t.at] : [...(t.via || []), t.at];
+      const pts = W && W.route ? W.route(pts0) : pts0;   // 벽을 뚫고 직선으로 가지 않게 길 찾기(11-24 공부자료 점검: 572개 이동이 벽을 지났음)
       const moves = pts.length > 1 && pts.some((q) => q[0] !== t.at[0] || q[1] !== t.at[1]);
       const anim = moves ? dataA({ k: "move", pts, d: t.d || 0 }) : !pa[id] ? dataA({ k: "in", d: t.d || 0 }) : "";
       return `<span class="sc-tok ${t.s} s-${side(t.s)} ${t.me ? "me" : ""} ${t.fog ? "fogged" : ""}" style="${pct(t.at)}"${anim} title="${t.s === "us" ? "우리" : "상대"} ${esc(CH[t.c] ? CH[t.c].ko : t.c)}${t.fog ? " — 안 보임(예상 위치)" : ""}">${icon(t.c, "sm")}${t.fog ? `<b class="fog-q">?</b>` : ""}</span>`;
@@ -5029,7 +5041,7 @@
       if (done && d.kind === "pos" && d.scene.me) base.a.me = { c: d.scene.me, s: "us", at: [d.opts[ans].x, d.opts[ans].y], me: 1 };
       let sc = base, prev = null;
       if (done && d.opts[ans].after) {
-        const af = d.opts[ans].after; const a = { ...base.a };
+        const af = d.opts[ans].after; const a = Object.fromEntries(Object.entries(base.a).map(([id, t]) => [id, t.via ? { ...t, via: undefined } : t]));   // 문제 장면의 등장 경로(via)가 정답 장면에서 다시 재생되지 않게(11-24 공부자료 점검: w4b·f3)
         Object.entries(af.a || {}).forEach(([id, t]) => { a[id] = { ...(a[id] || {}), ...t }; });
         const w = { ...base.w }; Object.entries(af.w || {}).forEach(([id, t]) => { w[id] = t; });
         sc = { ...base, a, w, p: af.p, hit: af.hit, l: af.l || base.l, z: [...(base.z || []), ...(af.z || [])], waves: af.waves ? { ...(base.waves || {}), ...af.waves } : base.waves };
@@ -6743,6 +6755,7 @@
   if ((JUST_LOGGED || LOGIN_ERR) && guest()) S.tab = "our";   // 막 로그인했는데 팀이 없거나 로그인이 실패했으면 그 화면(안내가 보이게)
   { let m = ""; try { m = sessionStorage.getItem("lolban.wiped") || ""; sessionStorage.removeItem("lolban.wiped"); } catch (e) { m = ""; } if (m) { AUTH.msg = m; S.tab = "our"; } }   // 데이터 초기화·탈퇴 뒤: 팀 만들기 화면 + 안내
   render();
+  sendHit();
   checkSpace();
   loadSelfEval();
   pullShared();

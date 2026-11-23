@@ -361,10 +361,12 @@
 
   // ---------- 포지션별 배우기 단원: 운영 문제의 지도로 「상황 → 맞는 선택이 벌어지는 모습」을 장면으로 ----------
   const byId = (id) => D.find((d) => d.id === id);
-  const base = (id, cap, say) => { const d = byId(id); return { ...d.scene, cap, say, refs: d.refs }; };
+  // 배우 id 앞에 문제 id를 붙인다: 같은 문제의 「상황 → 맞는 선택」은 이어서 움직이고, 다른 문제(다른 판)로 넘어갈 때는 앞 장면 자리에서 맵을 가로질러 미끄러지지 않고 새로 나타난다
+  const tag = (id, a) => Object.fromEntries(Object.entries(a || {}).map(([k, t]) => [id + ":" + k, t]));
+  const base = (id, cap, say) => { const d = byId(id); return { ...d.scene, a: tag(id, d.scene.a), cap, say, refs: d.refs }; };
   const after = (id, cap, say) => { const d = byId(id), o = d.opts.find((x) => x.ok), af = o.after || {}, sc = d.scene;
     const a = { ...sc.a }; Object.entries(af.a || {}).forEach(([k, t]) => { a[k] = { ...(a[k] || {}), ...t }; });
-    return { ...sc, a, w: { ...(sc.w || {}), ...(af.w || {}) }, waves: af.waves ? { ...(sc.waves || {}), ...af.waves } : sc.waves, p: af.p, hit: af.hit, l: af.l || sc.l, cap, say, refs: d.refs }; };
+    return { ...sc, a: tag(id, a), w: { ...(sc.w || {}), ...(af.w || {}) }, waves: af.waves ? { ...(sc.waves || {}), ...af.waves } : sc.waves, p: af.p, hit: af.hit, l: af.l || sc.l, cap, say, refs: d.refs }; };
   V.units.push(
     { id: "u7", pos: ["T"], src: "2026 운영 자료", title: "탑 · 사이드와 합류", goal: "언제 사이드를 밀고, 언제 접고 모이는지 안다", lessons: [], drills: ["m1", "m2", "m7", "m14", "m16", "m19"], scenes: [
       base("m1", "사이드 조합 — 용 1분 전", "피오라는 1:1을 이깁니다. 용이 1분 뒤 나오고, 우리 넷은 넷이서 버틸 만합니다. 피오라까지 용에 오면 상대는 고민할 게 없습니다."),

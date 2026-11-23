@@ -51,6 +51,8 @@
   // sc 를 받아, 비어 있는 역할을 채운 토큰 목록과 미니언 시야를 돌려준다. 이미 있는 역할(같은 쪽)은 건드리지 않는다.
   function fill(sc, ph) {
     if (ph !== "start" && ph !== "lane") return { add: {}, vis: [] };
+    // 고정 명단(ROLE)에 없는 챔프가 나오는 장면(공부자료 영상 문제 등)은 다른 명단이다 — 역할을 알 수 없으니 고정 명단으로 채우지 않는다
+    if (Object.values(sc.a || {}).some((t) => t.c && !ROLE[t.c])) return { add: {}, vis: [] };
     const have = { us: new Set(), them: new Set() };
     Object.values(sc.a || {}).forEach((t) => { const r = ROLE[t.c]; if (r && have[t.s]) have[t.s].add(r); });
     const flip = sc.red ? RED : (p) => p;
@@ -90,5 +92,37 @@
       if (best) return [Math.round(((best[0] + 0.5) / G.w) * 1000) / 10, Math.round(((best[1] + 0.5) / G.h) * 1000) / 10]; }
     return p;
   }
-  window.WORLD = { towers, fill, phaseOf, CAST, ROLE, LANES, lanePt, waves, snap };
+  // 움직임 경로(맵 % 점 목록)를 걸을 수 있는 칸으로만 지나가게 바꾼다 — 벽을 뚫는 직선 구간만 A*로 돌아간다(app.js 장면 무대의 챔프 움직임)
+  const routeMemo = new Map();
+  function route(pts) {
+    const G = window.VGRID; if (!G || !pts || pts.length < 2) return pts;
+    const key = JSON.stringify(pts); if (routeMemo.has(key)) return routeMemo.get(key);
+    snap(pts[0]);   // 격자 풀기(grid)
+    const Wd = G.w, Hd = G.h, free = (i, j) => i >= 0 && j >= 0 && i < Wd && j < Hd && grid[j * Wd + i] !== 1;
+    const cellOf = (p) => [Math.min(Wd - 1, Math.max(0, Math.floor((p[0] / 100) * Wd))), Math.min(Hd - 1, Math.max(0, Math.floor((p[1] / 100) * Hd)))];
+    const pt = (c) => [Math.round(((c[0] + 0.5) / Wd) * 1000) / 10, Math.round(((c[1] + 0.5) / Hd) * 1000) / 10];
+    // 두 점 사이 직선이 벽을 지나지 않는가(칸 0.4 간격으로 찍어 봄)
+    const clear = (a, b) => { const ax = (a[0] / 100) * Wd, ay = (a[1] / 100) * Hd, bx = (b[0] / 100) * Wd, by = (b[1] / 100) * Hd, n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 0.4));
+      for (let s = 0; s <= n; s++) if (!free(Math.floor(ax + ((bx - ax) * s) / n), Math.floor(ay + ((by - ay) * s) / n))) return false; return true; };
+    function astar(a, b) {
+      const s = cellOf(a), e = cellOf(b), N = Wd * Hd, g = new Float32Array(N).fill(Infinity), from = new Int32Array(N).fill(-1), done = new Uint8Array(N);
+      const heap = [], push = (f, k) => { heap.push([f, k]); let i = heap.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; [heap[p], heap[i]] = [heap[i], heap[p]]; i = p; } };
+      const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } } return top; };
+      const sk = s[1] * Wd + s[0], ek = e[1] * Wd + e[0], h = (i, j) => Math.hypot(i - e[0], j - e[1]);
+      g[sk] = 0; push(h(s[0], s[1]), sk);
+      while (heap.length) { const [, k] = pop(); if (done[k]) continue; done[k] = 1; if (k === ek) break; const i = k % Wd, j = (k - i) / Wd;
+        for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { if (!di && !dj) continue; const ni = i + di, nj = j + dj; if (!free(ni, nj)) continue; if (di && dj && (!free(i + di, j) || !free(i, j + dj))) continue;   // 모서리를 비스듬히 뚫지 않는다
+          const nk = nj * Wd + ni, ng = g[k] + (di && dj ? 1.4142 : 1); if (ng < g[nk]) { g[nk] = ng; from[nk] = k; push(ng + h(ni, nj), nk); } } }
+      if (!done[ek]) return null;
+      const cells = []; for (let k = ek; k !== -1; k = from[k]) cells.push([k % Wd, (k - (k % Wd)) / Wd]); cells.reverse();
+      // 줄 당기기: 서로 바로 보이는 점만 남긴다
+      const P = [a, ...cells.slice(1, -1).map(pt), b], out = [a]; let i = 0;
+      while (i < P.length - 1) { let j = P.length - 1; while (j > i + 1 && !clear(P[i], P[j])) j--; out.push(P[j]); i = j; }
+      return out;
+    }
+    const src = pts.map(snap), out = [src[0]];
+    for (let i = 1; i < src.length; i++) { const a = src[i - 1], b = src[i]; if (clear(a, b)) { out.push(b); continue; } const r = astar(a, b); if (r) out.push(...r.slice(1)); else out.push(b); }
+    routeMemo.set(key, out); return out;
+  }
+  window.WORLD = { towers, fill, phaseOf, CAST, ROLE, LANES, lanePt, waves, snap, route };
 })();
