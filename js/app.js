@@ -491,8 +491,8 @@
   // ---------- 새 디자인(PC) 사이드바·머리줄 ----------
   const guest = () => !(SPACE && !SPACE.bad);
   // 기능별 주소(11-24 SEO): 내전 구인 = /scrim/ · 실시간 밴픽 = /draft/ · 그 밖은 / — 검색에 기능마다 따로 잡히게. 페이지는 tools/build-pages.cjs가 만듦
-  const ROUTES = { scrim: "/scrim/", live: "/draft/" };
-  const ROUTE_TITLE = { scrim: "롤 5:5 내전 구인 - 스크림 상대 팀·팀원 찾기 | 롤벤", live: "피어리스 밴픽 시뮬레이터 - 카운터·밴 추천 | 롤벤" };
+  const ROUTES = { scrim: "/scrim/", live: "/draft/", vision: "/study/" };
+  const ROUTE_TITLE = { scrim: "롤 5:5 내전 구인 - 스크림 상대 팀·팀원 찾기 | 롤벤", live: "피어리스 밴픽 시뮬레이터 - 카운터·밴 추천 | 롤벤", vision: "롤 공부자료 - 시야·운영 이론과 문제 풀이 | 롤벤" };
   const ROOT_TITLE = "롤벤 - LoL 카운터 & 피어리스 밴 추천";
   const routeTab = () => Object.keys(ROUTES).find((k) => ROUTES[k] === location.pathname.replace(/index\.html$/, "")) || "";
   const HOME_URL = () => location.origin + (routeTab() ? "/" : location.pathname);   // 초대 링크·로그인 복귀는 늘 첫 주소로
@@ -506,7 +506,7 @@
     try { history.replaceState(null, "", want + location.search + location.hash); } catch (e) { /* 주소만 그대로 */ }
     if (typeof turnTitle === "function") turnTitle();
   }
-  const GUEST_TABS = ["live", "our", "scrim"];   // scrim = 5:5 내전 구인(11-24: 로그인 없이도 봄·씀)   // our = 로그인·팀 만들기 화면
+  const GUEST_TABS = ["live", "our", "scrim", "vision"];   // vision = 공부자료(11-24 사용자: 비회원에게도 엶)   // scrim = 5:5 내전 구인(11-24: 로그인 없이도 봄·씀)   // our = 로그인·팀 만들기 화면
   const SIDE_MENU = [["our", "home", "홈"], ["live", "draft", "실시간 밴픽"], ["scrim", "scrim", "내전 구인"], ["vision", "vision", "공부자료"], ["notes", "note", "피드백 노트"], ["alts", "scout", "부계정 찾기"], ["pts", "mastery", "점수 기준표"]];
   function renderSideNav() {
     const el = document.getElementById("side");
@@ -522,10 +522,11 @@
       el.innerHTML = `<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">${LOGO_MARK}<span>lolban<i>.</i></span></a>
         <button class="tab sd-mi" data-tab="live" aria-selected="${S.tab === "live"}">${lbi("draft", 22)}실시간 밴픽</button>
         <button class="tab sd-mi" data-tab="scrim" aria-selected="${S.tab === "scrim"}">${lbi("scrim", 22)}내전 구인</button>
+        <button class="tab sd-mi" data-tab="vision" aria-selected="${S.tab === "vision"}">${lbi("vision", 22)}공부자료</button>
         <div class="sd-sec">팀으로 쓰기</div>
         <button class="tab sd-tm sd-new" data-tab="our" aria-current="${S.tab === "our"}">${lbi("plus", 20)}<span class="nm">${SESS ? "팀 만들기 · 들어가기" : "로그인 · 팀 만들기"}</span></button>
         ${SESS && AUTH.user ? `<p class="help sd-guest">${esc(AUTH.user.nick || "로그인됨")}님 로그인됨</p>` : ""}
-        <p class="help sd-guest">팀을 등록하면 우리 팀 홈 · 상대 분석 · 피드백 노트 · 공부자료를 씁니다. 지금은 솔랭·자랭 기준 밴픽만</p>
+        <p class="help sd-guest">팀을 등록하면 우리 팀 홈 · 상대 분석 · 피드백 노트를 씁니다. 지금은 솔랭·자랭 기준 밴픽만</p>
         ${SESS ? `<div class="sd-foot"><button class="sd-out" data-act="lgout">로그아웃</button></div>` : ""}`;
       return;
     }

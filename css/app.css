@@ -1365,7 +1365,7 @@ button.gp-t { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .mv-sheet { animation: none; } }
 
 /* 손님(로그인 전, 11-19): 휴대폰 아래 탭도 실시간 밴픽·로그인만 */
-html.guest .tabs .tab:not([data-tab="live"]):not([data-tab="our"]):not([data-tab="scrim"]) { display: none; }
+html.guest .tabs .tab:not([data-tab="live"]):not([data-tab="our"]):not([data-tab="scrim"]):not([data-tab="vision"]) { display: none; }
 
 /* ---------- 11-20: 편집 창 — 기록 챔프 자동 목록, 부계정 찾기·적용 ---------- */
 .chip.rec-chip { border-style: dashed; }
