@@ -5432,8 +5432,9 @@
       const t = team(SPACE.id), acc = (r) => { const pl = t && t.players[r]; return pl && pl.riot ? `<small>${esc(nick(pl.riot))}</small>` : ""; };
       const opts = MROLE.filter(([k]) => k !== "coach" || SPACE.isOwner);
       body = `${step(3, esc(SPACE.name))}<h1>내 포지션을 골라 주세요</h1><p class="ap-sub">${SPACE.isOwner ? "팀장은 나중에 팀원 목록에서 언제든 바꿀 수 있습니다" : "처음 한 번만 직접 고르고, 바꾸는 건 팀장이 합니다"}</p>
-        <div class="ob-roles">${opts.map(([k, n]) => `<button class="ob-role" data-act="obrole" data-v="${k}" ${AUTH.busy ? "disabled" : ""}><b>${ROLES.includes(k) ? laneIco(k, 20) : ""}${n}</b>${ROLES.includes(k) ? acc(k) : `<small>${k === "sub" ? "출전 라인 없음" : "모든 라인 자기평가 편집"}</small>`}</button>`).join("")}</div>
-        ${SPACE.isOwner ? `<button class="ap-skip" data-act="obrolelater">나중에 고르기 <span aria-hidden="true">→</span></button>` : ""}`;
+        <div class="ob-roles" role="radiogroup" aria-label="포지션">${opts.map(([k, n]) => `<button class="ob-role" role="radio" aria-checked="${AP.role === k}" data-act="obrole" data-v="${k}" ${AUTH.busy ? "disabled" : ""}><b>${ROLES.includes(k) ? laneIco(k, 20) : ""}${n}</b>${ROLES.includes(k) ? acc(k) : `<small>${k === "sub" ? "출전 라인 없음" : "모든 라인 자기평가 편집"}</small>`}</button>`).join("")}</div>
+        <button class="n-new ob-go ob-start" data-act="obrolego" ${!AP.role || AUTH.busy ? "disabled" : ""} ${AUTH.busy ? 'aria-busy="true"' : ""}>${AUTH.busy ? "저장하는 중…" : AP.role ? "시작하기" : "포지션을 골라 주세요"}</button>
+        ${SPACE.isOwner ? `<button class="ap-skip" data-act="obrolelater">나중에 고르기 <span aria-hidden="true">→</span></button>` : ""}`;   // 11-24 사용자: 누르자마자 넘어가면 끊기는 느낌 → 골라 두고 「시작하기」
     }
     return `<div class="ap ap-first">${top}<section class="ap-wrap ob-wrap" aria-label="처음 설정">${body}${authMsg()}</section>${AP_FOOT}</div>`;
   }
@@ -6064,7 +6065,8 @@
       case "nxquick": nxSave({ tid: el.dataset.id, at: "" }); break;
       case "nxlive": if (el.dataset.id && team(el.dataset.id)) { S.enemyTeam = el.dataset.id; syncQueue(true); S.tab = "live"; save(); render(); window.scrollTo(0, 0); } break;
       case "obnick": obSaveNick(); break;
-      case "obrole": AUTH.msg = ""; setMemberRole(el.dataset.v).then(() => { S.tab = "our"; save(); render(); }); break;
+      case "obrole": AP.role = el.dataset.v; render(); break;
+      case "obrolego": if (!AP.role) break; AUTH.msg = ""; setMemberRole(AP.role).then(() => { AP.role = ""; S.tab = "our"; save(); render(); }); break;
       case "obrolelater": S.ui.roleLater = true; save(); render(); break;
       case "cycle": { const p = team(el.dataset.team).players[el.dataset.role]; const e = p.pool.find((x) => x[0] === el.dataset.id);
         if (e[2]) { e[1] = 3; e.length = 2; } else if (e[1] === 1) { e[1] = 3; e[2] = true; } else e[1] = e[1] - 1;

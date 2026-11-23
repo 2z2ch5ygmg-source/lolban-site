@@ -1380,6 +1380,10 @@ html.pc .modal.se-modal { width: min(820px, calc(100vw - 32px)); max-width: none
 .ob-role { display: grid; gap: 4px; padding: 16px 16px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
 .ob-role b { font-size: 17px; } .ob-role small { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ob-role:hover, .ob-role:focus-visible { border-color: var(--hi); box-shadow: 0 0 0 3px var(--hi-bg); outline: none; }
+.ob-role[aria-checked="true"] { border-color: var(--hi); background: var(--hi-bg); box-shadow: 0 0 0 1px var(--hi) inset; }
+.ob-role[aria-checked="true"] b, .ob-role[aria-checked="true"] b .lane-ic { color: var(--hi); }
+.ob-start { width: 100%; margin-top: 14px; justify-content: center; }
+.ob-start:disabled { opacity: .5; cursor: default; }
 .ob-wrap .ap-skip { justify-self: center; text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 860px) { .ob-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* 부계정 찾기 배치(11-20 사용자): 양쪽 같은 여백으로 넓게, 팀 칩 한 줄(넘치면 가로 스크롤)·보기 전환은 그 줄 오른쪽 끝,
