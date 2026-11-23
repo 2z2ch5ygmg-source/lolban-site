@@ -581,7 +581,7 @@
       c = `<span class="mh-t">${crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b")}<span class="tb">${esc(ourName)}</span></span><span class="mh-s">연습 기간 ${since}~${g ? ` · 함께 한 경기 ${g.length}판 ${g.filter((x) => x.win).length}승` : ""}</span>`;
     } else {
       const VS = window.VISION, nD = typeof allDrills === "function" && VS ? allDrills().length : 0, nOk = Object.values(S.ui.dScore || {}).filter(Boolean).length;
-      const T = { scrim: ["5:5 내전 구인", "피어리스 밴픽 연습할 상대 팀·팀원 찾기 · 글은 24시간"], team: ["우리 팀", `${esc(ourName)} · 로스터·최적 조합·함께 한 경기 · 팀원 초대`], pool: (() => { const pt = poolTeam(), en = pt && pt.id !== S.ourTeam; return [en ? `${esc(pt.name)} 챔프폭` : "선수·챔프폭", `${esc(pt ? pt.name : ourName)} · 칸으로 끌어 숙련도 정하기 · 누르면 한 단계씩`]; })(), vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자유랭크에서 같은 5명이 여러 날 모인 기록으로 찾음"], pts: ["점수 기준표", "티어별 선수 점수 · 대회 규정에 맞게 팀장이 고침"] }[S.tab] || ["", ""];
+      const T = { scrim: ["5:5 내전 구인", "피어리스 밴픽 연습할 상대 팀·팀원 찾기"], team: ["우리 팀", `${esc(ourName)} · 로스터·최적 조합·함께 한 경기 · 팀원 초대`], pool: (() => { const pt = poolTeam(), en = pt && pt.id !== S.ourTeam; return [en ? `${esc(pt.name)} 챔프폭` : "선수·챔프폭", `${esc(pt ? pt.name : ourName)} · 칸으로 끌어 숙련도 정하기 · 누르면 한 단계씩`]; })(), vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자유랭크에서 같은 5명이 여러 날 모인 기록으로 찾음"], pts: ["점수 기준표", "티어별 선수 점수 · 대회 규정에 맞게 팀장이 고침"] }[S.tab] || ["", ""];
       c = `<b class="mh-t">${T[0]}</b><span class="mh-s">${T[1]}</span>`;
     }
     el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}${hdMe()}</div>`;
@@ -5478,7 +5478,7 @@
     });
   })();
   // ---------- 5:5 내전 구인 · 연습중인 상대 순위(11-24 사용자: duo.gg처럼 구인 글, 홈에 연습량·승률 순위) ----------
-  //  글은 서버(/scrim/posts)에 24시간. 지금은 누구나 쓰고, 서버의 auth 값이 login·riot으로 바뀌면 화면도 로그인·라이엇 인증을 먼저 안내
+  //  글은 서버(/scrim/posts)에 계속 남음(11-24 사용자: 사라지지 않게 · 팀 이름 대신 글쓴이 롤 닉네임만 보임). 지금은 누구나 쓰고, 서버의 auth 값이 login·riot으로 바뀌면 화면도 로그인·라이엇 인증을 먼저 안내
   //  내 글 지우기 열쇠는 이 브라우저에만(lolban.scrim.mine.v1)
   const SCR = { posts: null, auth: "open", at: 0, busy: false, err: "", rank: null, rankAt: 0, rankBusy: false, hide: null, hideAt: "", f: { kind: "all", role: "", tier: "", mode: "" } };
   const SCR_TIER = [["any", "티어 무관"], ["iron", "아이언"], ["bronze", "브론즈"], ["silver", "실버"], ["gold", "골드"], ["platinum", "플래티넘"], ["emerald", "에메랄드"], ["diamond", "다이아몬드"], ["master", "마스터"], ["grandmaster", "그랜드마스터"], ["challenger", "챌린저"]];
@@ -5487,8 +5487,7 @@
   const scrLabel = (list, v) => (list.find((x) => x[0] === v) || [, ""])[1];
   const scrMine = () => { try { return JSON.parse(localStorage.getItem("lolban.scrim.mine.v1") || "{}") || {}; } catch (e) { return {}; } };
   const scrMineSet = (m) => { try { localStorage.setItem("lolban.scrim.mine.v1", JSON.stringify(m)); } catch (e) { /* 저장 막힘: 이번 창에서만 */ } };
-  const scrAgo = (ms) => { const m = Math.max(0, Math.round((Date.now() - ms) / 60e3)); return m < 1 ? "방금" : m < 60 ? `${m}분 전` : `${Math.floor(m / 60)}시간 전`; };
-  const scrLeft = (ms) => { const h = Math.max(0, Math.round((ms - Date.now()) / 3600e3)); return h < 1 ? "곧 사라짐" : `${h}시간 남음`; };
+  const scrAgo = (ms) => { const m = Math.max(0, Math.round((Date.now() - ms) / 60e3)); return m < 1 ? "방금" : m < 60 ? `${m}분 전` : m < 1440 ? `${Math.floor(m / 60)}시간 전` : m < 43200 ? `${Math.floor(m / 1440)}일 전` : new Date(ms).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }); };
   const scrKey = () => { const a = crypto.getRandomValues(new Uint8Array(24)); return btoa(String.fromCharCode(...a)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
   const scrHead = (json) => ({ ...(json ? { "Content-Type": "application/json" } : {}), ...(SESS ? { "X-Session": SESS } : {}) });
   const scrVerified = () => !!(AUTH.user && AUTH.user.riot && AUTH.user.riot.verified);
@@ -5550,17 +5549,17 @@
   function scrCard(p) {
     const mine = scrMine()[p.id];
     const kindTag = p.kind === "team" ? `<span class="scr-kind team">상대 팀 구함</span>` : `<span class="scr-kind mem">팀원 구함</span>`;
-    const need = p.kind === "member" ? `<div class="scr-need" aria-label="구하는 라인">${ROLES.map((r) => `<span class="scr-ln ${p.need.includes(r) ? "on" : ""}" title="${ROLE_KO[r]}${p.need.includes(r) ? " 구함" : ""}">${laneIco(r, 18)}</span>`).join("")}<b>${p.need.map((r) => ROLE_KO[r]).join(" · ")}</b></div>`
-      : `<div class="scr-need full" aria-label="5명 모두 있음">${ROLES.map((r) => `<span class="scr-ln on">${laneIco(r, 18)}</span>`).join("")}<b>5명 준비됨</b></div>`;
-    const who = p.riot || p.contact || "";   // 11-24: 연락 방법 대신 롤 닉네임(친추) — 예전 글은 연락처
-    const contact = `<span class="scr-nick">${esc(who)}</span>${p.riot ? (p.verified ? `<i class="scr-ok">인증</i>` : `<i class="scr-no" title="라이엇 인증 전이라 본인 계정인지 확인되지 않았어요">미인증</i>`) : ""}`;
-    return `<article class="scr" aria-label="${esc(p.team)} · ${p.kind === "team" ? "상대 팀 구함" : "팀원 구함"}">
-      <div class="scr-h">${kindTag}<span class="scr-tier t-${esc(p.tier)}">${esc(scrLabel(SCR_TIER, p.tier))}</span><time class="scr-at" datetime="${new Date(p.at).toISOString()}" title="${esc(scrLeft(p.exp))}">${scrAgo(p.at)}</time></div>
-      <div class="scr-t">${crestOf({ name: p.team })}<div class="scr-tn"><b title="${esc(p.team)}">${esc(p.team)}</b></div></div>
+    const need = p.kind === "member" ? `<div class="scr-need" aria-label="구하는 라인">${ROLES.map((r) => `<span class="scr-ln ${p.need.includes(r) ? "on" : ""}" title="${ROLE_KO[r]}${p.need.includes(r) ? " 구함" : ""}">${laneIco(r, 18)}</span>`).join("")}<b>${p.need.map((r) => ROLE_KO[r]).join(" · ")}</b></div>` : "";   // 상대 팀 구함은 라인 표시 없음(11-24 사용자)
+    // 11-24 사용자: 공개 게시판이라 팀 이름 대신 글쓴이 롤 닉네임이 제목(예전 글은 연락처)
+    const who = p.riot || p.contact || "", cut = p.riot ? who.lastIndexOf("#") : -1, nm = cut > 0 ? who.slice(0, cut) : who, tag = cut > 0 ? who.slice(cut) : "";
+    const badge = p.riot ? (p.verified ? `<i class="scr-ok">인증</i>` : `<i class="scr-no" title="라이엇 인증 전이라 본인 계정인지 확인되지 않았어요">미인증</i>`) : "";
+    const when = new Date(p.at).toLocaleString("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    return `<article class="scr" aria-label="${esc(who)} · ${p.kind === "team" ? "상대 팀 구함" : "팀원 구함"}">
+      <div class="scr-h">${kindTag}<span class="scr-tier t-${esc(p.tier)}">${esc(scrLabel(SCR_TIER, p.tier))}</span><time class="scr-at" datetime="${new Date(p.at).toISOString()}" title="${esc(when)}">${scrAgo(p.at)}</time></div>
+      <div class="scr-t">${crestOf({ name: nm })}<div class="scr-tn" title="롤 닉네임 · 친추해서 연락"><b><span class="scr-nick">${esc(nm)}</span>${tag ? `<span class="scr-tag">${esc(tag)}</span>` : ""}</b>${badge}</div><button class="ib btn sm" data-act="scrcopy" data-v="${esc(who)}" aria-label="롤 닉네임 복사">${ico("copy")}</button>${mine ? `<button class="ib btn sm" data-act="scrdel" data-id="${esc(p.id)}" aria-label="내 글 지우기">${ico("trash")}</button>` : ""}</div>
       ${need}
       <div class="scr-chips"><span>${esc(scrLabel(SCR_MODE, p.mode))}</span><span>${esc(scrLabel(SCR_BO, p.bo))}</span>${p.voice && p.kind === "member" ? `<span>보이스 필수</span>` : ""}</div>
       ${p.memo ? `<p class="scr-memo">${esc(p.memo)}</p>` : ""}
-      <div class="scr-f"><span class="scr-ct" title="롤 닉네임 · 친추해서 연락">${contact}</span><button class="ib btn sm" data-act="scrcopy" data-v="${esc(who)}" aria-label="롤 닉네임 복사">${ico("copy")}</button>${mine ? `<button class="ib btn sm" data-act="scrdel" data-id="${esc(p.id)}" aria-label="내 글 지우기">${ico("trash")}</button>` : ""}</div>
     </article>`;
   }
   function renderScrim() {
@@ -5577,7 +5576,7 @@
       : shown.length ? `<div class="scr-grid">${shown.map(scrCard).join("")}</div>`
       : emptyBox("invite", all.length ? "조건에 맞는 글이 없습니다" : "아직 올라온 구인 글이 없습니다", all.length ? "거르기를 풀어 보세요" : "첫 글을 올려 같이 밴픽 연습할 팀을 찾아보세요");
     return `<div class="scrim">
-      <section class="scr-hero"><div class="scr-hero-t"><span class="scr-k">5:5 내전 구인</span><h1>피어리스 밴픽, 실전처럼 연습할 상대 찾기</h1><p>롤벤은 밴픽·내전 연습하는 팀이 모인 곳이에요. 상대 팀이나 빈 라인 팀원을 구해 보세요. 글은 24시간 뒤 사라져요.</p></div>
+      <section class="scr-hero"><div class="scr-hero-t"><span class="scr-k">5:5 내전 구인</span><h1>피어리스 밴픽, 실전처럼 연습할 상대 찾기</h1><p>롤벤은 밴픽·내전 연습하는 팀이 모인 곳이에요. 상대 팀이나 빈 라인 팀원을 구해 보세요.</p></div>
         <div class="scr-hero-b">${writeBtn}${SCR.auth === "open" ? `<small>지금은 로그인 없이 쓸 수 있어요 · 라이엇 인증은 곧 붙어요</small>` : SCR.auth === "riot" ? `<small>라이엇 계정 인증을 마친 사람만 쓸 수 있어요</small>` : `<small>로그인한 사람만 쓸 수 있어요</small>`}</div></section>
       <div class="scr-main"><div class="scr-col">
         <div class="scr-bar" role="toolbar" aria-label="구인 글 거르기">
@@ -5595,12 +5594,10 @@
   // ---- 글쓰기 창 ----
   function scrForm() {
     const root = document.getElementById("scrmodal") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "scrmodal" }));
-    const ourT = team(S.ourTeam), nm = (SPACE && !SPACE.bad && SPACE.name) || (ourT && !ourT.solo ? ourT.name : "");
     const opt = (list, cur) => list.map(([v, n]) => `<option value="${v}" ${v === cur ? "selected" : ""}>${n}</option>`).join("");
     root.innerHTML = `<div class="modal-bg" data-act="scrclose"><form class="modal scr-form" role="dialog" aria-modal="true" aria-labelledby="scfT" id="scForm" data-kind="team" novalidate>
       <div class="modal-h"><h2 id="scfT">구인 글쓰기</h2><button type="button" class="ib btn sm" data-act="scrclose" aria-label="닫기">${ico("x")}</button></div>
       <div class="scf-kind seg" role="radiogroup" aria-label="글 종류"><button type="button" role="radio" data-act="scrfk" data-v="team" aria-checked="true" aria-pressed="true"><b>상대 팀 구함</b><small>우리 5명 다 있어요 · 내전 상대 찾기</small></button><button type="button" role="radio" data-act="scrfk" data-v="member" aria-checked="false" aria-pressed="false"><b>팀원 구함</b><small>빈 라인 채울 사람 찾기</small></button></div>
-      <label class="scf-f"><span>팀 이름<em>필수</em></span><input class="input" id="scfTeam" maxlength="20" value="${esc(nm)}" placeholder="예: 블루윙즈" autocomplete="off" required></label>
       <div class="scf-f scf-need"><span>구하는 라인<em>필수</em></span><div class="scr-roles big" role="group" aria-label="구하는 라인">${ROLES.map((r) => `<button type="button" class="scr-rb" data-act="scrfr" data-v="${r}" aria-pressed="false">${laneIco(r, 20)}<small>${ROLE_KO[r]}</small></button>`).join("")}</div></div>
       <div class="scf-row">
         <label class="scf-f"><span>평균 티어</span><select class="input" id="scfTier">${opt(SCR_TIER, "any")}</select></label>
@@ -5611,9 +5608,9 @@
       <label class="scf-f"><span>하고 싶은 말<em class="opt">선택</em></span><textarea class="input" id="scfMemo" maxlength="300" rows="3" placeholder="예: 피어리스 하드 3판 하실 팀 친추 주세요!"></textarea></label>
       <label class="scf-chk scf-voice"><input type="checkbox" id="scfVoice"> 보이스(디스코드) 필수</label>
       <p class="scf-err" id="scfErr" role="alert"></p>
-      <div class="scf-foot"><small>글은 24시간 뒤 저절로 사라지고, 이 브라우저에서 언제든 지울 수 있어요</small><button type="submit" class="n-new" id="scfGo">올리기</button></div>
+      <div class="scf-foot"><small>글은 계속 남아 있고, 이 브라우저에서 언제든 지울 수 있어요</small><button type="submit" class="n-new" id="scfGo">올리기</button></div>
     </form></div>`;
-    setTimeout(() => { const t = document.getElementById(nm ? "scfRiot" : "scfTeam"); if (t) t.focus(); }, 0);
+    setTimeout(() => { const t = document.getElementById("scfRiot"); if (t) t.focus(); }, 0);
   }
   const scrClose = () => { const r = document.getElementById("scrmodal"); if (r) r.innerHTML = ""; };
   async function scrSubmit() {
@@ -5621,12 +5618,11 @@
     const v = (id) => (document.getElementById(id) || {}).value || "";
     const kind = F.dataset.kind, need = [...F.querySelectorAll('.scf-need [aria-pressed="true"]')].map((b) => b.dataset.v);
     const err = (m) => { const e = document.getElementById("scfErr"); if (e) e.textContent = m; };
-    if (!v("scfTeam").trim()) { err("팀 이름을 적어 주세요"); document.getElementById("scfTeam").focus(); return; }
     if (kind === "member" && !need.length) { err("구하는 라인을 하나 이상 골라 주세요"); return; }
     if (!v("scfRiot").trim()) { err("롤 닉네임을 적어 주세요"); document.getElementById("scfRiot").focus(); return; }
     if (!/^[^#]{1,24}\s*#\s*[^#\s]{2,8}$/.test(v("scfRiot").trim())) { err("롤 닉네임은 닉네임#태그 형식으로 적어 주세요"); document.getElementById("scfRiot").focus(); return; }
     const delKey = scrKey();
-    const body = { kind, team: v("scfTeam"), need, tier: v("scfTier"), mode: v("scfMode"), bo: +v("scfBo"), riot: v("scfRiot"), memo: v("scfMemo"), voice: kind === "member" && !!(document.getElementById("scfVoice") || {}).checked, delKey };
+    const body = { kind, need, tier: v("scfTier"), mode: v("scfMode"), bo: +v("scfBo"), riot: v("scfRiot"), memo: v("scfMemo"), voice: kind === "member" && !!(document.getElementById("scfVoice") || {}).checked, delKey };
     F.dataset.busy = "1"; const go = document.getElementById("scfGo"); if (go) { go.disabled = true; go.textContent = "올리는 중…"; } err("");
     try {
       const res = await fetch(`${WURL()}/scrim/posts`, { method: "POST", cache: "no-store", credentials: "omit", headers: scrHead(true), body: JSON.stringify(body) });
