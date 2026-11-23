@@ -490,6 +490,22 @@
   const crestOf = (t, cls) => `<span class="crest ${cls || ""}" aria-hidden="true">${esc([...String((t && t.name) || "?")][0] || "?")}</span>`;
   // ---------- 새 디자인(PC) 사이드바·머리줄 ----------
   const guest = () => !(SPACE && !SPACE.bad);
+  // 기능별 주소(11-24 SEO): 내전 구인 = /scrim/ · 실시간 밴픽 = /draft/ · 그 밖은 / — 검색에 기능마다 따로 잡히게. 페이지는 tools/build-pages.cjs가 만듦
+  const ROUTES = { scrim: "/scrim/", live: "/draft/" };
+  const ROUTE_TITLE = { scrim: "롤 5:5 내전 구인 - 스크림 상대 팀·팀원 찾기 | 롤벤", live: "피어리스 밴픽 시뮬레이터 - 카운터·밴 추천 | 롤벤" };
+  const ROOT_TITLE = "롤벤 - LoL 카운터 & 피어리스 밴 추천";
+  const routeTab = () => Object.keys(ROUTES).find((k) => ROUTES[k] === location.pathname.replace(/index\.html$/, "")) || "";
+  const HOME_URL = () => location.origin + (routeTab() ? "/" : location.pathname);   // 초대 링크·로그인 복귀는 늘 첫 주소로
+  const baseTitle = () => ROUTE_TITLE[routeTab()] || ROOT_TITLE;   // 제목은 주소를 따름(검색 로봇이 본 주소와 같은 제목)
+  let routeSeen = null;
+  function syncRoute() {   // 탭을 바꾸면 주소도(새로 고침·공유해도 그 화면) — 처음 열 때는 들어온 주소 그대로, 우리가 아는 주소일 때만 바꿈
+    if (routeSeen === null || routeSeen === S.tab) { routeSeen = S.tab; return; }
+    routeSeen = S.tab;
+    const now = location.pathname.replace(/index\.html$/, ""), want = ROUTES[S.tab] || "/";
+    if (now === want || !(now === "/" || routeTab())) return;
+    try { history.replaceState(null, "", want + location.search + location.hash); } catch (e) { /* 주소만 그대로 */ }
+    if (typeof turnTitle === "function") turnTitle();
+  }
   const GUEST_TABS = ["live", "our", "scrim"];   // scrim = 5:5 내전 구인(11-24: 로그인 없이도 봄·씀)   // our = 로그인·팀 만들기 화면
   const SIDE_MENU = [["our", "home", "홈"], ["live", "draft", "실시간 밴픽"], ["scrim", "scrim", "내전 구인"], ["vision", "vision", "공부자료"], ["notes", "note", "피드백 노트"], ["alts", "scout", "부계정 찾기"], ["pts", "mastery", "점수 기준표"]];
   function renderSideNav() {
@@ -1363,12 +1379,11 @@
 
   // 차례가 바뀌면 강조(소리 대신, 사용자 요청 11-19): 우리 차례 보라 두 번 번쩍·점 물결·빈 칸 숨쉬기, 상대 차례 빨강 한 번. 탭 제목에도 표시
   let lastTurnKey = "", titleBlink = null;
-  const BASE_TITLE = document.title;
   function turnTitle() {
-    const st = S.tab === "live" ? curStep() : null;
+    const st = S.tab === "live" && !(guest() && S.draft.idx === 0) ? curStep() : null;   // 팀 없이 아직 시작 전이면 원래 제목(11-24 SEO: 검색 로봇이 본 첫 화면 제목이 「우리 밴」으로 잡혔음)
     const who = st ? E.whoOfSide(S, st[0]) : "";
     const role = st && st[1] === "pick" && who === "our" ? (goalPlanNow() && (goalPlanNow().steps.find((x) => x.i === S.draft.idx) || {}).r) : null;
-    const txt = !st ? BASE_TITLE : who === "our" ? `● 우리 ${role ? ROLE_KO[role] + " " : ""}${st[1] === "ban" ? "밴" : "픽"} · lolban` : `상대 ${st[1] === "ban" ? "밴" : "픽"} · lolban`;
+    const txt = !st ? baseTitle() : who === "our" ? `● 우리 ${role ? ROLE_KO[role] + " " : ""}${st[1] === "ban" ? "밴" : "픽"} · lolban` : `상대 ${st[1] === "ban" ? "밴" : "픽"} · lolban`;
     document.title = txt;
     { const fav = document.getElementById("fav"); if (fav) { const want = who === "our" ? "img/lolban-favicon-turn.svg" : "img/lolban-favicon.svg"; if (fav.getAttribute("href") !== want) fav.setAttribute("href", want); } }
     clearInterval(titleBlink); titleBlink = null;
@@ -1992,7 +2007,7 @@
     } else if (k === "invite" && SPACE && SPACE.viaLogin) {
       body = loginBody();
     } else if (k === "invite") {
-      body = `<span class="sd-link nu-link">${esc(location.origin + location.pathname)}#join=${esc(SPACE ? SPACE.id : "")}.●●●●●●●●</span>
+      body = `<span class="sd-link nu-link">${esc(HOME_URL())}#join=${esc(SPACE ? SPACE.id : "")}.●●●●●●●●</span>
         <div class="nu-act"><button class="n-new" data-act="invite">${lbi("invite", 18)}초대 링크 복사</button><span class="dim">팀 단톡방에 붙여 넣기 · 팀원은 링크만 열면 끝</span></div>`;
     } else {
       body = `<div class="nu-act"><button class="n-new" data-act="import">엑셀로 상대 팀 등록</button><span class="dim">상대 명단·챔프폭을 한 번에 · 등록하면 사이드바에 상대 팀이 생김</span></div>`;
@@ -3571,7 +3586,7 @@
       ${TQ.busy ? `<p class="help" role="status">Riot에서 티어 받는 중 ${TQ.done} / ${TQ.all}</p>` : ""}${fails}
       ${!t ? emptyBox("invite", "우리 팀이 없습니다", "오른쪽에서 팀을 만들거나 초대 코드로 들어오세요") : edit ? `<div id="setEd" class="sd-ed" data-team=""></div>` : `<div class="home team-home">${homeRosterPC(t)}${homeCompsPC(t)}${homeGamesPC(t)}${homeBoostPC(t)}</div>`}</section>`;
     const inv = (SESS || !SPACE) ? loginBody() : SPACE && !SPACE.bad ? `<span class="sd-team">${crestOf(ours && !ours.solo ? ours : { name: SPACE.name || "팀" }, "b")}<b>${esc(SPACE.name || "팀 공간")}</b>${SPACE.owner ? `<small>팀장 인증 ${esc(SPACE.owner)}</small>` : ""}</span>
-        <span class="sd-link" title="초대 링크(열쇠는 가림)">${esc(location.origin + location.pathname)}#join=${esc(SPACE.id)}.●●●●●●●●</span>
+        <span class="sd-link" title="초대 링크(열쇠는 가림)">${esc(HOME_URL())}#join=${esc(SPACE.id)}.●●●●●●●●</span>
         <button class="n-new" data-act="tcopy">${lbi("invite", 18)}초대 링크 복사</button>
         ${TM.msg ? `<p class="help" role="status">${esc(TM.msg)}</p>` : ""}
         <p class="help">링크를 연 브라우저가 우리 팀에 들어옵니다 · 상대가 명단을 알아도 링크 없이는 못 봄</p>
@@ -3693,7 +3708,7 @@
     try { const d = await (await fetch(`${WURL()}/auth/providers`, { cache: "no-store", credentials: "omit" })).json(); AUTH.providers = d.status === "ok" ? d.providers : []; } catch (e) { AUTH.providers = []; }
     if (guest() || S.tab === "settings" || S.tab === "team" || S.tab === "our") render();
   }
-  function startLogin(p) { location.href = `${WURL()}/auth/${p}/start?ret=${encodeURIComponent(location.origin + location.pathname)}`; }
+  function startLogin(p) { location.href = `${WURL()}/auth/${p}/start?ret=${encodeURIComponent(HOME_URL())}`; }
   // ---- 팀원 포지션(11-19 사용자 요청): 초대 코드로 들어오면 내 포지션 고르기, 우리 팀 화면에 팀원·포지션 ----
   const MROLE = [["T", "탑"], ["J", "정글"], ["M", "미드"], ["A", "원딜"], ["S", "서폿"], ["sub", "후보"], ["coach", "코치"]];
   const mroleKo = (r) => (MROLE.find(([k]) => k === r) || [, "미정"])[1];
@@ -5694,6 +5709,7 @@
       const nx = [...document.querySelectorAll(fsel)].find((x) => x.offsetParent);
       if (nx && nx !== ae) { nx.focus({ preventScroll: true }); try { const n = nx.value.length; nx.setSelectionRange(Math.min(fpos[0] ?? n, n), Math.min(fpos[1] ?? n, n)); } catch (e) { /* 숫자 칸 등 */ } }
     }
+    syncRoute();
     if (RENDER_AGAIN) { RENDER_AGAIN = false; render(); }
   }
   function renderInner() {
@@ -6528,7 +6544,7 @@
 
   // ---------- 「팀 공간」 창: 팀 만들기(팀장 아이콘 인증) · 초대 링크 · 링크 새로 만들기 · 나가기 ----------
   const TM = { open: false, step: "form", nonce: "", icon: null, riot: "", name: "", msg: "", busy: false, link: "" };
-  const inviteLink = () => (SPACE ? `${location.origin}${location.pathname}#join=${SPACE.id}.${SPACE.key}` : "");
+  const inviteLink = () => (SPACE ? `${HOME_URL()}#join=${SPACE.id}.${SPACE.key}` : "");
   const ICON_IMG = (i) => `https://ddragon.leagueoflegends.com/cdn/${window.DDRAGON_VERSION}/img/profileicon/${i}.png`;
   // 대회 팀 명단(subin 전용): 열쇠로 받아 이 브라우저에 사본 저장, 판이 바뀌었거나 명단이 비어 있으면 반영
   async function loadSeed() {
@@ -6722,6 +6738,7 @@
   if (!SPACE && S.ui.tierMode && MODE_TXT[S.ui.tierMode]) CFG.tierMode = S.ui.tierMode;
   ensureSpaceTeam(JUST_JOINED);
   if (guest() && S.tab === "our") S.tab = "live";   // 손님은 실시간 밴픽으로 시작(로그인 화면은 사이드바에서)
+  if (routeTab()) S.tab = routeTab();   // 기능별 주소로 들어오면 그 화면부터(11-24 SEO)
   if ((JUST_LOGGED || LOGIN_ERR) && guest()) S.tab = "our";   // 막 로그인했는데 팀이 없거나 로그인이 실패했으면 그 화면(안내가 보이게)
   { let m = ""; try { m = sessionStorage.getItem("lolban.wiped") || ""; sessionStorage.removeItem("lolban.wiped"); } catch (e) { m = ""; } if (m) { AUTH.msg = m; S.tab = "our"; } }   // 데이터 초기화·탈퇴 뒤: 팀 만들기 화면 + 안내
   render();

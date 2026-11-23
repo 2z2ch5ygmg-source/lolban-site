@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="/">
+  <title>피어리스 밴픽 시뮬레이터 - 카운터·밴 추천 | 롤벤</title>
+  <meta name="description" content="롤 피어리스 밴픽(피어리스 드래프트) 시뮬레이터. 하드·소프트 피어리스와 일반 밴픽을 실전 순서대로 진행하며, 남은 챔피언에서 카운터와 밴을 추천합니다. 팀원과 같은 화면을 실시간으로 함께 봐요.">
+  <meta name="keywords" content="롤벤, lolban, 롤 밴픽, 피어리스 밴픽, 피어리스 드래프트, 롤 카운터, 밴 추천, 롤 내전, 내전 구인, 스크림, 롤 대회 밴픽">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://lolban.com/draft/">
+  <meta name="naver-site-verification" content="cd2b355443dba267b6636cb968365bcfd9ffa703" />
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="롤벤 lolban">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:url" content="https://lolban.com/draft/">
+  <meta property="og:title" content="피어리스 밴픽 시뮬레이터 - 카운터·밴 추천 | 롤벤">
+  <meta property="og:description" content="하드·소프트 피어리스 밴픽을 실전 순서대로. 남은 챔프에서 카운터와 밴을 추천하고 팀원과 실시간으로 함께 봅니다.">
+  <meta property="og:image" content="https://lolban.com/img/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="롤벤 - LoL 카운터 &amp; 피어리스 밴 추천">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="피어리스 밴픽 시뮬레이터 - 카운터·밴 추천 | 롤벤">
+  <meta name="twitter:description" content="하드·소프트 피어리스 밴픽을 실전 순서대로. 남은 챔프에서 카운터와 밴을 추천하고 팀원과 실시간으로 함께 봅니다.">
+  <meta name="twitter:image" content="https://lolban.com/img/og.png">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://lolban.com/draft/#page","url":"https://lolban.com/draft/","name":"피어리스 밴픽 시뮬레이터 - 카운터·밴 추천 | 롤벤","description":"롤 피어리스 밴픽(피어리스 드래프트) 시뮬레이터. 하드·소프트 피어리스와 일반 밴픽을 실전 순서대로 진행하며, 남은 챔피언에서 카운터와 밴을 추천합니다. 팀원과 같은 화면을 실시간으로 함께 봐요.","inLanguage":"ko-KR","isPartOf":{"@id":"https://lolban.com/#site"}},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"롤벤","item":"https://lolban.com/"},{"@type":"ListItem","position":2,"name":"피어리스 밴픽 시뮬레이터","item":"https://lolban.com/draft/"}]}]}</script>
+  <link rel="icon" id="fav" type="image/svg+xml" href="img/lolban-favicon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="img/app/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="lolban">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#F4F3EF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0D0D0F" media="(prefers-color-scheme: dark)">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&display=swap">
+  <script>try { const t = localStorage.getItem("lolban.theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}</script>
+  <link rel="stylesheet" href="css/app.css?v=9aa6c06e75">
+  <link rel="stylesheet" href="css/pc.css?v=9aa6c06e75">
+</head>
+<body>
+  <header class="top">
+    <div class="top-in">
+      <div class="brand">FEARLESS <b>DRAFT</b></div>
+      <nav class="tabs" role="tablist" aria-label="섹션">
+        <button class="tab" role="tab" data-tab="our"><svg class="nv-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9H4z"/><circle cx="12" cy="15" r="1.8"/></svg><span class="t-long">홈</span><span class="t-short">홈</span></button>
+        <button class="tab" role="tab" data-tab="live"><span class="nv-bp" aria-hidden="true"><i>BP</i></span><span class="t-long">실시간 밴픽</span><span class="t-short">밴픽</span></button>
+        <button class="tab" role="tab" data-tab="scrim"><svg class="nv-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="8.5" r="2.6"/><circle cx="17" cy="8.5" r="2.6"/><path d="M2.5 19.5c0-3 2-5 4.5-5s4.5 2 4.5 5M12.5 19.5c0-3 2-5 4.5-5s4.5 2 4.5 5"/></svg><span class="t-long">내전 구인</span><span class="t-short">구인</span></button>
+        <button class="tab" role="tab" data-tab="team"><svg class="nv-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.5"/><path d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"/><path d="M19 7v6M16 10h6"/></svg><span class="t-long">우리 팀</span><span class="t-short">우리 팀</span></button>
+        <button class="tab" role="tab" data-tab="enemy"><svg class="nv-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20 20"/><circle cx="10.5" cy="10.5" r="1.8"/></svg><span class="t-long">상대팀 분석</span><span class="t-short">상대</span></button>
+        <button class="tab t-vision" role="tab" data-tab="vision">공부자료</button>
+        <button class="tab" role="tab" data-tab="notes"><span class="t-long">피드백 노트</span><span class="t-short">노트</span></button>
+        <button class="tab-more m-only" data-act="mmore" aria-label="더보기 메뉴" aria-expanded="false"><svg class="nv-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="var(--panel)"/><circle cx="15.5" cy="12" r="2" fill="var(--panel)"/><circle cx="7" cy="17" r="2" fill="var(--panel)"/></svg><span>더보기</span></button>
+      </nav>
+      <div class="top-side">
+        <label class="sel">우리팀 <select id="ourSel"></select></label>
+        <label class="sel">상대 <select id="enemySel"></select></label>
+        <span id="topCta"></span>
+        <button class="btn sm set-btn" data-act="settings" id="teamBtn" aria-pressed="false">설정</button>
+      </div>
+    </div>
+  </header>
+  <aside id="side" aria-label="메뉴·팀"></aside>
+  <header id="mhead"></header>
+  <main id="view">
+    <!-- 검색 로봇·스크립트 전 화면용 소개(앱이 뜨면 이 자리가 화면으로 바뀜) -->
+    <section class="seo-intro">
+      <h1>피어리스 밴픽 시뮬레이터 — 카운터·밴 추천</h1>
+      <p>롤벤 실시간 밴픽은 리그 오브 레전드 피어리스 드래프트를 실전 순서 그대로 연습하는 도구입니다. 블루·레드 진영의 밴과 픽을 차례대로 진행하면 지금 차례에 무엇을 밴하고 무엇을 뽑으면 좋은지 추천해 드려요.</p>
+      <h2>하드 피어리스 · 소프트 피어리스 · 일반 밴픽</h2>
+      <p>하드 피어리스는 앞 세트에서 양 팀이 쓴 챔피언을 모두 다시 쓸 수 없고, 소프트 피어리스는 우리 팀이 쓴 챔피언만 다시 쓸 수 없습니다. 세트가 넘어가면 이미 쓴 챔피언을 자동으로 빼고 남은 챔프에서 추천합니다. 3판 2선승과 5판 3선승을 고를 수 있어요.</p>
+      <h2>카운터와 밴 추천</h2>
+      <p>상대 픽에 대한 카운터, 우리 조합과의 궁합, 선수별 챔프폭과 숙련도를 함께 따져 추천합니다. 팀을 등록하면 상대 팀 기록을 바탕으로 요주의 챔피언과 밴 후보도 보여 줍니다.</p>
+      <h2>팀원과 같이 보기</h2>
+      <p>팀원이 같은 밴픽 화면을 실시간으로 함께 보고, 세트 결과를 저장해 연습 기록으로 남길 수 있습니다.</p>
+      <p><a href="/">롤벤 홈</a> · <a href="/draft/">피어리스 밴픽</a> · <a href="/scrim/">5:5 내전 구인</a></p>
+    </section>
+  </main>
+  <div id="modal"></div>
+  <datalist id="champList"></datalist>
+  <footer>챔피언 이미지·이름: Riot Games Data Dragon. 이 사이트는 Riot Games가 보증하거나 후원하지 않습니다. 카운터·조합 판단은 참고용입니다. · <a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a> · 문의 <a href="mailto:wonseo151@naver.com">wonseo151@naver.com</a><br><span lang="en">LolBan isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</span></footer>
+  <script src="js/config.js?v=9aa6c06e75"></script>
+  <script src="js/champions.js?v=9aa6c06e75"></script>
+  <script src="js/seed.js?v=9aa6c06e75"></script>
+  <script src="js/pro.js?v=9aa6c06e75"></script>
+  <script src="js/meta.js?v=9aa6c06e75"></script>
+  <script src="js/knowledge.js?v=9aa6c06e75"></script>
+  <script src="js/vision.js?v=9aa6c06e75"></script>
+  <script src="js/visiongrid.js?v=9aa6c06e75"></script>
+  <script src="js/world.js?v=9aa6c06e75"></script>
+  <script src="js/macro.js?v=9aa6c06e75"></script>
+  <script src="js/practice.js?v=9aa6c06e75"></script>
+  <script src="js/teamsheet.js?v=9aa6c06e75"></script>
+  <script src="js/engine.js?v=9aa6c06e75"></script>
+  <script src="js/app.js?v=9aa6c06e75"></script>
+</body>
+</html>
