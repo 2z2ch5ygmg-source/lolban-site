@@ -1,7 +1,7 @@
 {
   "name": "lolban",
   "short_name": "lolban",
-  "description": "피어리스 밴픽 보드 · 우리 팀 챔프폭과 상대 분석",
+  "description": "롤벤 - LoL 카운터 & 피어리스 밴 추천 · 우리 팀 챔프폭과 상대 분석 · 5:5 내전 구인",
   "lang": "ko",
   "start_url": "/?src=app",
   "scope": "/",

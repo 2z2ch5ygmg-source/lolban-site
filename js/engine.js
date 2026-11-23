@@ -292,7 +292,7 @@ window.Engine = (function () {
   // 우리 챔프폭으로 만들 수 있는 원딜+서폿 세트: 대회 조합 기록 우선
   function duoSuggest(state, who) {
     const team = teamOf(state, who);
-    const avail = new Set(available(state, who).map((c) => c.id));
+    const avail = new Set(available(state).map((c) => c.id));
     const A = Object.entries(poolMap(team, "A")).filter(([id]) => avail.has(id)).sort((a, b) => lvScore(b[1]) - lvScore(a[1])).slice(0, 5);
     const Sx = Object.entries(poolMap(team, "S")).filter(([id]) => avail.has(id)).sort((a, b) => lvScore(b[1]) - lvScore(a[1])).slice(0, 5);
     const out = [];
@@ -495,7 +495,7 @@ window.Engine = (function () {
   function liveComps(state) {
     const team = teamOf(state, "our");
     if (!team) return [];
-    const exclude = new Set([...taken(state), ...lockedFor(state, "our")]);
+    const exclude = new Set([...taken(state), ...lockedFor(state)]);
     const fixed = {};
     picks(state, "our").forEach((p) => { if (p.role && !fixed[p.role]) fixed[p.role] = p.champ; });
     const all = COMP_KEYS.map((k) => buildComp(team, k, exclude, fixed));
@@ -559,31 +559,32 @@ window.Engine = (function () {
     const pick = win || all.filter((c) => vsOf(c) === "보통").sort((a, b) => rank(b) - rank(a))[0] || all.sort((a, b) => rank(b) - rank(a))[0];
     return pick ? { comp: pick, vs: vsOf(pick) } : null;
   }
-  // opt: { mode: "hard"|"soft"|"off", game: 1~3, bans: [우리가 먼저 밴할 챔프 id], locked: [이미 잠긴 챔프 id] }
+  // opt: { mode: "hard"|"off", game: 1~3, bans: [우리가 먼저 밴할 챔프 id], locked: [이미 잠긴 챔프 id] }
   // 반환: { list: [{ tag, kind, comp, like, ev, why, answer }], flow: [세트별 상대 주력] }
   function enemyCompSet(ours, en, opt) {
     opt = opt || {};
-    const mode = opt.mode || "off", game = mode === "off" ? 1 : Math.max(1, Math.min(3, opt.game || 1));
+    const hard = !!opt.mode && opt.mode !== "off";
+    const mode = hard ? "hard" : "off", game = hard ? Math.max(1, Math.min(3, opt.game || 1)) : 1;
     // 유형만 다르고 챔프 5명이 같은 조합은 하나로(가능성 높은 쪽)
     const best = (team, ex) => { const seen = new Set(); return teamComps(team, ex).map((c) => ({ c, ...compLikely(team, c) })).sort((a, b) => b.like - a.like)
       .filter((x) => { const k = compSig(x.c); if (seen.has(k)) return false; seen.add(k); return true; }); };
-    // 앞 세트 흐름: 상대는 매 세트 가장 유력한 조합, 우리는 우리 최선 조합(하드면 우리 픽도 상대에게 잠김)
+    // 앞 세트 흐름: 상대는 매 세트 가장 유력한 조합, 우리는 우리 최선 조합(피어리스에서는 양 팀 픽이 잠김)
     const theirUsed = new Set(opt.locked || []), ourUsed = new Set();
     const flow = [];
-    for (let g = 1; g <= (mode === "off" ? 1 : 3); g++) {
-      const ex = new Set([...theirUsed, ...(mode === "hard" ? ourUsed : []), ...(opt.bans || [])]);
+    for (let g = 1; g <= (hard ? 3 : 1); g++) {
+      const ex = new Set([...theirUsed, ...ourUsed, ...(opt.bans || [])]);
       const top = best(en, ex)[0];
       if (!top) break;
       flow.push({ game: g, comp: top.c });
-      if (g >= game && mode === "off") break;
+      if (!hard) break;
       ROLES.forEach((r) => top.c.slots[r] && theirUsed.add(top.c.slots[r].id));
-      const o = teamComps(ours, new Set([...ourUsed, ...(mode === "hard" ? [...theirUsed] : [])]))[0];
+      const o = teamComps(ours, new Set([...ourUsed, ...theirUsed]))[0];
       if (o) ROLES.forEach((r) => o.slots[r] && ourUsed.add(o.slots[r].id));
     }
     // 지금 세트 기준으로 잠긴 챔프: 앞 세트(1 ~ game-1)에서 상대가 쓴 것(+하드면 우리가 쓴 것)
     const lockT = new Set(opt.locked || []), lockO = new Set();
     flow.filter((f) => f.game < game).forEach((f) => ROLES.forEach((r) => f.comp.slots[r] && lockT.add(f.comp.slots[r].id)));
-    if (mode === "hard" && game > 1) {
+    if (game > 1) {
       const u = new Set();
       for (let g = 1; g < game; g++) { const o = teamComps(ours, u)[0]; if (o) ROLES.forEach((r) => o.slots[r] && (u.add(o.slots[r].id), lockO.add(o.slots[r].id))); }
     }
@@ -617,7 +618,7 @@ window.Engine = (function () {
       add("연습 조합", "prac", { key: sc[0].key, slots, comfort: ROLES.reduce((a, r) => a + slots[r].lv, 0), identity: sc[0].key, fitScore: sc[0].score }, `${g.date} 팀 경기 ${g.win ? "승" : "패"}`);
     }
     // 피어리스 다음 세트(지금 세트 이후)
-    if (mode !== "off") flow.filter((f) => f.game > game).forEach((f) => add(`${f.game}세트 예상`, "next", f.comp, `앞 세트 챔프 잠김${mode === "hard" ? "(우리 픽 포함)" : ""}`));
+    flow.filter((f) => f.game > game).forEach((f) => add(`${f.game}세트 예상`, "next", f.comp, "앞 세트 양 팀 픽 잠김"));
     // 나머지 유형
     ranked.slice(2).forEach((x) => add("다른 유형", "other", x.c, ""));
     // 가능성은 주력 기준(주력 = 100). 밴·다음 세트 조합은 「그 상황이 오면」의 가능성
@@ -680,15 +681,12 @@ window.Engine = (function () {
   }
   function bans(state) { return state.draft.steps.filter((s, i) => ORDER[i][1] === "ban" && s.champ).map((s) => s.champ); }
   function taken(state) { return new Set(state.draft.steps.filter((s) => s.champ).map((s) => s.champ)); }
-  function lockedFor(state, who) {
-    const L = state.series.locked || [];
-    if (state.series.mode === "off") return new Set();
-    if (state.series.mode === "hard") return new Set(L.map((x) => x.id));
-    return new Set(L.filter((x) => x.who === who).map((x) => x.id));
+  function lockedFor(state) {
+    return new Set(state.series.mode === "off" ? [] : (state.series.locked || []).map((x) => x.id));
   }
-  function available(state, who) {
+  function available(state) {
     const t = taken(state);
-    const lk = lockedFor(state, who);
+    const lk = lockedFor(state);
     return window.CHAMPIONS.filter((c) => !t.has(c.id) && !lk.has(c.id));
   }
   function openRoles(state, who) {
@@ -795,7 +793,7 @@ window.Engine = (function () {
   function direction(state, who) {
     const team = teamOf(state, who);
     const mine = picks(state, who).map((p) => p.champ);
-    const avail = new Set(available(state, who).map((c) => c.id));
+    const avail = new Set(available(state).map((c) => c.id));
     const excl = new Set(window.CHAMPIONS.map((c) => c.id).filter((id) => !avail.has(id) && !mine.includes(id)));
     const fixed = {};
     picks(state, who).forEach((p) => p.role && (fixed[p.role] = p.champ));
@@ -828,12 +826,13 @@ window.Engine = (function () {
     const oppDir = picks(state, opp).length ? direction(state, opp) : null;
     const myPicks = picks(state, who);
     // 우리 주력: 아직 우리가 고를 수 있는(밴·픽·피어리스 잠금 아님) 상 숙련도 챔프, 비어 있는 라인만
-    const myAvail = new Set(available(state, who).map((c) => c.id));
+    const candidates = available(state);
+    const myAvail = new Set(candidates.map((c) => c.id));
     const myOpen = openRoles(state, who);
     const myComfort = [];
     myOpen.filter((r) => oppOpen.includes(r)).forEach((r) => Object.entries(poolMap(myTeam, r)).forEach(([id, e]) => (e.lv >= 3 || e.one) && myAvail.has(id) && !myComfort.find((x) => x.id === id) && myComfort.push({ id, r })));
     const res = [];
-    for (const c of available(state, opp)) {
+    for (const c of candidates) {
       const reasons = [];
       let s = 0, tgt = null;
       for (const r of oppOpen) {
@@ -1017,7 +1016,7 @@ window.Engine = (function () {
     const revealed = {};
     if (guess) open.forEach((r) => (revealed[r] = revealedIn(state, opp, r)));
     const res = [];
-    for (const c of available(state, who)) {
+    for (const c of available(state)) {
       let best = null;
       for (const r of tryRoles) {
         const pm = poolMap(team, r);
@@ -1184,10 +1183,10 @@ window.Engine = (function () {
   function roleOutlook(state, who, r) {
     const opp = who === "our" ? "enemy" : "our";
     const team = teamOf(state, who), oppTeam = teamOf(state, opp);
-    const avail = new Set(available(state, who).map((c) => c.id));
+    const avail = new Set(available(state).map((c) => c.id));
     const banned = new Set(bans(state));
     const takenSet = taken(state);
-    const locked = lockedFor(state, who);
+    const locked = lockedFor(state);
     const pm = poolMap(team, r);
     const all = Object.entries(pm).sort((a, b) => lvScore(b[1]) - lvScore(a[1]));
     const mains = all.filter(([, e]) => lvScore(e) >= 2.9).map(([id, e]) => ({ id, e,
@@ -1219,7 +1218,7 @@ window.Engine = (function () {
     ROLES.forEach((r) => (outlook[r] = roleOutlook(state, who, r)));
     const oppWho = who === "our" ? "enemy" : "our";
     const oppTeamP = teamOf(state, oppWho);
-    const oppAvailP = new Set(available(state, oppWho).map((c) => c.id));
+    const oppAvailP = new Set(available(state).map((c) => c.id));
     const mineAll = picks(state, who);
     const syP = sylasRisk(state, who);
     const bctxP = who === "our" ? blindCtx(state, who) : null;
@@ -1374,8 +1373,8 @@ window.Engine = (function () {
     if (!ids.length) return { fixed: {}, lost: [], ids: [] };
     const team = teamOf(state, "our");
     const mine = picks(state, "our");
-    const avail = new Set(available(state, "our").map((c) => c.id));
-    const banned = new Set(bans(state)), locked = lockedFor(state, "our");
+    const avail = new Set(available(state).map((c) => c.id));
+    const banned = new Set(bans(state)), locked = lockedFor(state);
     const theirs = new Set(picks(state, "enemy").map((p) => p.champ));
     const open = openRoles(state, "our");
     const fixed = {}, lost = [];
@@ -1406,7 +1405,7 @@ window.Engine = (function () {
     if (!open.length) return null;
     const mine = picks(state, who);
     const theirs = picks(state, opp);
-    const avail = new Set(available(state, who).map((c) => c.id));
+    const avail = new Set(available(state).map((c) => c.id));
     const oppDir = theirs.length ? direction(state, opp) : null;
     const sy = sylasRisk(state, who);
     const antiS = antiAgainst(state, who);
@@ -1562,7 +1561,7 @@ window.Engine = (function () {
     const side = sideOf(state, "our");
     const opp = teamOf(state, "enemy");
     const oppOpen = openRoles(state, "enemy");
-    const oppAvail = new Set(available(state, "enemy").map((c) => c.id));
+    const oppAvail = new Set(available(state).map((c) => c.id));
     const theirs = picks(state, "enemy");
     const now = state.draft.idx;
     const free = (i) => !state.draft.steps[i].champ && !state.draft.steps[i].skip;
@@ -1692,7 +1691,7 @@ window.Engine = (function () {
     who = who || "our";
     const opp = who === "our" ? "enemy" : "our";
     const oppTeam = teamOf(state, opp), myTeam = teamOf(state, who);
-    const oppAvail = new Set(available(state, opp).map((c) => c.id));
+    const oppAvail = new Set(available(state).map((c) => c.id));
     const theirPicks = picks(state, opp);
     const list = ROLES.map((r) => {
       const p = oppTeam.players[r];
@@ -1730,7 +1729,7 @@ window.Engine = (function () {
   // 우리 챔프폭에서 조건에 맞는 아직 쓸 수 있는 챔프
   function ourPoolWhere(state, who, role, test) {
     const team = teamOf(state, who);
-    const avail = new Set(available(state, who).map((c) => c.id));
+    const avail = new Set(available(state).map((c) => c.id));
     return Object.entries(poolMap(team, role)).filter(([id]) => avail.has(id) && test(CH[id], id))
       .sort((a, b) => lvScore(b[1]) - lvScore(a[1])).map(([id]) => id).slice(0, 3);
   }
@@ -1775,8 +1774,7 @@ window.Engine = (function () {
   function predictRole(state, who, role) {
     const me = who === "our" ? "enemy" : "our";
     const team = teamOf(state, who), myTeam = teamOf(state, me);
-    const avail = new Set(available(state, who).map((c) => c.id));
-    const myAvail = new Set(available(state, me).map((c) => c.id));
+    const avail = new Set(available(state).map((c) => c.id));
     const pm = poolMap(team, role);
     const list = [];
     Object.entries(pm).forEach(([id, e]) => {
@@ -1841,8 +1839,7 @@ window.Engine = (function () {
   function hoverInfo(state, who, id, role) {
     const opp = who === "our" ? "enemy" : "our";
     const oppTeam = teamOf(state, opp), myTeam = teamOf(state, who);
-    const oppAvail = new Set(available(state, opp).map((c) => c.id));
-    const myAvail = new Set(available(state, who).map((c) => c.id));
+    const avail = new Set(available(state).map((c) => c.id));
     const pct = (m) => (m && m.g >= 150 ? m.wr : null);
     const theirLaner = picks(state, opp).find((p) => p.role === role);
     const maybeLaner = !theirLaner && picks(state, opp).find((p) => !p.role && p.cands && p.cands.includes(role));
@@ -1852,11 +1849,11 @@ window.Engine = (function () {
       threats = [{ id: theirLaner.champ, d: lanesCounter(theirLaner.champ, id) ? `이미 픽 · ${ko(id)} 상대 강함${m ? ` (라인 승률 ${m}%)` : ""}` : `이미 픽 · 상성 ${m ? `라인 승률 ${m}%` : "비슷"}` }];
     } else {
       if (maybeLaner && lanesCounter(maybeLaner.champ, id)) threats.push({ id: maybeLaner.champ, d: `라인 모름(${maybeLaner.cands.map((r) => ROLE_KO[r]).join("·")}) · ${j(ROLE_KO[role], "으로", "로")} 오면 ${ko(id)} 상대 강함` });
-      threats = threats.concat(Object.entries(poolMap(oppTeam, role)).filter(([c]) => oppAvail.has(c) && lanesCounter(c, id))
+      threats = threats.concat(Object.entries(poolMap(oppTeam, role)).filter(([c]) => avail.has(c) && lanesCounter(c, id))
         .sort((a, b) => lvScore(b[1]) - lvScore(a[1]))
         .map(([c, e]) => { const m = pct(muWr(c, id)); return { id: c, d: `${who === "our" ? "상대" : "우리"} 챔프폭 · ${statText(e)}${m ? ` · 라인 승률 ${m}%` : ""}` }; })).slice(0, 5);
       if (threats.length < 5) {
-        const gen = window.CHAMPIONS.filter((c) => c.pos.includes(role) && oppAvail.has(c.id) && c.id !== id && !threats.find((t) => t.id === c.id) && lanesCounter(c.id, id))
+        const gen = window.CHAMPIONS.filter((c) => c.pos.includes(role) && avail.has(c.id) && c.id !== id && !threats.find((t) => t.id === c.id) && lanesCounter(c.id, id))
           .map((c) => { const m = pct(muWr(c.id, id)); return { id: c.id, wr: m || 0, d: `일반 카운터${m ? ` · 라인 승률 ${m}%` : ""}` }; })
           .sort((a, b) => b.wr - a.wr);
         threats = threats.concat(gen.slice(0, 5 - threats.length));
@@ -1871,7 +1868,7 @@ window.Engine = (function () {
     const me = CH[id];
     const cands = [];
     openRoles(state, who).filter((r) => r !== role).forEach((r) => Object.entries(poolMap(myTeam, r)).forEach(([c, e]) => {
-      if (!myAvail.has(c) || c === id || !CH[c]) return;
+      if (!avail.has(c) || c === id || !CH[c]) return;
       const other = CH[c], why = [];
       let s = 0;
       const pair = role === "A" && r === "S" ? proDuo(id, c) : role === "S" && r === "A" ? proDuo(c, id) : null;

@@ -92,6 +92,8 @@
   // ---------- state ----------
   const clone = (x) => JSON.parse(JSON.stringify(x));
   const emptySteps = () => ORDER.map(() => ({ champ: null, role: null, skip: false }));
+  const FEARLESS_MODES = [["hard", "하드 피어리스"], ["off", "끔"]];
+  const normalizeFearlessMode = (mode) => mode === "off" ? "off" : "hard";
   // 솔랭·자랭: 팀 자료 없이 쓰는 빈 팀(챔프폭·전적 없음 → 메타·상성·조합으로만 추천)
   const SOLO = { our: "solo-our", enemy: "solo-enemy" };
   const soloTeam = (id, name) => ({ id, name, solo: true, players: Object.fromEntries(ROLES.map((r) => [r, { riot: "", tier: "", pts: 50, pool: [] }])) });
@@ -107,9 +109,14 @@
     if (ORDER.kind !== kind) {
       window.KB.useOrder(kind, S.draft.ourSide);
       if (resetDraft) { S.draft.steps = emptySteps(); S.draft.idx = 0; }
-      // 솔랭·자랭은 피어리스 끔, 대회로 돌아오면 전에 쓰던 피어리스 설정으로
-      if (kind === "ranked") { S.series.prevMode = S.series.mode; S.series.mode = "off"; }
-      else if (S.series.prevMode) { S.series.mode = S.series.prevMode; delete S.series.prevMode; }
+    }
+    // 솔랭·자랭은 피어리스 끔, 대회로 돌아오면 전에 쓰던 피어리스 설정으로
+    if (kind === "ranked") {
+      S.series.prevMode ??= S.series.mode;
+      S.series.mode = "off";
+    } else if (S.series.prevMode) {
+      S.series.mode = S.series.prevMode;
+      delete S.series.prevMode;
     }
   }
   // 빈 팀(새 팀 공간·엑셀로 만든 팀): 라인마다 계정·티어·챔프폭 비움
@@ -143,7 +150,12 @@
             });
             s.seed = window.SEED_VERSION;
           }
-          return Object.assign(fresh(), s);
+          const state = Object.assign(fresh(), s);
+          // 예전에 저장한 모드도 하드·끔으로 읽는다.
+          state.series.mode = normalizeFearlessMode(state.series.mode);
+          if (state.series.prevMode) state.series.prevMode = normalizeFearlessMode(state.series.prevMode);
+          if (state.ui.ecf && state.ui.ecf.mode) state.ui.ecf.mode = normalizeFearlessMode(state.ui.ecf.mode);
+          return state;
         }
       }
     } catch (e) { /* 저장소를 못 쓰는 환경: 기본값 */ }
@@ -153,7 +165,7 @@
   const JUST_JOINED = !!(SPACE && SPACE.joined);
   if (SPACE && SPACE.joined) { delete SPACE.joined; saveSpace(); }
   E.setOurTeam(S.ourTeam);
-  if (isSolo(S.enemyTeam)) window.KB.useOrder("ranked", S.draft.ourSide);
+  syncQueue(false);
   S.ui.sheet = false;
   S.ui.predRole = "";
   S.ui.ourRole = "";
@@ -437,6 +449,7 @@
   // ---------- 새 디자인(PC) 전용 아이콘 — 한 점 서명(2px 선 + 보라 점), 실시간 밴픽·주의만 글자 표식 ----------
   const LBG = {
     home: '<path d="M4 11 12 4l8 7v9H4z"/><circle class="dot" cx="12" cy="15" r="1.8"/>',
+    scrim: '<circle cx="7" cy="8.5" r="2.6"/><circle cx="17" cy="8.5" r="2.6"/><path d="M2.5 19.5c0-3 2-5 4.5-5s4.5 2 4.5 5M12.5 19.5c0-3 2-5 4.5-5s4.5 2 4.5 5"/><circle class="dot" cx="12" cy="4" r="1.6"/>',
     scout: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20 20"/><circle class="dot" cx="10.5" cy="10.5" r="1.8"/>',
     vision: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3.2"/><circle class="dot" cx="12" cy="12" r="1.4"/>',
     note: '<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 8.5h7M8.5 12.5h4.5"/><circle class="dot" cx="15.5" cy="16.5" r="1.8"/>',
@@ -477,8 +490,8 @@
   const crestOf = (t, cls) => `<span class="crest ${cls || ""}" aria-hidden="true">${esc([...String((t && t.name) || "?")][0] || "?")}</span>`;
   // ---------- 새 디자인(PC) 사이드바·머리줄 ----------
   const guest = () => !(SPACE && !SPACE.bad);
-  const GUEST_TABS = ["live", "our"];   // our = 로그인·팀 만들기 화면
-  const SIDE_MENU = [["our", "home", "홈"], ["live", "draft", "실시간 밴픽"], ["vision", "vision", "공부자료"], ["notes", "note", "피드백 노트"], ["alts", "scout", "부계정 찾기"], ["pts", "mastery", "점수 기준표"]];
+  const GUEST_TABS = ["live", "our", "scrim"];   // scrim = 5:5 내전 구인(11-24: 로그인 없이도 봄·씀)   // our = 로그인·팀 만들기 화면
+  const SIDE_MENU = [["our", "home", "홈"], ["live", "draft", "실시간 밴픽"], ["scrim", "scrim", "내전 구인"], ["vision", "vision", "공부자료"], ["notes", "note", "피드백 노트"], ["alts", "scout", "부계정 찾기"], ["pts", "mastery", "점수 기준표"]];
   function renderSideNav() {
     const el = document.getElementById("side");
     if (!el) return;
@@ -492,6 +505,7 @@
     if (guest()) {
       el.innerHTML = `<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">${LOGO_MARK}<span>lolban<i>.</i></span></a>
         <button class="tab sd-mi" data-tab="live" aria-selected="${S.tab === "live"}">${lbi("draft", 22)}실시간 밴픽</button>
+        <button class="tab sd-mi" data-tab="scrim" aria-selected="${S.tab === "scrim"}">${lbi("scrim", 22)}내전 구인</button>
         <div class="sd-sec">팀으로 쓰기</div>
         <button class="tab sd-tm sd-new" data-tab="our" aria-current="${S.tab === "our"}">${lbi("plus", 20)}<span class="nm">${SESS ? "팀 만들기 · 들어가기" : "로그인 · 팀 만들기"}</span></button>
         ${SESS && AUTH.user ? `<p class="help sd-guest">${esc(AUTH.user.nick || "로그인됨")}님 로그인됨</p>` : ""}
@@ -567,7 +581,7 @@
       c = `<span class="mh-t">${crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b")}<span class="tb">${esc(ourName)}</span></span><span class="mh-s">연습 기간 ${since}~${g ? ` · 함께 한 경기 ${g.length}판 ${g.filter((x) => x.win).length}승` : ""}</span>`;
     } else {
       const VS = window.VISION, nD = typeof allDrills === "function" && VS ? allDrills().length : 0, nOk = Object.values(S.ui.dScore || {}).filter(Boolean).length;
-      const T = { team: ["우리 팀", `${esc(ourName)} · 로스터·최적 조합·함께 한 경기 · 팀원 초대`], pool: (() => { const pt = poolTeam(), en = pt && pt.id !== S.ourTeam; return [en ? `${esc(pt.name)} 챔프폭` : "선수·챔프폭", `${esc(pt ? pt.name : ourName)} · 칸으로 끌어 숙련도 정하기 · 누르면 한 단계씩`]; })(), vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자유랭크에서 같은 5명이 여러 날 모인 기록으로 찾음"], pts: ["점수 기준표", "티어별 선수 점수 · 대회 규정에 맞게 팀장이 고침"] }[S.tab] || ["", ""];
+      const T = { scrim: ["5:5 내전 구인", "피어리스 밴픽 연습할 상대 팀·팀원 찾기 · 글은 24시간"], team: ["우리 팀", `${esc(ourName)} · 로스터·최적 조합·함께 한 경기 · 팀원 초대`], pool: (() => { const pt = poolTeam(), en = pt && pt.id !== S.ourTeam; return [en ? `${esc(pt.name)} 챔프폭` : "선수·챔프폭", `${esc(pt ? pt.name : ourName)} · 칸으로 끌어 숙련도 정하기 · 누르면 한 단계씩`]; })(), vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자유랭크에서 같은 5명이 여러 날 모인 기록으로 찾음"], pts: ["점수 기준표", "티어별 선수 점수 · 대회 규정에 맞게 팀장이 고침"] }[S.tab] || ["", ""];
       c = `<b class="mh-t">${T[0]}</b><span class="mh-s">${T[1]}</span>`;
     }
     el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}${hdMe()}</div>`;
@@ -856,9 +870,8 @@
   // 챔피언 버튼 목록만 따로 만든다: 검색 입력 중에는 이것만 바꿔서 한글 조합(ㄹ+ㅜ→루)이 끊기지 않게
   function champButtons() {
     const st = curStep();
-    const who = st ? E.whoOfSide(S, st[0]) : "our";
     const taken = E.taken(S);
-    const locked = E.lockedFor(S, who);
+    const locked = E.lockedFor(S);
     const ourPool = new Set();
     const ot = E.teamOf(S, "our");
     ROLES.forEach((r) => (ot.players[r].pool || []).forEach((p) => ourPool.add(p[0])));
@@ -884,7 +897,7 @@
     if (!L.length) return "";
     const games = [...new Set(L.map((x) => x.game))];
     const rows = games.map((g) => `<span class="g">${g}세트</span>` + L.filter((x) => x.game === g).map((x) => `<span class="chip" title="${x.who === "our" ? "우리 픽" : "상대 픽"}">${icon(x.id, "sm")}${esc(CH[x.id].ko)}<span class="lv ${x.who === "our" ? "lv2" : "lvone"}">${x.who === "our" ? "우리" : "상대"}</span></span>`).join("")).join("");
-    return `<div class="card" style="margin-top:12px"><h3>피어리스 잠금 · ${S.series.mode === "hard" ? "양 팀 모두 사용 불가" : S.series.mode === "soft" ? "자기 팀만 사용 불가" : "꺼짐"}</h3><div class="fearless">${rows}</div></div>`;
+    return `<div class="card" style="margin-top:12px"><h3>피어리스 잠금 · ${S.series.mode === "hard" ? "양 팀 모두 사용 불가" : "꺼짐"}</h3><div class="fearless">${rows}</div></div>`;
   }
 
   // PC 「피어리스·저장」 탭 맨 위: 지금 시리즈 세트별 결과 + 밴픽 저장(세트 결과를 고르면 자동 저장, 중간 저장은 버튼)
@@ -1211,7 +1224,7 @@
     return `<div class="draft-bar">
       <span class="pill gold">${S.series.game}세트</span>
       <span class="sel"><span class="sel-l">우리 진영</span> ${seg("side", S.draft.ourSide, [["B", "블루"], ["R", "레드"]])}</span>
-      <span class="sel"><span class="sel-l">피어리스</span> ${seg("mode", S.series.mode, [["hard", "하드"], ["soft", "소프트"], ["off", "끔"]])}</span>
+      ${isSolo(S.enemyTeam) ? "" : `<span class="sel"><span class="sel-l">피어리스</span> ${seg("mode", S.series.mode, FEARLESS_MODES)}</span>`}
       <span class="spacer"></span>
       <button class="btn sm" data-act="resetGame">이번 세트 다시</button>
       ${S.ui.endAsk ? `<span class="end-ask" role="group" aria-label="${S.series.game}세트 결과"><span class="sel-l">${S.series.game}세트 결과</span>
@@ -1232,12 +1245,11 @@
 
   // ---------- 실시간 밴픽(PC 새 디자인 C) ----------
   // 계산·추천은 운영 함수(renderSide·renderStatus·renderNow·renderGrid·renderDock 몸통) 그대로, 배치와 모양만 바꾼다
-  // 머리줄 왼쪽: 진영 · 피어리스(하드 피어리스 / 끔 — 소프트는 쓰지 않음, 11-19 사용자 결정)
+  // 머리줄 왼쪽: 진영 · 피어리스(하드 피어리스 / 끔)
   function liveLeftPC() {
-    if (S.series.mode === "soft") S.series.mode = "hard";
     const seg = (act, cur, items, label) => `<div class="seg" role="group" aria-label="${label}">${items.map(([v, n]) => `<button data-act="${act}" data-v="${v}" aria-pressed="${cur === v}">${n}</button>`).join("")}</div>`;
     const ranked = isSolo(S.enemyTeam);
-    return `${seg("side", S.draft.ourSide, [["B", "블루"], ["R", "레드"]], "우리 진영")}${ranked ? "" : seg("mode", S.series.mode, [["hard", "하드 피어리스"], ["off", "끔"]], "피어리스")}`;
+    return `${seg("side", S.draft.ourSide, [["B", "블루"], ["R", "레드"]], "우리 진영")}${ranked ? "" : seg("mode", S.series.mode, FEARLESS_MODES, "피어리스")}`;
   }
   function liveSetBarPC() {
     return `<button class="ib mh-ib" data-act="resetGame" aria-label="이번 세트 다시">${lbi("undo", 22)}</button>
@@ -1819,7 +1831,7 @@
   }
   function renderOur() {
     const t = team(S.ourTeam);
-    if (!t || t.solo) return flowCard() + noTeamHtml();
+    if (!t || t.solo) return flowCard() + noTeamHtml() + rankBlock();
     const roster = ROLES.map((r) => { const p = t.players[r]; return `<div class="pl"><div class="role">${ROLE_KO[r]}</div><div class="id" title="${esc(p.riot)}">${esc(nick(p.riot))}</div>${plFacts(t, r)}<div class="chips">${poolChips(t, r)}</div></div>`; }).join("");
     const has = E.teamHasPools(t);
     const comps = has ? E.teamComps(t).slice(0, 4) : [];   // 챔프폭 보강 추천에 씀(조합 카드는 실시간 벤픽)
@@ -2400,11 +2412,11 @@
     if (needOnboard()) return newUserPC();
     const t = team(S.ourTeam);
     if (!t || t.solo) return flowCard() + noTeamHtml();
-    return `<div class="home home-new">${rolePickCard()}${collectBanner()}${flowCard()}${nextHero(t)}<div class="tcards">${homeTeamCards(t)}</div></div>`;
+    return `<div class="home home-new">${rolePickCard()}${collectBanner()}${flowCard()}${nextHero(t)}<div class="tcards">${homeTeamCards(t)}</div>${rankBlock()}</div>`;
   }
 
   // ---------- 상대 예상 조합 ----------
-  // 거르기: 피어리스(하드·소프트·끔) · 세트(1~3) · 우리 밴(먼저 밴할 3개 반영). 기본값은 지금 시리즈 설정
+  // 거르기: 피어리스(하드·끔) · 세트(1~3) · 우리 밴(먼저 밴할 3개 반영). 기본값은 지금 시리즈 설정
   function ecOpt(detail) {
     const f = (detail && S.ui.ecf) || {};
     const mode = f.mode || S.series.mode || "off";
@@ -2437,7 +2449,7 @@
     const o = ecOpt(true), r = ecomps(ours, en, o);
     const seg = (k, cur, items, label, dis) => `<div class="seg" role="group" aria-label="${label}">${items.map(([v, n]) => `<button data-act="ecf" data-k="${k}" data-v="${v}" aria-pressed="${String(cur) === String(v)}" ${dis ? "disabled" : ""}>${n}</button>`).join("")}</div>`;
     const bar = `<div class="n-bar ec-bar"><button class="ec-back" data-act="ecback">${ico("left")}상대 분석</button>
-      <span class="ec-fl"><small>피어리스</small>${seg("mode", o.mode === "soft" ? "hard" : o.mode, [["hard", "하드 피어리스"], ["off", "끔"]], "피어리스")}</span>
+      <span class="ec-fl"><small>피어리스</small>${seg("mode", o.mode, FEARLESS_MODES, "피어리스")}</span>
       <span class="ec-fl"><small>세트</small>${seg("game", o.game, [[1, "1세트"], [2, "2세트"], [3, "3세트"]], "세트", o.mode === "off")}</span>
       <span class="ec-fl"><small>우리 밴</small><span class="ec-banin">${o.bans.map((id) => `<span class="ec-ban">${icon(id, "xs")}<b>${esc(CH[id].ko)}</b><button data-act="ecbandel" data-id="${id}" aria-label="${esc(CH[id].ko)} 밴 빼기">${ico("x")}</button></span>`).join("")}${o.bans.length < 5 ? `<span class="ec-find">${lbi("scout", 15)}<input class="input" id="ecBanIn" autocomplete="off" spellcheck="false" placeholder="${o.bans.length ? "밴 더 넣기" : "밴할 챔프 넣기"}" aria-label="우리 밴 챔프 넣기" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ecBanSug"><div class="pk-sug ec-sug" id="ecBanSug" role="listbox" aria-label="찾은 챔피언" hidden></div></span>` : ""}${o.bans.length ? `<button class="nc-a" data-act="ecbanclr">비우기</button>` : ""}</span></span></div>`;
     const flow = o.mode !== "off" && r.flow.length ? `<section class="ec-flow" aria-label="세트 흐름"><small>세트 흐름 · 상대가 세트마다 가장 유력한 조합을 쓴다고 볼 때</small><span class="ec-fs">${r.flow.map((f) => `<span class="ec-f ${f.game === o.game ? "now" : f.game < o.game ? "past" : ""}"><b>${f.game}세트</b><span>${esc(COMPS[f.comp.identity].name)}</span><span class="ec-fi">${ROLES.map((x) => f.comp.slots[x] ? icon(f.comp.slots[x].id, "xs") : "").join("")}</span></span>`).join(`<span class="dim">→</span>`)}</span></section>` : "";
@@ -4481,7 +4493,7 @@
     const st = curStep();
     if (!st || !CH[id]) return;
     const who = E.whoOfSide(S, st[0]);
-    if (E.taken(S).has(id) || E.lockedFor(S, who).has(id)) return;
+    if (E.taken(S).has(id) || E.lockedFor(S).has(id)) return;
     const step = S.draft.steps[S.draft.idx];
     step.champ = id; step.skip = false;
     step.cands = undefined;
@@ -5167,7 +5179,7 @@
     if (!st) return "";
     const who = E.whoOfSide(S, st[0]), type = st[1];
     const lane = S.ui.role || "";
-    const taken = E.taken(S), locked = E.lockedFor(S, who);
+    const taken = E.taken(S), locked = E.lockedFor(S);
     const ok = (id) => CH[id] && !taken.has(id) && !locked.has(id);
     const roleAttr = type === "pick" && who === "our" && lane ? ` data-role="${lane}"` : "";
     const cell = (id, sub) => `<button class="mv-cell" data-act="pick" data-id="${id}"${roleAttr} ${ok(id) ? "" : "disabled"}>${icon(id).replace(/ title="[^"]*"/, "")}<span class="n">${esc(CH[id].ko)}</span>${sub ? `<span class="sub">${esc(sub)}</span>` : ""}</button>`;
@@ -5203,7 +5215,7 @@
       <div class="mv-teams"><label>우리팀<select id="ourSelM">${opts(S.ourTeam, null, SOLO.our)}</select></label><label>상대<select id="enemySelM">${opts(S.enemyTeam, S.ourTeam, SOLO.enemy)}</select></label></div>
       ${live ? `<div class="mv-mg"><b>${S.series.game}세트</b>
         <div class="mv-ml"><span>우리 진영</span>${seg("side", S.draft.ourSide, [["B", "블루"], ["R", "레드"]])}</div>
-        <div class="mv-ml"><span>피어리스</span>${seg("mode", S.series.mode, [["hard", "하드"], ["soft", "소프트"], ["off", "끔"]])}</div>
+        ${isSolo(S.enemyTeam) ? "" : `<div class="mv-ml"><span>피어리스</span>${seg("mode", S.series.mode, FEARLESS_MODES)}</div>`}
         <div class="mv-mb"><button class="btn primary" data-act="nextGame">세트 종료</button><button class="btn" data-act="saveSeries">밴픽 저장</button>
           <button class="btn" data-act="resetGame">이번 세트 다시</button><button class="btn ghost" data-act="resetSeries">시리즈 초기화</button></div></div>` : ""}
       <div class="mv-mg">${topCta().replace("btn sm", "btn mv-wide")}</div>
@@ -5358,7 +5370,7 @@
     navigator.serviceWorker.register("/sw.js?v=" + APPV).catch(() => { /* 막혀 있으면 그냥 웹 */ });
   }
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkAppUpdate(); });
-  const MOB_VIEW = { live: renderLiveM, our: renderHomeM, team: renderOurM, pool: renderOurM, enemy: renderEnemyM, notes: renderNotesM };
+  const MOB_VIEW = { scrim: renderScrimM, live: renderLiveM, our: renderHomeM, team: renderOurM, pool: renderOurM, enemy: renderEnemyM, notes: renderNotesM };
 
   let lastIdx = -1;
   // 그리는 도중(입력 칸이 사라지며 change·blur가 또 render를 부름) 다시 들어오면 끝난 뒤 한 번 더
@@ -5465,6 +5477,213 @@
       else if (ev.key === "Enter") { ev.preventDefault(); const go = document.querySelector('[data-act="lgjoin"]'); if (go) go.click(); }
     });
   })();
+  // ---------- 5:5 내전 구인 · 연습중인 상대 순위(11-24 사용자: duo.gg처럼 구인 글, 홈에 연습량·승률 순위) ----------
+  //  글은 서버(/scrim/posts)에 24시간. 지금은 누구나 쓰고, 서버의 auth 값이 login·riot으로 바뀌면 화면도 로그인·라이엇 인증을 먼저 안내
+  //  내 글 지우기 열쇠는 이 브라우저에만(lolban.scrim.mine.v1)
+  const SCR = { posts: null, auth: "open", at: 0, busy: false, err: "", rank: null, rankAt: 0, rankBusy: false, hide: null, hideAt: "", f: { kind: "all", role: "", tier: "", mode: "" } };
+  const SCR_TIER = [["any", "티어 무관"], ["iron", "아이언"], ["bronze", "브론즈"], ["silver", "실버"], ["gold", "골드"], ["platinum", "플래티넘"], ["emerald", "에메랄드"], ["diamond", "다이아몬드"], ["master", "마스터"], ["grandmaster", "그랜드마스터"], ["challenger", "챌린저"]];
+  const SCR_MODE = [["hard", "하드 피어리스"], ["soft", "소프트 피어리스"], ["off", "일반 밴픽"]];
+  const SCR_BO = [[1, "단판"], [3, "3판 2선승"], [5, "5판 3선승"]];
+  const SCR_WHEN = ["지금 바로", "오늘 밤", "내일", "주말"];
+  const scrLabel = (list, v) => (list.find((x) => x[0] === v) || [, ""])[1];
+  const scrMine = () => { try { return JSON.parse(localStorage.getItem("lolban.scrim.mine.v1") || "{}") || {}; } catch (e) { return {}; } };
+  const scrMineSet = (m) => { try { localStorage.setItem("lolban.scrim.mine.v1", JSON.stringify(m)); } catch (e) { /* 저장 막힘: 이번 창에서만 */ } };
+  const scrAgo = (ms) => { const m = Math.max(0, Math.round((Date.now() - ms) / 60e3)); return m < 1 ? "방금" : m < 60 ? `${m}분 전` : `${Math.floor(m / 60)}시간 전`; };
+  const scrLeft = (ms) => { const h = Math.max(0, Math.round((ms - Date.now()) / 3600e3)); return h < 1 ? "곧 사라짐" : `${h}시간 남음`; };
+  const scrKey = () => { const a = crypto.getRandomValues(new Uint8Array(24)); return btoa(String.fromCharCode(...a)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
+  const scrHead = (json) => ({ ...(json ? { "Content-Type": "application/json" } : {}), ...(SESS ? { "X-Session": SESS } : {}) });
+  const scrVerified = () => !!(AUTH.user && AUTH.user.riot && AUTH.user.riot.verified);
+  // 지금 글을 쓸 수 있는지: "" = 됨 · "login" · "riot"
+  const scrNeed = () => (SCR.auth === "open" ? "" : !SESS ? "login" : SCR.auth === "riot" && !scrVerified() ? "riot" : "");
+
+  async function loadScrim(force) {
+    if (!WURL() || SCR.busy || (!force && SCR.posts && Date.now() - SCR.at < 30e3)) return;
+    SCR.busy = true;
+    try {
+      const res = await fetch(`${WURL()}/scrim/posts`, { cache: "no-store", credentials: "omit", headers: scrHead() });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.status === "ok") { SCR.posts = d.posts || []; SCR.auth = d.auth || "open"; SCR.err = ""; } else SCR.err = d.reason || "글을 불러오지 못했습니다";
+    } catch (e) { SCR.err = "연결이 끊겨 글을 불러오지 못했습니다"; }
+    finally { SCR.at = Date.now(); SCR.busy = false; if (S.tab === "scrim") render(); }
+  }
+  async function loadRank(force) {
+    if (!WURL() || SCR.rankBusy || (!force && SCR.rank && Date.now() - SCR.rankAt < 120e3)) return;
+    SCR.rankBusy = true;
+    try {
+      const res = await fetch(`${WURL()}/scrim/rank`, { cache: "no-store", credentials: "omit" });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.status === "ok") SCR.rank = d;
+    } catch (e) { /* 다음에 다시 */ }
+    finally { SCR.rankAt = Date.now(); SCR.rankBusy = false; if (S.tab === "our" || S.tab === "scrim") render(); }
+  }
+  async function loadRankHide() {   // 우리 팀이 순위에서 숨겨졌는지(팀 공간마다 한 번)
+    if (!SPACE || SPACE.bad || !WURL() || SCR.hideAt === SPACE.id) return;
+    SCR.hideAt = SPACE.id;
+    try { const r = await wfetch(`/scrim/hide`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ get: true }) }); const d = await r.json().catch(() => ({})); if (r.ok && d.status === "ok") { SCR.hide = !!d.hide; if (S.tab === "our" || S.tab === "scrim") render(); } } catch (e) { /* 모름 */ }
+  }
+  setInterval(() => { if (document.hidden) return; if (S.tab === "scrim") { loadScrim(true); loadRank(); } else if (S.tab === "our") loadRank(); }, 60e3);
+
+  // ---- 연습중인 상대(홈·구인 화면 옆) ----
+  function rankBlock(compact) {
+    loadRank(); loadRankHide();
+    const R = SCR.rank, mine = SPACE && !SPACE.bad ? SPACE.id : "";
+    const row = (x, i, kind) => {
+      const me = x.id === mine, top = R && R.practice[0] ? Math.max(1, R.practice[0].week || R.practice[0].sets) : 1;
+      const right = kind === "practice"
+        ? `<span class="prk-v"><b>${x.week}</b><small>세트 · 7일</small></span>`
+        : `<span class="prk-v"><b>${x.wr.toFixed(x.wr % 1 ? 1 : 0)}%</b><small>${x.wins}승 ${x.losses}패</small></span>`;
+      const bar = kind === "practice" ? Math.round(((x.week || 0) / top) * 100) : Math.round(x.wr);
+      return `<li class="prk-row ${me ? "me" : ""}"><span class="prk-n ${i < 3 ? "t3" : ""}">${i + 1}</span>${crestOf(x, me ? "b" : "")}<span class="prk-nm"><b title="${esc(x.name)}">${esc(x.name)}</b>${me ? `<i>우리 팀</i>` : ""}<small>${kind === "practice" ? `누적 ${x.sets}세트` : `${x.sets}세트`}</small></span>${right}<span class="prk-bar" style="--w:${bar}%" aria-hidden="true"></span></li>`;
+    };
+    const list = (rows, kind) => rows && rows.length ? `<ol class="prk-list">${rows.slice(0, compact ? 5 : 10).map((x, i) => row(x, i, kind)).join("")}</ol>`
+      : emptyBox("mastery", kind === "practice" ? "아직 연습 기록이 없습니다" : "아직 순위에 들 팀이 없습니다", kind === "practice" ? "실시간 밴픽에서 세트 결과(승·패)를 저장하면 여기에 올라와요" : `결과가 있는 세트 ${R ? R.minSets : 5}개 이상이면 올라와요`, true);
+    const hideBtn = mine && SCR.hide !== null ? `<button class="soft-b prk-hide" data-act="scrhide" aria-pressed="${!!SCR.hide}">${SCR.hide ? "우리 팀 순위에 보이기" : "우리 팀 순위에서 숨기기"}</button>` : "";
+    return `<section class="prk ${compact ? "compact" : ""}" aria-labelledby="rkT">
+      <header class="prk-h"><div><h2 id="rkT">연습중인 상대</h2><p>롤벤에서 밴픽 연습 중인 팀 · 세트 결과로 매긴 순위${R && R.teams ? ` · ${R.teams}팀` : ""}</p></div>${hideBtn}</header>
+      ${!R ? `<div class="prk-grid"><div class="prk-card is-sk" aria-busy="true"></div><div class="prk-card is-sk" aria-busy="true"></div></div>` : `<div class="prk-grid">
+        <div class="prk-card"><h3>${lbi("meta", 18)}연습량 순위<small>최근 7일 세트</small></h3>${list(R.practice, "practice")}</div>
+        <div class="prk-card"><h3>${lbi("mastery", 18)}승률 순위<small>${R.minSets}세트 이상</small></h3>${list(R.winrate, "winrate")}</div></div>`}
+      ${SCR.hide ? `<p class="help prk-note">우리 팀은 순위에서 숨겨져 있어요</p>` : ""}
+    </section>`;
+  }
+
+  // ---- 구인 글 목록 ----
+  function scrCard(p) {
+    const mine = scrMine()[p.id];
+    const kindTag = p.kind === "team" ? `<span class="scr-kind team">상대 팀 구함</span>` : `<span class="scr-kind mem">팀원 구함</span>`;
+    const need = p.kind === "member" ? `<div class="scr-need" aria-label="구하는 라인">${ROLES.map((r) => `<span class="scr-ln ${p.need.includes(r) ? "on" : ""}" title="${ROLE_KO[r]}${p.need.includes(r) ? " 구함" : ""}">${laneIco(r, 18)}</span>`).join("")}<b>${p.need.map((r) => ROLE_KO[r]).join(" · ")}</b></div>`
+      : `<div class="scr-need full" aria-label="5명 모두 있음">${ROLES.map((r) => `<span class="scr-ln on">${laneIco(r, 18)}</span>`).join("")}<b>5명 준비됨</b></div>`;
+    const okLink = /^https:\/\/(open\.kakao\.com|discord\.gg|discord\.com\/invite)\/[A-Za-z0-9/_-]+$/.test(p.contact);
+    const contact = okLink ? `<a href="${esc(p.contact)}" target="_blank" rel="noopener noreferrer nofollow">${esc(p.contact.replace(/^https:\/\//, ""))}</a>` : `<span>${esc(p.contact)}</span>`;
+    return `<article class="scr" aria-label="${esc(p.team)} · ${p.kind === "team" ? "상대 팀 구함" : "팀원 구함"}">
+      <div class="scr-h">${kindTag}<span class="scr-tier t-${esc(p.tier)}">${esc(scrLabel(SCR_TIER, p.tier))}</span><time class="scr-at" datetime="${new Date(p.at).toISOString()}" title="${esc(scrLeft(p.exp))}">${scrAgo(p.at)}</time></div>
+      <div class="scr-t">${crestOf({ name: p.team })}<div class="scr-tn"><b title="${esc(p.team)}">${esc(p.team)}</b>${p.riot ? `<small>${esc(p.riot)}${p.verified ? `<i class="scr-ok">인증</i>` : `<i class="scr-no" title="라이엇 인증 전이라 본인 계정인지 확인되지 않았어요">미인증</i>`}</small>` : ""}</div></div>
+      ${need}
+      <div class="scr-chips"><span>${esc(scrLabel(SCR_MODE, p.mode))}</span><span>${esc(scrLabel(SCR_BO, p.bo))}</span>${p.when ? `<span class="when">${esc(p.when)}</span>` : ""}${p.voice ? `<span>보이스 필수</span>` : ""}</div>
+      ${p.memo ? `<p class="scr-memo">${esc(p.memo)}</p>` : ""}
+      <div class="scr-f"><span class="scr-ct" title="연락 방법">${contact}</span><button class="ib btn sm" data-act="scrcopy" data-v="${esc(p.contact)}" aria-label="연락 방법 복사">${ico("copy")}</button>${mine ? `<button class="ib btn sm" data-act="scrdel" data-id="${esc(p.id)}" aria-label="내 글 지우기">${ico("trash")}</button>` : ""}</div>
+    </article>`;
+  }
+  function renderScrim() {
+    loadScrim();
+    const f = SCR.f, all = SCR.posts || [];
+    const shown = all.filter((p) => (f.kind === "all" || p.kind === f.kind) && (!f.role || (p.kind === "member" && p.need.includes(f.role))) && (!f.tier || p.tier === f.tier || p.tier === "any") && (!f.mode || p.mode === f.mode));
+    const cnt = (k) => all.filter((p) => k === "all" || p.kind === k).length;
+    const need = scrNeed();
+    const writeBtn = need === "login" ? `<button class="n-new" data-act="scrlogin">${lbi("plus", 18)}로그인하고 글쓰기</button>`
+      : need === "riot" ? `<button class="n-new" data-act="scrriot">${lbi("plus", 18)}라이엇 인증하고 글쓰기</button>`
+      : `<button class="n-new" data-act="scrnew">${lbi("plus", 18)}구인 글쓰기</button>`;
+    const sel = (k, list, first) => `<select class="input scr-sel" data-act="scrf" data-k="${k}" aria-label="${first}"><option value="">${first}</option>${list.map(([v, n]) => `<option value="${v}" ${f[k] === v ? "selected" : ""}>${n}</option>`).join("")}</select>`;
+    const body = SCR.posts === null ? (SCR.err ? emptyBox("warn", SCR.err, `<button class="soft-b" data-act="scrreload">다시 불러오기</button>`) : `<div class="scr-grid">${[0, 1, 2].map(() => `<div class="scr is-sk" aria-busy="true"></div>`).join("")}</div>`)
+      : shown.length ? `<div class="scr-grid">${shown.map(scrCard).join("")}</div>`
+      : emptyBox("invite", all.length ? "조건에 맞는 글이 없습니다" : "아직 올라온 구인 글이 없습니다", all.length ? "거르기를 풀어 보세요" : "첫 글을 올려 같이 밴픽 연습할 팀을 찾아보세요");
+    return `<div class="scrim">
+      <section class="scr-hero"><div class="scr-hero-t"><span class="scr-k">5:5 내전 구인</span><h1>피어리스 밴픽, 실전처럼 연습할 상대 찾기</h1><p>롤벤은 밴픽·내전 연습하는 팀이 모인 곳이에요. 상대 팀이나 빈 라인 팀원을 구해 보세요. 글은 24시간 뒤 사라져요.</p></div>
+        <div class="scr-hero-b">${writeBtn}${SCR.auth === "open" ? `<small>지금은 로그인 없이 쓸 수 있어요 · 라이엇 인증은 곧 붙어요</small>` : SCR.auth === "riot" ? `<small>라이엇 계정 인증을 마친 사람만 쓸 수 있어요</small>` : `<small>로그인한 사람만 쓸 수 있어요</small>`}</div></section>
+      <div class="scr-main"><div class="scr-col">
+        <div class="scr-bar" role="toolbar" aria-label="구인 글 거르기">
+          <div class="seg scr-seg">${[["all", "전체"], ["team", "상대 팀 구함"], ["member", "팀원 구함"]].map(([v, n]) => `<button data-act="scrkind" data-v="${v}" aria-pressed="${f.kind === v}">${n}<small>${SCR.posts ? cnt(v) : ""}</small></button>`).join("")}</div>
+          <div class="scr-roles" role="group" aria-label="구하는 라인">${ROLES.map((r) => `<button class="scr-rb" data-act="scrrole" data-v="${r}" aria-pressed="${f.role === r}" aria-label="${ROLE_KO[r]} 구하는 글" title="${ROLE_KO[r]}">${laneIco(r, 18)}</button>`).join("")}</div>
+          ${sel("tier", SCR_TIER.slice(1), "모든 티어")}${sel("mode", SCR_MODE, "모든 밴픽 방식")}
+          <button class="ib btn sm scr-re" data-act="scrreload" aria-label="새로 고침" ${SCR.busy ? "aria-busy=\"true\"" : ""}>${ico("refresh")}</button>
+        </div>
+        ${body}
+      </div><aside class="scr-side">${rankBlock(true)}</aside></div>
+    </div>`;
+  }
+  function renderScrimM() { return `<div class="mv mv-home"><header class="mv-h"><b class="mv-logo">${LOGO_MARK}내전 구인</b></header><div class="mv-scroll">${renderScrim()}</div></div>`; }
+
+  // ---- 글쓰기 창 ----
+  function scrForm() {
+    const root = document.getElementById("scrmodal") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "scrmodal" }));
+    const ourT = team(S.ourTeam), nm = (SPACE && !SPACE.bad && SPACE.name) || (ourT && !ourT.solo ? ourT.name : "");
+    const opt = (list, cur) => list.map(([v, n]) => `<option value="${v}" ${v === cur ? "selected" : ""}>${n}</option>`).join("");
+    root.innerHTML = `<div class="modal-bg" data-act="scrclose"><form class="modal scr-form" role="dialog" aria-modal="true" aria-labelledby="scfT" id="scForm" data-kind="team" novalidate>
+      <div class="modal-h"><h2 id="scfT">구인 글쓰기</h2><button type="button" class="ib btn sm" data-act="scrclose" aria-label="닫기">${ico("x")}</button></div>
+      <div class="scf-kind seg" role="radiogroup" aria-label="글 종류"><button type="button" role="radio" data-act="scrfk" data-v="team" aria-checked="true" aria-pressed="true"><b>상대 팀 구함</b><small>우리 5명 다 있어요 · 내전 상대 찾기</small></button><button type="button" role="radio" data-act="scrfk" data-v="member" aria-checked="false" aria-pressed="false"><b>팀원 구함</b><small>빈 라인 채울 사람 찾기</small></button></div>
+      <label class="scf-f"><span>팀 이름<em>필수</em></span><input class="input" id="scfTeam" maxlength="20" value="${esc(nm)}" placeholder="예: 블루윙즈" autocomplete="off" required></label>
+      <div class="scf-f scf-need"><span>구하는 라인<em>필수</em></span><div class="scr-roles big" role="group" aria-label="구하는 라인">${ROLES.map((r) => `<button type="button" class="scr-rb" data-act="scrfr" data-v="${r}" aria-pressed="false">${laneIco(r, 20)}<small>${ROLE_KO[r]}</small></button>`).join("")}</div></div>
+      <div class="scf-row">
+        <label class="scf-f"><span>평균 티어</span><select class="input" id="scfTier">${opt(SCR_TIER, "any")}</select></label>
+        <label class="scf-f"><span>밴픽 방식</span><select class="input" id="scfMode">${opt(SCR_MODE, "hard")}</select></label>
+        <label class="scf-f"><span>판수</span><select class="input" id="scfBo">${opt(SCR_BO.map(([v, n]) => [String(v), n]), "3")}</select></label>
+      </div>
+      <div class="scf-f"><span>언제</span><div class="scf-when"><input class="input" id="scfWhen" maxlength="24" placeholder="예: 오늘 밤 10시" autocomplete="off">${SCR_WHEN.map((w) => `<button type="button" class="soft-b" data-act="scrwhen" data-v="${w}">${w}</button>`).join("")}</div></div>
+      <label class="scf-f"><span>연락 방법<em>필수</em></span><input class="input" id="scfContact" maxlength="60" placeholder="디스코드 아이디 또는 오픈카톡 링크" autocomplete="off" required></label>
+      <label class="scf-f"><span>라이엇 ID<em class="opt">선택</em></span><input class="input" id="scfRiot" maxlength="40" placeholder="이름#태그" autocomplete="off"><small class="help">지금은 인증 없이 「미인증」으로 표시돼요</small></label>
+      <label class="scf-f"><span>하고 싶은 말<em class="opt">선택</em></span><textarea class="input" id="scfMemo" maxlength="300" rows="3" placeholder="예: 피어리스 하드로 3판 연습해요. 매너 게임!"></textarea></label>
+      <label class="scf-chk"><input type="checkbox" id="scfVoice"> 보이스(디스코드) 필수</label>
+      <p class="scf-err" id="scfErr" role="alert"></p>
+      <div class="scf-foot"><small>글은 24시간 뒤 저절로 사라지고, 이 브라우저에서 언제든 지울 수 있어요</small><button type="submit" class="n-new" id="scfGo">올리기</button></div>
+    </form></div>`;
+    setTimeout(() => { const t = document.getElementById(nm ? "scfContact" : "scfTeam"); if (t) t.focus(); }, 0);
+  }
+  const scrClose = () => { const r = document.getElementById("scrmodal"); if (r) r.innerHTML = ""; };
+  async function scrSubmit() {
+    const F = document.getElementById("scForm"); if (!F || F.dataset.busy) return;
+    const v = (id) => (document.getElementById(id) || {}).value || "";
+    const kind = F.dataset.kind, need = [...F.querySelectorAll('.scf-need [aria-pressed="true"]')].map((b) => b.dataset.v);
+    const err = (m) => { const e = document.getElementById("scfErr"); if (e) e.textContent = m; };
+    if (!v("scfTeam").trim()) { err("팀 이름을 적어 주세요"); document.getElementById("scfTeam").focus(); return; }
+    if (kind === "member" && !need.length) { err("구하는 라인을 하나 이상 골라 주세요"); return; }
+    if (!v("scfContact").trim()) { err("연락 방법을 적어 주세요"); document.getElementById("scfContact").focus(); return; }
+    if (v("scfRiot").trim() && !/^[^#]{1,24}\s*#\s*[^#\s]{2,8}$/.test(v("scfRiot").trim())) { err("라이엇 ID는 이름#태그 형식으로 적어 주세요"); document.getElementById("scfRiot").focus(); return; }
+    const delKey = scrKey();
+    const body = { kind, team: v("scfTeam"), need, tier: v("scfTier"), mode: v("scfMode"), bo: +v("scfBo"), when: v("scfWhen"), contact: v("scfContact"), riot: v("scfRiot"), memo: v("scfMemo"), voice: !!(document.getElementById("scfVoice") || {}).checked, delKey };
+    F.dataset.busy = "1"; const go = document.getElementById("scfGo"); if (go) { go.disabled = true; go.textContent = "올리는 중…"; } err("");
+    try {
+      const res = await fetch(`${WURL()}/scrim/posts`, { method: "POST", cache: "no-store", credentials: "omit", headers: scrHead(true), body: JSON.stringify(body) });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.status === "ok" && d.post) {
+        const m = scrMine(); m[d.post.id] = delKey; scrMineSet(m);
+        SCR.posts = [d.post].concat((SCR.posts || []).filter((p) => p.id !== d.post.id)); SCR.f = { kind: "all", role: "", tier: "", mode: "" };
+        scrClose(); toast("구인 글을 올렸어요"); render(); return;
+      }
+      if (d.need) { SCR.auth = d.need === "riot" ? "riot" : "login"; scrClose(); render(); toast(d.reason); return; }
+      err(d.reason || "올리지 못했습니다. 잠시 뒤 다시 해 주세요");
+    } catch (e) { err("연결이 끊겨 올리지 못했습니다"); }
+    delete F.dataset.busy; if (go) { go.disabled = false; go.textContent = "올리기"; }
+  }
+  async function scrDelete(id) {
+    const key = scrMine()[id];
+    if (!confirmDel()) return;
+    try {
+      const res = await fetch(`${WURL()}/scrim/del`, { method: "POST", cache: "no-store", credentials: "omit", headers: scrHead(true), body: JSON.stringify({ id, ...(key ? { delKey: key } : {}) }) });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok || res.status === 404) { const m = scrMine(); delete m[id]; scrMineSet(m); SCR.posts = (SCR.posts || []).filter((p) => p.id !== id); toast(res.ok ? "글을 지웠어요" : "이미 사라진 글이에요"); render(); }
+      else toast(d.reason || "지우지 못했습니다");
+    } catch (e) { toast("연결이 끊겨 지우지 못했습니다"); }
+    function confirmDel() { return window.confirm("이 구인 글을 지울까요? 되돌릴 수 없어요."); }
+  }
+  async function scrHideToggle() {
+    const want = !SCR.hide;
+    try { const r = await wfetch(`/scrim/hide`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hide: want }) }); const d = await r.json().catch(() => ({}));
+      if (r.ok && d.status === "ok") { SCR.hide = !!d.hide; toast(SCR.hide ? "우리 팀을 순위에서 숨겼어요" : "우리 팀이 순위에 다시 보여요"); loadRank(true); render(); } else toast(d.reason || "바꾸지 못했습니다"); } catch (e) { toast("연결이 끊겨 바꾸지 못했습니다"); }
+  }
+  document.addEventListener("click", (ev) => {
+    const el = ev.target.closest && ev.target.closest("[data-act^='scr']"); if (!el) return;
+    const a = el.dataset.act;
+    if (a === "scrclose" && ev.target !== el && el.classList.contains("modal-bg")) return;   // 창 안쪽 누름
+    switch (a) {
+      case "scrnew": scrForm(); break;
+      case "scrclose": scrClose(); break;
+      case "scrlogin": S.tab = "our"; save(); render(); window.scrollTo(0, 0); toast("로그인하면 구인 글을 쓸 수 있어요"); break;
+      case "scrriot": toast("라이엇 계정 인증은 설정에서 할 수 있어요"); if (typeof openSettings === "function") openSettings(); break;
+      case "scrreload": loadScrim(true); loadRank(true); render(); break;
+      case "scrkind": SCR.f.kind = el.dataset.v; if (SCR.f.kind === "team") SCR.f.role = ""; render(); break;
+      case "scrrole": SCR.f.role = SCR.f.role === el.dataset.v ? "" : el.dataset.v; if (SCR.f.role) SCR.f.kind = "member"; render(); break;
+      case "scrcopy": { const v = el.dataset.v || ""; (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(() => toast("연락 방법을 복사했어요"), () => toast(v)); break; }
+      case "scrdel": scrDelete(el.dataset.id); break;
+      case "scrhide": scrHideToggle(); break;
+      case "scrfk": { const F = document.getElementById("scForm"); if (!F) break; F.dataset.kind = el.dataset.v; F.querySelectorAll('[data-act="scrfk"]').forEach((b) => { const on = b === el; b.setAttribute("aria-checked", String(on)); b.setAttribute("aria-pressed", String(on)); }); break; }
+      case "scrfr": el.setAttribute("aria-pressed", String(el.getAttribute("aria-pressed") !== "true")); break;
+      case "scrwhen": { const w = document.getElementById("scfWhen"); if (w) { w.value = el.dataset.v; w.focus(); } break; }
+    }
+  });
+  document.addEventListener("change", (ev) => { const t = ev.target; if (t && t.dataset && t.dataset.act === "scrf") { SCR.f[t.dataset.k] = t.value; render(); } });
+  document.addEventListener("submit", (ev) => { if (ev.target && ev.target.id === "scForm") { ev.preventDefault(); scrSubmit(); } });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && document.getElementById("scForm")) { ev.preventDefault(); scrClose(); } });
+
   function render() {
     if (lastTab !== S.tab) { if (lastTab === "vision" || (lastTab === null && S.tab === "vision")) resetStudyUi(); lastTab = S.tab; }
     if (RENDERING) { RENDER_AGAIN = true; return; }
@@ -5507,7 +5726,7 @@
     const keepEdF = keepEd && keepEd.contains(document.activeElement) ? keepEd : null;
     const edAE = keepEdF ? document.activeElement : null;
     if (S.tab === "pool" && mob) S.tab = "our";
-    v.innerHTML = mobV ? mobV() : S.tab === "pool" ? renderPoolPC() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderStudyPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : S.tab === "team" ? (mob ? renderSettings() : renderTeamPC()) : S.tab === "alts" ? renderAltFind() : S.tab === "pts" ? renderPtsPage() : (mob ? renderEnemy() : renderEnemyPC());
+    v.innerHTML = mobV ? mobV() : S.tab === "pool" ? renderPoolPC() : S.tab === "live" ? (mob ? renderLive() : renderLivePC()) : S.tab === "our" ? (mob ? renderOur() : renderOurPC()) : S.tab === "vision" ? (mob ? renderVision() : renderStudyPC()) : S.tab === "notes" ? (mob ? renderNotes() : renderNotesPC()) : S.tab === "import" ? (mob ? renderImport() : renderImportPC()) : S.tab === "settings" ? (mob ? renderSettings() : renderSettingsPC()) : S.tab === "team" ? (mob ? renderSettings() : renderTeamPC()) : S.tab === "alts" ? renderAltFind() : S.tab === "pts" ? renderPtsPage() : S.tab === "scrim" ? renderScrim() : (mob ? renderEnemy() : renderEnemyPC());
     if (!mob && S.tab === "team") { const ph = document.getElementById("setEd"); if (ph) { if (keepEdF && keepEdF.dataset.team === setTeamPC()) { ph.replaceWith(keepEdF); if (edAE && keepEdF.contains(edAE)) { const c = edAE.selectionStart; edAE.focus(); try { edAE.setSelectionRange(c, c); } catch (e) { /* select */ } } } else renderEditor(); } }
     // 휴대폰: 챔프 고르기·「⋯」 메뉴는 화면 아래 시트로
     const ms = document.getElementById("msheet") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "msheet" }));
@@ -5582,12 +5801,18 @@
       case "saveSeries": saveSeries(); break;
       case "savedDel": { const list = loadSaved(), r = allSaved().find((x) => x.sid === el.dataset.sid);
         if (r && confirm(`${r.at} · ${r.enemyName} 상대 ${r.games.length}세트 기록을 지울까요? 팀원 모두에게서 지워집니다.`)) { writeSaved(list.filter((x) => x.sid !== r.sid)); if (seriesCanSrv()) seriesPost({ op: "del", sid: r.sid }).then(() => render()).catch(() => {}); render(); } break; }
-      case "resetSeries": if (confirm("시리즈를 초기화할까요? 피어리스 잠금·세트 번호·이번 세트 밴픽이 지워지고, 「밴픽 저장」을 누르지 않은 내용은 남지 않습니다.")) { S.series = { game: 1, mode: S.series.mode, locked: [] }; S.draft.steps = emptySteps(); S.draft.idx = 0; save(); render(); } break;
+      case "resetSeries": if (confirm("시리즈를 초기화할까요? 피어리스 잠금·세트 번호·이번 세트 밴픽이 지워지고, 「밴픽 저장」을 누르지 않은 내용은 남지 않습니다.")) { S.series = { game: 1, mode: S.series.mode, prevMode: S.series.prevMode, locked: [] }; S.draft.steps = emptySteps(); S.draft.idx = 0; save(); render(); } break;
       case "side": if (S.draft.ourSide !== el.dataset.v) {
         if (S.draft.idx > 0 && !confirm("진영을 바꾸면 이번 세트 밴픽이 지워집니다. 바꿀까요?")) break;
         S.draft.ourSide = el.dataset.v; if (ORDER.kind === "ranked") window.KB.useOrder("ranked", S.draft.ourSide);   // 솔랭·자랭: 우리 밴이 먼저
         S.draft.steps = emptySteps(); S.draft.idx = 0; save(); render(); } break;
-      case "mode": S.series.mode = el.dataset.v; save(); render(); break;
+      case "mode": {
+        const mode = el.dataset.v;
+        if (ORDER.kind === "tournament" && (mode === "hard" || mode === "off")) {
+          S.series.mode = mode; save(); render();
+        }
+        break;
+      }
       case "frole": S.ui.role = el.dataset.r; save(); render(); break;
       case "onlypool": S.ui.onlyPool = !S.ui.onlyPool; save(); render(); break;
       case "pred": S.ui.predRole = el.dataset.r; render(); break;
@@ -5596,7 +5821,7 @@
       case "ensec": S.ui.enSec = el.dataset.k; save(); render(); break;
       case "ecopen": S.ui.enView = "comps"; S.ui.ecf = { mode: S.series.mode || "off", game: Math.min(3, S.series.game || 1), ban: false }; save(); render(); window.scrollTo(0, 0); break;
       case "ecback": S.ui.enView = ""; save(); render(); window.scrollTo(0, 0); break;
-      case "ecf": { const f = { ...(S.ui.ecf || {}) }, k = el.dataset.k, v = el.dataset.v; f[k] = k === "mode" ? v : k === "ban" ? v === "1" : Number(v); S.ui.ecf = f; save(); render(); break; }
+      case "ecf": { const f = { ...(S.ui.ecf || {}) }, k = el.dataset.k, v = el.dataset.v; f[k] = k === "mode" ? normalizeFearlessMode(v) : k === "ban" ? v === "1" : Number(v); S.ui.ecf = f; save(); render(); break; }
       case "nnew": { const g = el.dataset.gk ? GAMEREF[el.dataset.gk] : null; openNoteForm({ game: g, cat: el.dataset.cat, who: el.dataset.who }); break; }
       case "nedit": { const n = (NT.list || []).find((x) => x.id === el.dataset.id); if (n) openNoteForm({ note: n }); break; }
       case "ndel": { const n = (NT.list || []).find((x) => x.id === el.dataset.id);
