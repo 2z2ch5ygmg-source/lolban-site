@@ -3,9 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex, nofollow">
   <title>롤벤 - LoL 카운터 &amp; 피어리스 밴 추천</title>
-  <meta name="description" content="롤벤(lolban) · LoL 카운터와 피어리스 밴 추천 · 우리 팀 챔프폭·상대 분석 · 5:5 내전 구인">
+  <meta name="description" content="롤벤(lolban)은 리그 오브 레전드 피어리스 밴픽 도구입니다. 우리 팀 챔프폭과 상대 팀 기록으로 카운터·밴을 추천하고, 실시간 밴픽을 팀원과 함께 보며, 5:5 내전 상대 팀과 팀원을 구할 수 있어요.">
+  <meta name="keywords" content="롤벤, lolban, 롤 밴픽, 피어리스 밴픽, 피어리스 드래프트, 롤 카운터, 밴 추천, 롤 내전, 내전 구인, 스크림, 롤 대회 밴픽">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://lolban.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="롤벤 lolban">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:url" content="https://lolban.com/">
+  <meta property="og:title" content="롤벤 - LoL 카운터 &amp; 피어리스 밴 추천">
+  <meta property="og:description" content="우리 팀 챔프폭과 상대 분석으로 피어리스 밴픽을 준비하세요. 카운터·밴 추천, 실시간 밴픽, 5:5 내전 구인.">
+  <meta property="og:image" content="https://lolban.com/img/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="롤벤 - LoL 카운터 &amp; 피어리스 밴 추천">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="롤벤 - LoL 카운터 &amp; 피어리스 밴 추천">
+  <meta name="twitter:description" content="우리 팀 챔프폭과 상대 분석으로 피어리스 밴픽을 준비하세요. 카운터·밴 추천, 실시간 밴픽, 5:5 내전 구인.">
+  <meta name="twitter:image" content="https://lolban.com/img/og.png">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://lolban.com/#site","url":"https://lolban.com/","name":"롤벤","alternateName":["lolban","LolBan","롤벤 lolban"],"inLanguage":"ko-KR","description":"LoL 카운터 & 피어리스 밴 추천 · 실시간 밴픽 · 5:5 내전 구인"},{"@type":"WebApplication","@id":"https://lolban.com/#app","name":"롤벤 (lolban)","url":"https://lolban.com/","applicationCategory":"GameApplication","operatingSystem":"Web, iOS","inLanguage":"ko-KR","image":"https://lolban.com/img/og.png","description":"리그 오브 레전드 피어리스 밴픽 도구. 우리 팀 챔프폭과 상대 팀 기록으로 카운터·밴을 추천하고, 실시간 밴픽을 팀원과 함께 보며, 5:5 내전 상대 팀과 팀원을 구합니다.","offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"},"featureList":["피어리스 밴픽 카운터·밴 추천","실시간 밴픽 같이 보기","상대팀 분석","우리 팀 챔프폭 관리","5:5 내전 구인","피드백 노트"]}]}</script>
   <link rel="icon" id="fav" type="image/svg+xml" href="img/lolban-favicon.svg">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="img/app/apple-touch-icon.png">
@@ -21,8 +38,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&display=swap">
   <script>try { const t = localStorage.getItem("lolban.theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}</script>
-  <link rel="stylesheet" href="css/app.css?v=9b10b3dc43">
-  <link rel="stylesheet" href="css/pc.css?v=9b10b3dc43">
+  <link rel="stylesheet" href="css/app.css?v=e633eba950">
+  <link rel="stylesheet" href="css/pc.css?v=e633eba950">
 </head>
 <body>
   <header class="top">
@@ -48,23 +65,37 @@
   </header>
   <aside id="side" aria-label="메뉴·팀"></aside>
   <header id="mhead"></header>
-  <main id="view"></main>
+  <main id="view">
+    <!-- 검색 로봇·스크립트 전 화면용 소개(앱이 뜨면 이 자리가 화면으로 바뀜) -->
+    <section class="seo-intro">
+      <h1>롤벤 - LoL 카운터 &amp; 피어리스 밴 추천</h1>
+      <p>롤벤(lolban)은 리그 오브 레전드 피어리스 밴픽을 준비하는 팀을 위한 도구입니다. 우리 팀 챔프폭과 상대 팀 기록을 바탕으로 무엇을 밴하고 무엇을 뽑을지 추천해 드려요.</p>
+      <h2>실시간 밴픽</h2>
+      <p>하드 피어리스·소프트 피어리스·일반 밴픽을 실전 순서 그대로 진행하고, 팀원과 같은 화면을 함께 봅니다. 세트가 넘어가도 이미 쓴 챔피언을 빼고 남은 챔프에서 카운터와 밴을 추천합니다.</p>
+      <h2>우리 팀 챔프폭 · 상대팀 분석</h2>
+      <p>선수별 챔프폭과 숙련도를 정리하고, 상대 팀이 자주 쓰는 챔피언과 요주의 픽을 미리 확인하세요.</p>
+      <h2>5:5 내전 구인</h2>
+      <p>피어리스 밴픽을 실전처럼 연습할 내전 상대 팀과 빈 라인 팀원을 찾는 게시판입니다. 로그인 없이 롤 닉네임만 적어 글을 올릴 수 있어요.</p>
+      <h2>공부자료 · 피드백 노트</h2>
+      <p>시야·운영 문제 풀이로 공부하고, 경기 뒤 피드백을 팀원 모두와 공유합니다.</p>
+    </section>
+  </main>
   <div id="modal"></div>
   <datalist id="champList"></datalist>
   <footer>챔피언 이미지·이름: Riot Games Data Dragon. 이 사이트는 Riot Games가 보증하거나 후원하지 않습니다. 카운터·조합 판단은 참고용입니다. · <a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a> · 문의 <a href="mailto:wonseo151@naver.com">wonseo151@naver.com</a><br><span lang="en">LolBan isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</span></footer>
-  <script src="js/config.js?v=9b10b3dc43"></script>
-  <script src="js/champions.js?v=9b10b3dc43"></script>
-  <script src="js/seed.js?v=9b10b3dc43"></script>
-  <script src="js/pro.js?v=9b10b3dc43"></script>
-  <script src="js/meta.js?v=9b10b3dc43"></script>
-  <script src="js/knowledge.js?v=9b10b3dc43"></script>
-  <script src="js/vision.js?v=9b10b3dc43"></script>
-  <script src="js/visiongrid.js?v=9b10b3dc43"></script>
-  <script src="js/world.js?v=9b10b3dc43"></script>
-  <script src="js/macro.js?v=9b10b3dc43"></script>
-  <script src="js/practice.js?v=9b10b3dc43"></script>
-  <script src="js/teamsheet.js?v=9b10b3dc43"></script>
-  <script src="js/engine.js?v=9b10b3dc43"></script>
-  <script src="js/app.js?v=9b10b3dc43"></script>
+  <script src="js/config.js?v=e633eba950"></script>
+  <script src="js/champions.js?v=e633eba950"></script>
+  <script src="js/seed.js?v=e633eba950"></script>
+  <script src="js/pro.js?v=e633eba950"></script>
+  <script src="js/meta.js?v=e633eba950"></script>
+  <script src="js/knowledge.js?v=e633eba950"></script>
+  <script src="js/vision.js?v=e633eba950"></script>
+  <script src="js/visiongrid.js?v=e633eba950"></script>
+  <script src="js/world.js?v=e633eba950"></script>
+  <script src="js/macro.js?v=e633eba950"></script>
+  <script src="js/practice.js?v=e633eba950"></script>
+  <script src="js/teamsheet.js?v=e633eba950"></script>
+  <script src="js/engine.js?v=e633eba950"></script>
+  <script src="js/app.js?v=e633eba950"></script>
 </body>
 </html>
