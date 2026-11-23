@@ -1006,6 +1006,7 @@ html.pc #side { overflow-y: auto; }   /* 상대 팀 목록이 5개 높이로 줄
 .sd-foot { display: grid; gap: 8px; }
 .sd-out { justify-self: center; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
 .sd-out:hover { color: var(--red); }
+a.sd-out:hover { color: var(--hi); }
 .mh-r { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 .hd-me { display: inline-flex; align-items: center; gap: 8px; margin-left: 6px; }
 .hd-set[aria-pressed="true"] { color: var(--hi); }

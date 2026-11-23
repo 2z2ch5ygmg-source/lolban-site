@@ -537,7 +537,7 @@
         <button class="tab sd-tm sd-new" data-tab="our" aria-current="${S.tab === "our"}">${lbi("plus", 20)}<span class="nm">${SESS ? "팀 만들기 · 들어가기" : "로그인 · 팀 만들기"}</span></button>
         ${SESS && AUTH.user ? `<p class="help sd-guest">${esc(AUTH.user.nick || "로그인됨")}님 로그인됨</p>` : ""}
         <p class="help sd-guest">팀을 등록하면 우리 팀 홈 · 상대 분석 · 피드백 노트를 씁니다. 지금은 솔랭·자랭 기준 밴픽만</p>
-        ${SESS ? `<div class="sd-foot"><button class="sd-out" data-act="lgout">로그아웃</button></div>` : ""}`;
+        ${SESS ? `<div class="sd-foot">${AUTH.user && AUTH.user.admin ? `<a class="sd-out" href="/admin/" target="_blank" rel="noopener">마스터 콘솔</a>` : ""}<button class="sd-out" data-act="lgout">로그아웃</button></div>` : ""}`;
       return;
     }
     const jf = document.activeElement && document.activeElement.id === "jpCode" ? document.activeElement.selectionStart : -1;
@@ -554,7 +554,7 @@
         || `<span class="help" style="padding:4px 12px">아직 없음 · 위 + 로 등록</span>`}
       <!-- 솔랭·자랭은 상대 팀이 아니라서 사이드바에서 뺌(11-20 사용자) — 실시간 밴픽 머리줄 상대 고르기에는 그대로 -->
       </div>
-      ${SESS ? `<div class="sd-foot"><button class="sd-out" data-act="lgout">로그아웃</button></div>` : ""}`;
+      ${SESS ? `<div class="sd-foot">${AUTH.user && AUTH.user.admin ? `<a class="sd-out" href="/admin/" target="_blank" rel="noopener">마스터 콘솔</a>` : ""}<button class="sd-out" data-act="lgout">로그아웃</button></div>` : ""}`;
   }
   // 글자 없는 아이콘 버튼에 이름표: aria-label(없으면 title)을 data-tip으로, 브라우저 기본 툴팁(늦게 뜸)은 지움
   function tipIcons() {
