@@ -608,7 +608,7 @@
       c = `<span class="mh-t">${crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b")}<span class="tb">${esc(ourName)}</span></span><span class="mh-s">연습 기간 ${since}~${g ? ` · 함께 한 경기 ${g.length}판 ${g.filter((x) => x.win).length}승` : ""}</span>`;
     } else {
       const VS = window.VISION, nD = typeof allDrills === "function" && VS ? allDrills().length : 0, nOk = Object.values(S.ui.dScore || {}).filter(Boolean).length;
-      const T = { scrim: ["5:5 내전 구인", "피어리스 밴픽 연습할 상대 팀·팀원 찾기"], team: ["우리 팀", `${esc(ourName)} · 로스터·최적 조합·함께 한 경기 · 팀원 초대`], pool: (() => { const pt = poolTeam(), en = pt && pt.id !== S.ourTeam; return [en ? `${esc(pt.name)} 챔프폭` : "선수·챔프폭", `${esc(pt ? pt.name : ourName)} · 칸으로 끌어 숙련도 정하기 · 누르면 한 단계씩`]; })(), vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자유랭크에서 같은 5명이 여러 날 모인 기록으로 찾음"], pts: ["점수 기준표", "티어별 선수 점수 · 대회 규정에 맞게 팀장이 고침"] }[S.tab] || ["", ""];
+      const T = { scrim: ["5:5 내전 구인", "피어리스 밴픽 연습할 상대 팀·팀원 찾기"], team: ["우리 팀", `${esc(ourName)} · 로스터·최적 조합·함께 한 경기 · 팀원 초대`], pool: (() => { const pt = poolTeam(), en = pt && pt.id !== S.ourTeam; return [en ? `${esc(pt.name)} 챔프폭` : "선수·챔프폭", `${esc(pt ? pt.name : ourName)} · 칸으로 끌어 숙련도 정하기 · 누르면 한 단계씩`]; })(), vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자랭에서 명단 계정과 같이 낀 명단 밖 계정을 라인·챔프·시간으로 판정"], pts: ["점수 기준표", "티어별 선수 점수 · 대회 규정에 맞게 팀장이 고침"] }[S.tab] || ["", ""];
       c = `<b class="mh-t">${T[0]}</b><span class="mh-s">${T[1]}</span>`;
     }
     el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}${hdMe()}</div>`;
@@ -3420,7 +3420,7 @@
     const s3 = !!g.s3, pct = Math.round(s3 ? 90 + (all ? (done / all) * 10 : 0) : s2 ? 30 + (all ? (done / all) * 60 : 0) : all ? (done / all) * 30 : 0), wait = Math.ceil(g.wait / 1000);
     const step = (n, t, on, ok) => `<li class="${on ? "on" : ok ? "ok" : ""}"><span>${ok ? "✓" : n}</span>${t}</li>`;
     el.innerHTML = `<div class="iq-box"><span class="iq-spin" aria-hidden="true"></span><h2 id="iqT">명단 등록 진행 중입니다</h2>
-      <ol class="iq-steps">${step(1, "계정 확인·티어", !s2, s2)}${step(2, "최근 랭크 경기·챔프폭(상대 전적·예상 밴픽)", s2 && !s3, s3)}${IQ.server && SJ.job && SJ.job.space ? step(3, "부계정 찾기(자유랭크 같은 5명)", s3, false) : ""}</ol>
+      <ol class="iq-steps">${step(1, "계정 확인·티어", !s2, s2)}${step(2, "최근 랭크 경기·챔프폭(상대 전적·예상 밴픽)", s2 && !s3, s3)}${IQ.server && SJ.job && SJ.job.space ? step(3, "부계정 찾기(자랭을 함께 한 명단 밖 계정)", s3, false) : ""}</ol>
       <p>${all ? `${s3 ? "부계정 찾는 중" : s2 ? "최근 경기 받는 중" : "계정 확인 중"} <b>${done} / ${all}</b>${s3 ? " 팀" : s2 ? " 계정" : ""}` : "준비 중…"}</p>
       <div class="iq-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
       <p class="iq-eta">예상 남은 시간 <b>${all || s2 ? iqEta() : "계산 중"}</b></p>
@@ -5453,7 +5453,7 @@
       const btns = pv == null ? `<p class="help">불러오는 중…</p>` : pv.length ? pv.map((x) => `<button class="lg-b ${x}" data-act="lglogin" data-k="${x}">${pvIco[x] || ""}${PROVIDER_KO[x] || x}로 로그인</button>`).join("") : `<p class="help">로그인 준비 중입니다 — 곧 열립니다</p>`;
       const feat = (ic, t, d) => `<li><span class="ap-ic" aria-hidden="true">${ic}</span><span><b>${t}</b><small>${d}</small></span></li>`;
       h = `<div class="ap ap-split"><div class="ap-intro">${logo}
-          <div><h2>대회 밴픽,<br>팀이 같이 준비하는 곳</h2><ul class="ap-feat">${feat("BP", "실시간 밴픽", "진행자 한 명이 넣으면 팀원 화면에 바로")}${feat(lbi("scout", 18), "상대 분석", "상대 챔프폭·예상 밴·라인별 연습 포인트")}${feat(ico("users"), "부계정 찾기", "같은 5명이 모인 자유랭크로 의심 계정 표시")}</ul></div></div>
+          <div><h2>대회 밴픽,<br>팀이 같이 준비하는 곳</h2><ul class="ap-feat">${feat("BP", "실시간 밴픽", "진행자 한 명이 넣으면 팀원 화면에 바로")}${feat(lbi("scout", 18), "상대 분석", "상대 챔프폭·예상 밴·라인별 연습 포인트")}${feat(ico("users"), "부계정 찾기", "자랭에 같이 낀 낯선 계정을 라인·챔프·시간으로 판정")}</ul></div></div>
         <div class="ap-side"><div class="ap-tool">${themeBtn()}</div><section class="ap-box" aria-label="로그인"><h1>로그인</h1>${btns}${authMsg()}
           <p class="help ap-note">회원 번호(바꿔서 저장)와 닉네임만 받습니다 · 이메일·전화번호는 받지 않음</p>${skip}</section>${AP_FOOT}</div></div>`;
     } else {
