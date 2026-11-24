@@ -1324,7 +1324,7 @@ html.auth-on body > :not(#authpg):not(script):not(.toast):not(#toast) { display:
 .ap-box h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
 .ap-box .lg-b { height: 52px; font-size: 15.5px; gap: 10px; } .ap-box .lg-b.google { background: #fff; color: #15171C; border-color: #DAD8D1; }
 .pv-g { width: 18px; height: 18px; border-radius: 50%; background: conic-gradient(#EA4335 0 25%, #FBBC05 0 50%, #34A853 0 75%, #4285F4 0); flex: none; }
-.pv-n { width: 18px; height: 18px; border-radius: 3px; background: #fff; color: #03C75A; display: grid; place-items: center; font-weight: 900; font-size: 12px; flex: none; }
+.pv-n { width: 18px; height: 18px; background: none; color: #fff; display: grid; place-items: center; font-weight: 900; font-size: 17px; font-family: Arial, Helvetica, sans-serif; flex: none; }   /* 네이버 로그인 디자인 가이드: 초록 바탕에 흰 N 로고(11-24 검수 준비) */
 .pv-k { width: 18px; height: 18px; border-radius: 4px; background: #191600; color: #FEE500; display: grid; place-items: center; font-weight: 900; font-size: 11px; flex: none; }
 .ap-note { font-size: 12.5px; margin: 4px 0 0; } .ap-box .ap-skip { justify-self: start; padding-left: 0; text-decoration: underline; text-underline-offset: 3px; }
 .ap-msg { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--bad-bg); color: var(--bad); font-size: 13.5px; font-weight: 600; }
