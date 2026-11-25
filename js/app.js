@@ -602,7 +602,7 @@
     let c;
     if (S.tab === "live") c = `${vs}<span class="mh-s">${seriesOver(S.series) ? `시리즈 끝 · ${finalTxt(seriesOver(S.series))}` : `${S.series.game}세트 · ${boTxt(seriesBo(S.series))}${S.series.mode !== "off" ? ` · 피어리스 잠금 ${(S.series.locked || []).length}` : " · 피어리스 끔"}`}</span>`;
     else if (S.tab === "enemy") c = `${vs}<span class="mh-s">${S.ui.enView === "comps" ? "예상 조합 · 상황별" : "상대 분석"} · ${since}~ 랭크 기준</span>`;
-    else if (S.tab === "our" && needOnboard()) c = `<b class="mh-t">${SESS ? "팀 만들기 · 들어가기" : "로그인"}</b><span class="mh-s">${SESS ? "팀장은 팀을 만들고 6자리 초대 코드를 팀원에게" : "구글·네이버로 로그인 · 팀원은 초대 코드로 들어옴"}</span>`;
+    else if (S.tab === "our" && needOnboard()) c = `<b class="mh-t">${SESS ? "팀 만들기 · 들어가기" : "로그인"}</b><span class="mh-s">${SESS ? "팀장은 팀을 만들고 6자리 초대 코드를 팀원에게" : "구글·네이버·Apple로 로그인 · 팀원은 초대 코드로 들어옴"}</span>`;
     else if (S.tab === "our") {
       const g = ourT && !ourT.solo && window.RECENT && window.RECENT.status === "ok" ? E.groupsOf(ourT) : null;
       c = `<span class="mh-t">${crestOf(ourT && !ourT.solo ? ourT : { name: "솔" }, "b")}<span class="tb">${esc(ourName)}</span></span><span class="mh-s">연습 기간 ${since}~${g ? ` · 함께 한 경기 ${g.length}판 ${g.filter((x) => x.win).length}승` : ""}</span>`;
@@ -3713,7 +3713,7 @@
     el.textContent = msg; el.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 2600);
   }
   // ---- 로그인 ----
-  const PROVIDER_KO = { google: "구글", naver: "네이버", kakao: "카카오" };
+  const PROVIDER_KO = { google: "구글", naver: "네이버", kakao: "카카오", apple: "Apple" };
   async function loadProviders() {
     if (!WURL() || AUTH.providers) return;
     try { const d = await (await fetch(`${WURL()}/auth/providers`, { cache: "no-store", credentials: "omit" })).json(); AUTH.providers = d.status === "ok" ? d.providers : []; } catch (e) { AUTH.providers = []; }
@@ -5449,7 +5449,7 @@
     let h;
     if (ob) h = onboardHtml();
     else if (!SESS) {
-      const pv = AUTH.providers, pvIco = { google: `<span class="pv-g" aria-hidden="true"></span>`, naver: `<span class="pv-n" aria-hidden="true">N</span>`, kakao: `<span class="pv-k" aria-hidden="true">K</span>` };
+      const pv = AUTH.providers, pvIco = { google: `<span class="pv-g" aria-hidden="true"></span>`, naver: `<span class="pv-n" aria-hidden="true">N</span>`, kakao: `<span class="pv-k" aria-hidden="true">K</span>`, apple: `<svg class="pv-a" viewBox="0 0 17 20" aria-hidden="true"><path fill="currentColor" d="M14.2 10.6c0-2.5 2-3.7 2.1-3.8-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9C3.9 4.9 2.3 5.9 1.4 7.5c-1.8 3.2-.5 7.9 1.3 10.4.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.3.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.8-1.1-2.8-4.5zM11.7 3.2c.7-.9 1.2-2 1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z"/></svg>` };
       const btns = pv == null ? `<p class="help">불러오는 중…</p>` : pv.length ? pv.map((x) => `<button class="lg-b ${x}" data-act="lglogin" data-k="${x}">${pvIco[x] || ""}${PROVIDER_KO[x] || x}로 로그인</button>`).join("") : `<p class="help">로그인 준비 중입니다 — 곧 열립니다</p>`;
       const feat = (ic, t, d) => `<li><span class="ap-ic" aria-hidden="true">${ic}</span><span><b>${t}</b><small>${d}</small></span></li>`;
       h = `<div class="ap ap-split"><div class="ap-intro">${logo}
