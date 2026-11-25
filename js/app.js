@@ -570,6 +570,9 @@
   const MOON = `<svg class="lbi" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>`;
   // 토글 스위치(사용자 지시 11-19): 켜짐 = 다크 모드
   // 사이드바 아래: 로그인한 사람 · 로그아웃(어디서든 보이게, 11-19 사용자 지적)
+  // 마스터 콘솔 입구(ADMIN_UIDS 계정만) — PC 사이드바·모바일 메뉴·설정 계정 칸(11-25 사용자: 모바일에서도)
+  const isAdmin = () => !!(SESS && AUTH.user && AUTH.user.admin);
+  function adminLink(cls, label) { return isAdmin() ? `<a class="${cls}" href="/admin/" target="_blank" rel="noopener" aria-label="마스터 콘솔">${label || "마스터 콘솔"}</a>` : ""; }
   function meRow() { return SESS ? `<div class="sd-me"><span title="${esc(AUTH.user && AUTH.user.nick || "")}">${esc((AUTH.user && AUTH.user.nick) || "로그인됨")}<small>${PROVIDER_KO[AUTH.user && AUTH.user.provider] || ""}</small></span><button class="nc-a" data-act="lgout">로그아웃</button></div>` : ""; }
   // 다크 모드: 오른쪽 위 해·달 토글(11-20 사용자 요청: 사이드바에서 옮김) — 켜짐 = 다크
   function themeBtn() { const d = isDark(), sm = (x) => x.replace(/width="22" height="22"/, 'width="16" height="16"');
@@ -3835,13 +3838,13 @@
     }
     const who = AUTH.user ? `${esc(AUTH.user.nick || "로그인됨")} · ${PROVIDER_KO[AUTH.user.provider] || ""}` : "로그인됨";
     if (!SPACE || !SPACE.viaLogin) {
-      return `<div class="lg"><p class="lg-who">${who}<button class="nc-a del" data-act="lgout">로그아웃</button></p>
+      return `<div class="lg"><p class="lg-who">${who}${adminLink("nc-a")}<button class="nc-a del" data-act="lgout">로그아웃</button></p>
         <div class="lg-two"><section><b>팀 만들기</b><span class="help">내가 팀장 · 초대 코드로 팀원을 부름</span><input class="input" id="lgTeam" maxlength="30" placeholder="팀 이름"><button class="n-new" data-act="lgnew" ${AUTH.busy ? "disabled" : ""}>팀 만들기</button></section>
         <section><b>초대 코드로 들어가기</b><span class="help">팀장에게 받은 6자리</span><input class="input lg-code" id="lgCode" maxlength="60" placeholder="예: K7P2QX" autocomplete="off"><button class="soft-b" data-act="lgjoin" ${AUTH.busy ? "disabled" : ""}>들어가기</button></section></div>
         ${AUTH.spaces.length ? `<p class="help">내 팀 다시 열기: ${AUTH.spaces.map((x) => `<button class="nc-a" data-act="lgswitch" data-id="${esc(x.id)}">${esc(x.name)}</button>`).join(" · ")}</p>` : ""}${note}</div>`;
     }
     const others = AUTH.spaces.filter((x) => x.id !== SPACE.id);
-    return `<div class="lg"><p class="lg-who">${who}<button class="nc-a del" data-act="lgout">로그아웃</button></p>
+    return `<div class="lg"><p class="lg-who">${who}${adminLink("nc-a")}<button class="nc-a del" data-act="lgout">로그아웃</button></p>
       <p class="lg-team"><b>${esc(SPACE.name)}</b><span class="help">${SPACE.isOwner ? "팀장" : "팀원"} · ${SPACE.members || 1}명</span></p>
       ${SPACE.isOwner ? (SPACE.code ? `<div class="lg-code-box"><span class="help">팀원 초대 코드 · ${esc(SPACE.codeExp)}까지</span><b>${esc(SPACE.code)}</b><span class="sd-btns"><button class="n-new" data-act="lgcopy">코드 복사</button><button class="soft-b" data-act="lgcode">새로 만들기</button></span><span class="help">새로 만들면 옛 코드는 바로 막힙니다</span></div>`
         : `<button class="n-new" data-act="lgcode">초대 코드 만들기</button>`) : `<p class="help">팀원 초대 코드는 팀장이 만듭니다</p>`}
@@ -5247,7 +5250,7 @@
         <div class="mv-mb"><button class="btn primary" data-act="nextGame">세트 종료</button><button class="btn" data-act="saveSeries">밴픽 저장</button>
           <button class="btn" data-act="resetGame">이번 세트 다시</button><button class="btn ghost" data-act="resetSeries">시리즈 초기화</button></div></div>` : ""}
       <div class="mv-mg">${topCta().replace("btn sm", "btn mv-wide")}</div>
-      <div class="mv-mg mv-mb"><button class="btn" data-act="settings">${SPACE && !SPACE.bad ? `설정 · ${esc(SPACE.name || "팀 공간")}` : "설정"}</button><button class="btn ${S.tab === "vision" ? "primary" : ""}" data-act="mvision">공부자료</button><button class="btn ${S.tab === "notes" ? "primary" : ""}" data-act="gotab" data-k="notes">피드백 노트</button></div>
+      <div class="mv-mg mv-mb"><button class="btn" data-act="settings">${SPACE && !SPACE.bad ? `설정 · ${esc(SPACE.name || "팀 공간")}` : "설정"}</button><button class="btn ${S.tab === "vision" ? "primary" : ""}" data-act="mvision">공부자료</button><button class="btn ${S.tab === "notes" ? "primary" : ""}" data-act="gotab" data-k="notes">피드백 노트</button>${adminLink("btn mv-admin")}</div>
       <p class="help mv-legal"><a href="/privacy/">개인정보 처리방침</a> · <a href="/terms/">이용약관</a> · <a href="mailto:wonseo151@naver.com">문의</a></p>
       </section>`;
   }
@@ -5421,7 +5424,7 @@
   const obNeed = () => !!(SESS && SPACE && SPACE.viaLogin && AUTH.user && (!AUTH.user.nickSet || (!SPACE.myRole && !(SPACE.isOwner && S.ui.roleLater))));
   function onboardHtml() {
     const who = AUTH.user ? `${esc(AUTH.user.nick || "로그인됨")} · ${PROVIDER_KO[AUTH.user.provider] || ""}` : "로그인됨";
-    const top = `<div class="ap-top"><button class="ap-logo" data-act="noop" aria-label="lolban">${LOGO_MARK}<span>lolban<i>.</i></span></button><span class="ap-who">${who}${themeBtn()}<button class="nc-a" data-act="lgout">로그아웃</button></span></div>`;
+    const top = `<div class="ap-top"><button class="ap-logo" data-act="noop" aria-label="lolban">${LOGO_MARK}<span>lolban<i>.</i></span></button><span class="ap-who"><em class="ap-nm">${who}</em>${themeBtn()}${adminLink("nc-a ap-adm", "콘솔")}<button class="nc-a" data-act="lgout">로그아웃</button></span></div>`;
     const step = (n, t) => `<p class="ob-step">${n} / 3 · ${t}</p>`;
     let body;
     if (!AUTH.user.nickSet) {
@@ -5459,7 +5462,7 @@
     } else {
       const who = AUTH.user ? `${esc(AUTH.user.nick || "로그인됨")} · ${PROVIDER_KO[AUTH.user.provider] || ""}` : "로그인됨";
       const boxes = Array.from({ length: 6 }, (_, k) => `<input class="ap-cbox" data-ci="${k}" maxlength="1" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="초대 코드 ${k + 1}번째 글자" value="${esc(AP.code[k] || "")}">`).join("");
-      h = `<div class="ap ap-first"><div class="ap-top">${logo}<span class="ap-who">${who}${themeBtn()}<button class="nc-a" data-act="lgout">로그아웃</button></span></div>
+      h = `<div class="ap ap-first"><div class="ap-top">${logo}<span class="ap-who"><em class="ap-nm">${who}</em>${themeBtn()}${adminLink("nc-a ap-adm", "콘솔")}<button class="nc-a" data-act="lgout">로그아웃</button></span></div>
         <section class="ap-wrap" aria-label="팀 만들기 · 들어가기"><h1>어떻게 시작할까요?</h1><p class="ap-sub">팀장은 팀을 만들고, 팀원은 팀장에게 받은 코드로 들어옵니다</p>
           ${SPACE && SPACE.bad ? `<p class="warn">이 브라우저의 팀 공간 열쇠가 바뀌었습니다. 팀장에게 새 초대 코드를 받아 주세요.</p>` : ""}
           <div class="ap-two">

@@ -1983,3 +1983,8 @@ html[data-theme="dark"] .scr-k { color: var(--hi); }
 /* 구인 글(11-24 사용자 수정): 보이스 필수는 팀원 구함에만 · 카드 아래 롤 닉네임 */
 .scr-form[data-kind="team"] .scf-voice { display: none; }
 .scr-nick { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 마스터 콘솔 입구(11-25): 계정 줄에 링크가 둘이면 오른쪽에 붙여 모음 · 모바일 메뉴는 버튼 모양 링크 */
+.lg-who .nc-a + .nc-a { margin-left: 0; }
+a.mv-admin { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: var(--text); }
+.ap-who .nc-a { white-space: nowrap; }
+.ap-who { min-width: 0; } .ap-nm { font-style: normal; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
