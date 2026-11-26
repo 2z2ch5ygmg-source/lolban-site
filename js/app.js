@@ -518,6 +518,98 @@
   }
   const GUEST_TABS = ["live", "our", "scrim", "vision"];   // vision = 공부자료(11-24 사용자: 비회원에게도 엶)   // scrim = 5:5 내전 구인(11-24: 로그인 없이도 봄·씀)   // our = 로그인·팀 만들기 화면
   const SIDE_MENU = [["our", "home", "홈"], ["live", "draft", "실시간 밴픽"], ["scrim", "scrim", "내전 구인"], ["vision", "vision", "공부자료"], ["notes", "note", "피드백 노트"], ["alts", "scout", "부계정 찾기"], ["pts", "mastery", "점수 기준표"]];
+  // ---------- 왼쪽 메뉴(가이드) — 11-26 사용자: 유튜브처럼 + 「홈은 펼침 고정, 탭에 들어가면 접힘, 왼쪽 끝을 잡아 당기면 나옴」 ----------
+  // · 홈: 펼친 메뉴(280) 고정(☰ 자리는 비워 둠 — 로고가 움직이지 않게)
+  // · 다른 탭: 아이콘 줄(72). 보는 화면(실시간 밴픽·공부자료 장면/문제·장면 단원)은 아이콘 줄도 없음
+  // · 접힌 상태: ☰ 또는 화면 왼쪽 끝(아이콘 줄 위 포함)을 잡아 오른쪽으로 당기면 메뉴가 손을 따라 나오고 나머지는 어두워짐.
+  //   놓을 때 40% 넘게 나왔거나 빠르게 당겼으면 열림, 아니면 들어감. 열린 메뉴는 왼쪽으로 밀거나 바깥·Esc·메뉴 고르기로 닫힘
+  const GUIDE_W = 280;
+  let DRAWER = false, DRAWER_TAB = "";
+  const GUIDE_ICO = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
+  const guideBtn = () => `<button class="g-btn" data-act="guide" aria-label="메뉴" aria-expanded="${guideMode() === "full" ? "true" : String(DRAWER)}">${GUIDE_ICO}</button>`;
+  const guideHead = () => `<div class="sd-gh">${guideBtn()}<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">${LOGO_MARK}<span>lolban<i>.</i></span></a></div>`;
+  function isWatch() {
+    if (S.tab === "live") return true;
+    if (S.tab !== "vision") return false;
+    const u = S.ui || {};
+    return !!(u.tut && u.tut.u) || u.stMode === "quiz" || !!u.stOpen;
+  }
+  function guideMode() { return S.tab === "our" ? "full" : isWatch() ? "none" : "mini"; }
+  function renderRail() {
+    let el = document.getElementById("rail");
+    if (!el) { el = document.createElement("nav"); el.id = "rail"; el.setAttribute("aria-label", "메뉴"); const sd = document.getElementById("side"); sd.parentNode.insertBefore(el, sd.nextSibling); }
+    const items = guest() ? SIDE_MENU.filter(([k]) => GUEST_TABS.includes(k)) : SIDE_MENU;
+    el.innerHTML = items.map(([k, ic, n]) => `<button class="tab rl-i" data-tab="${k}" aria-selected="${S.tab === k}">${lbi(ic, 24)}<span>${n.replace(" 기준표", "").replace("실시간 ", "")}</span></button>`).join("");
+  }
+  function applyGuide() {
+    const H = document.documentElement;
+    if (!H.classList.contains("pc")) { H.classList.remove("g-full", "g-mini", "g-none", "g-drawer"); return; }
+    if (DRAWER && DRAWER_TAB !== S.tab) DRAWER = false;   // 서랍에서 다른 화면을 고르면 닫힘
+    const m = guideMode();
+    if (m === "full") DRAWER = false;
+    ["full", "mini", "none"].forEach((k) => H.classList.toggle("g-" + k, k === m));
+    H.classList.toggle("g-drawer", DRAWER);
+    let sc = document.getElementById("gscrim");
+    if (!sc) { sc = Object.assign(document.createElement("div"), { id: "gscrim" }); sc.dataset.act = "guideclose"; document.body.appendChild(sc); }
+    if (!document.getElementById("gedge")) { const e = Object.assign(document.createElement("div"), { id: "gedge" }); e.setAttribute("aria-hidden", "true"); e.title = "끌어서 메뉴 열기"; document.body.appendChild(e); }
+    const side = document.getElementById("side");
+    if (side) { side.toggleAttribute("inert", m !== "full" && !DRAWER); if (DRAWER) { side.setAttribute("role", "dialog"); side.setAttribute("aria-modal", "true"); } else { side.removeAttribute("role"); side.removeAttribute("aria-modal"); } }
+    document.querySelectorAll(".g-btn").forEach((b) => b.setAttribute("aria-expanded", m === "full" ? "true" : String(DRAWER)));
+  }
+  function setDrawer(open, focus) {
+    DRAWER = open; DRAWER_TAB = S.tab; applyGuide();
+    if (focus) { const b = document.querySelector(open ? "#side .g-btn" : "#mhead .g-btn"); if (b) b.focus(); }
+  }
+  function toggleGuide() { if (guideMode() !== "full") { document.documentElement.classList.remove("g-noanim"); setDrawer(!DRAWER, true); } }
+  function closeGuide() { if (DRAWER) setDrawer(false, true); }
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && DRAWER) { ev.preventDefault(); closeGuide(); } });
+  // 당겨서 열기·밀어서 닫기: 메뉴가 손가락(마우스)을 그대로 따라오고, 어두운 정도도 나온 만큼
+  const PULL = { on: false, dragging: false, x0: 0, y0: 0, base: 0, last: 0, t: 0, v: 0, id: 0 };
+  function pullSet(x) {   // x = 메뉴 오른쪽 끝 위치(0 = 숨음, GUIDE_W = 다 나옴)
+    const side = document.getElementById("side"), sc = document.getElementById("gscrim"), k = Math.max(0, Math.min(1, x / GUIDE_W));
+    if (side) side.style.transform = `translateX(${(k - 1) * 100}%)`;
+    if (sc) sc.style.opacity = String(k);
+  }
+  function pullEnd(open) {
+    const H = document.documentElement, side = document.getElementById("side"), sc = document.getElementById("gscrim");
+    H.classList.add("g-settle");
+    if (side) side.style.transform = open ? "translateX(0)" : "translateX(-100%)";
+    if (sc) sc.style.opacity = open ? "1" : "0";
+    setTimeout(() => { H.classList.add("g-noanim"); H.classList.remove("g-pull", "g-settle"); if (side) side.style.transform = ""; if (sc) sc.style.opacity = ""; setDrawer(open, false); }, 200);
+  }
+  document.addEventListener("pointerdown", (ev) => {
+    const H = document.documentElement;
+    if (!H.classList.contains("pc") || guideMode() === "full" || ev.button > 0) return;
+    const fromEdge = ev.target.closest && (ev.target.closest("#gedge") || (!DRAWER && ev.target.closest("#rail")));
+    const fromOpen = DRAWER && ev.target.closest && (ev.target.closest("#side") || ev.target.closest("#gscrim"));
+    if (!fromEdge && !fromOpen) return;
+    Object.assign(PULL, { on: true, dragging: false, x0: ev.clientX, y0: ev.clientY, base: DRAWER ? GUIDE_W : 0, last: ev.clientX, t: performance.now(), v: 0, id: ev.pointerId });
+  });
+  document.addEventListener("pointermove", (ev) => {
+    if (!PULL.on || ev.pointerId !== PULL.id) return;
+    const dx = ev.clientX - PULL.x0, dy = ev.clientY - PULL.y0;
+    if (!PULL.dragging) {
+      if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) { if (Math.abs(dy) > 12) PULL.on = false; return; }
+      if ((PULL.base === 0 && dx < 0) || (PULL.base === GUIDE_W && dx > 0)) { PULL.on = false; return; }
+      PULL.dragging = true; document.documentElement.classList.add("g-pull");
+      try { ev.target.setPointerCapture && ev.target.setPointerCapture(ev.pointerId); } catch (e) { /* 무시 */ }
+    }
+    ev.preventDefault();
+    const now = performance.now(); PULL.v = (ev.clientX - PULL.last) / Math.max(1, now - PULL.t); PULL.last = ev.clientX; PULL.t = now;
+    pullSet(PULL.base + dx);
+  }, { passive: false });
+  const pullUp = (ev) => {
+    if (!PULL.on || ev.pointerId !== PULL.id) return;
+    PULL.on = false;
+    if (!PULL.dragging) return;
+    const x = PULL.base + (ev.clientX - PULL.x0);
+    const open = PULL.v > 0.5 ? true : PULL.v < -0.5 ? false : x > GUIDE_W * 0.4;
+    PULL.dragging = false; PULL.swallow = true; setTimeout(() => { PULL.swallow = false; }, 0);
+    pullEnd(open);
+  };
+  document.addEventListener("pointerup", pullUp);
+  document.addEventListener("pointercancel", pullUp);
+  document.addEventListener("click", (ev) => { if (PULL.swallow) { ev.stopPropagation(); ev.preventDefault(); } }, true);   // 끌고 놓은 자리의 메뉴가 눌리지 않게
   function renderSideNav() {
     const el = document.getElementById("side");
     if (!el) return;
@@ -529,7 +621,7 @@
     const opp = S.teams.filter((t) => !t.solo && (!our || t.id !== our.id));
     const curOpp = S.tab === "enemy" || S.tab === "live" ? S.enemyTeam : "";
     if (guest()) {
-      el.innerHTML = `<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">${LOGO_MARK}<span>lolban<i>.</i></span></a>
+      el.innerHTML = `${guideHead()}
         <button class="tab sd-mi" data-tab="live" aria-selected="${S.tab === "live"}">${lbi("draft", 22)}실시간 밴픽</button>
         <button class="tab sd-mi" data-tab="scrim" aria-selected="${S.tab === "scrim"}">${lbi("scrim", 22)}내전 구인</button>
         <button class="tab sd-mi" data-tab="vision" aria-selected="${S.tab === "vision"}">${lbi("vision", 22)}공부자료</button>
@@ -542,7 +634,7 @@
     }
     const jf = document.activeElement && document.activeElement.id === "jpCode" ? document.activeElement.selectionStart : -1;
     queueMicrotask(() => { const j = jf >= 0 && document.getElementById("jpCode"); if (j && document.activeElement !== j) { j.focus(); try { j.setSelectionRange(jf, jf); } catch (e) { /* 무시 */ } } });
-    el.innerHTML = `<a class="sd-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">${LOGO_MARK}<span>lolban<i>.</i></span></a>
+    el.innerHTML = `${guideHead()}
       ${SIDE_MENU.map(([k, ic, n]) => { const nb = k === "alts" ? suspectList().length : 0; return `<button class="tab sd-mi" data-tab="${k}" aria-selected="${S.tab === k}">${lbi(ic, 22)}${n}${nb ? `<span class="sd-badge" aria-label="의심 ${nb}개">${nb}</span>` : ""}</button>`; }).join("")}
       <div class="sd-sec">우리 팀</div>
       ${our ? `<div class="sd-tmw our-w"><button class="tab sd-tm our" data-tab="team" aria-current="${S.tab === "team" || S.tab === "pool"}">${crestOf(our, "b")}<span class="nm" title="${esc(our.name)}">${esc(our.name)}</span></button>${sp ? `<button class="sd-tm-inv" data-act="joinpop" aria-expanded="${JP.open}" aria-label="다른 팀 초대 코드 입력">${lbi("invite", 20)}</button>` : ""}</div>`
@@ -614,7 +706,7 @@
       const T = { scrim: ["5:5 내전 구인", "피어리스 밴픽 연습할 상대 팀·팀원 찾기"], team: ["우리 팀", `${esc(ourName)} · 로스터·최적 조합·함께 한 경기 · 팀원 초대`], pool: (() => { const pt = poolTeam(), en = pt && pt.id !== S.ourTeam; return [en ? `${esc(pt.name)} 챔프폭` : "선수·챔프폭", `${esc(pt ? pt.name : ourName)} · 칸으로 끌어 숙련도 정하기 · 누르면 한 단계씩`]; })(), vision: ["공부자료", "이론 학습 · 문제 풀이 · 라인별 · 운영"], notes: ["피드백 노트", `${esc(ourName)} · 팀원 모두에게 공유${NT.list ? ` · ${NT.list.length}개` : ""}`], settings: ["설정", SPACE && !SPACE.bad ? `${esc(SPACE.name || "")} 팀 공간 · 바꾼 내용은 팀원 모두에게 적용` : "팀 공간 없음 — 이 브라우저에만 저장"], import: ["명단 등록", "사진 · 엑셀 · 텍스트 아무거나 넣으면 명단으로"], alts: ["부계정 찾기", "대회 준비일 이후 자랭에서 명단 계정과 같이 낀 명단 밖 계정을 라인·챔프·시간으로 판정"], pts: ["점수 기준표", "티어별 선수 점수 · 대회 규정에 맞게 팀장이 고침"] }[S.tab] || ["", ""];
       c = `<b class="mh-t">${T[0]}</b><span class="mh-s">${T[1]}</span>`;
     }
-    el.innerHTML = `<div class="mh-l">${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}${hdMe()}</div>`;
+    el.innerHTML = `<div class="mh-l"><span class="mh-g">${guideBtn()}<a class="sd-logo mh-logo tab" data-tab="our" href="/" aria-label="lolban 홈으로">${LOGO_MARK}<span>lolban<i>.</i></span></a></span>${S.tab === "live" ? liveLeftPC() : ""}</div><div class="mh-c">${c}</div><div class="mh-r" id="mheadR">${S.tab === "live" ? liveSetBarPC() : ""}${hdMe()}</div>`;
   }
 
   // ---------- header ----------
@@ -5751,7 +5843,8 @@
     document.body.classList.toggle("mob", mob); document.body.classList.toggle("mv-on", !!mobV);
     document.documentElement.classList.toggle("pc", !mob);
     turnTitle();
-    if (!mob) { renderSideNav(); renderHead(); }
+    if (!mob) { renderSideNav(); renderRail(); renderHead(); }
+    applyGuide();
     if (!mob) setTimeout(tipIcons, 0);
     const keepEd = !mob && S.tab === "team" ? document.getElementById("setEd") : null;
     const keepEdF = keepEd && keepEd.contains(document.activeElement) ? keepEd : null;
@@ -5781,7 +5874,7 @@
     if (TSM.open && !(ev.target.closest && ev.target.closest(".tsm-b"))) { const inside = ev.target.closest && ev.target.closest(".tsm-pop"); TSM.open = ""; if (!inside) { render(); return; } }
     const el = ev.target.closest("[data-act], .tab");
     if (!el) return;
-    if (el.classList.contains("tab")) { if (el.tagName === "A") ev.preventDefault(); S.tab = el.dataset.tab; MV.more = false; save(); render(); window.scrollTo(0, 0); if (S.tab === "notes") loadNotes(); return; }
+    if (el.classList.contains("tab")) { if (el.tagName === "A") ev.preventDefault(); DRAWER = false; S.tab = el.dataset.tab; MV.more = false; save(); render(); window.scrollTo(0, 0); if (S.tab === "notes") loadNotes(); return; }
     const a = el.dataset.act;
     if ((a === "close" || a === "nclose" || a === "chdclose") && ev.target !== el && el.classList.contains("modal-bg")) return; // 모달 안쪽 클릭
     if (["del", "pinrec", "reccyc", "rechide", "recunhide", "cycle", "setlv", "add"].includes(a)) {
@@ -5900,6 +5993,8 @@
       case "appReload": location.reload(); break;
       case "flowhide": S.ui.flowHide = true; save(); render(); break;
       case "nustep": { const st = nuSteps(); S.ui.nuStep = { k: el.dataset.k, at: st.findIndex((x) => !x.done) }; save(); render(); break; }
+      case "guide": toggleGuide(); break;
+      case "guideclose": closeGuide(); break;
       case "settings": TSM.open = ""; openSettings(el.dataset.k); checkSpace(); break;
       case "tsm": TSM.open = TSM.open === el.dataset.k ? "" : el.dataset.k; render(); { const f = document.querySelector(".tsm-pop .tsm-i"); if (f && TSM.open) f.focus(); } break;
       case "edsug": case "eduse": edSet(el.dataset.role, el.dataset.k, el.dataset.v); break;

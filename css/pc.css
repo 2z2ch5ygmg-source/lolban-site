@@ -43,9 +43,55 @@ html, body { background: var(--bg); color: var(--text); } html.pc, html.pc body 
 html.pc .top { display: none; }
 html.pc #side { display: flex; }
 html:not(.pc) #side, html:not(.pc) #mhead { display: none; }
-html.pc body { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
-html.pc #side { grid-row: 1 / span 9; grid-column: 1; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-direction: column; gap: 4px; padding: 26px 20px; border-right: 1px solid var(--line); background: var(--bg); }
-html.pc #mhead, html.pc #view, html.pc body > footer { grid-column: 2; }
+/* 11-26 유튜브식 메뉴: 머리줄(☰·로고)이 맨 위 전체 폭, 메뉴는 그 아래 왼쪽. 펼침 280 · 아이콘 줄 72 · 보는 화면 0(서랍만) */
+html.pc body { display: grid; grid-template-columns: var(--gw, 280px) minmax(0, 1fr); grid-template-rows: auto auto 1fr; min-height: 100vh; }
+html.pc.g-mini body { --gw: 72px; }
+html.pc.g-none body { --gw: 0px; }
+html.pc #mhead { grid-column: 1 / -1; grid-row: 1; }
+html.pc #view { grid-row: 2; } html.pc body > footer { grid-row: 3; align-self: end; }
+html.pc #side { grid-row: 2 / span 2; grid-column: 1; position: sticky; top: 96px; height: calc(100vh - 96px); overflow-y: auto; flex-direction: column; gap: 4px; padding: 12px 20px 26px; border-right: 1px solid var(--line); background: var(--bg); align-self: start; }
+html.pc #view, html.pc body > footer { grid-column: 2; }
+html.pc:is(.g-mini, .g-none) #side { display: none; }
+/* 아이콘 줄(72): 아이콘 위 · 이름 아래(10px) */
+#rail { display: none; }
+html.pc.g-mini #rail { display: flex; flex-direction: column; gap: 2px; grid-row: 2 / span 2; grid-column: 1; position: sticky; top: 96px; height: calc(100vh - 96px); align-self: start; padding: 4px 4px; background: var(--bg); overflow-y: auto; }
+.rl-i { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 64px; min-height: 74px; padding: 14px 0 12px; border: 0; border-radius: 10px; background: none; color: var(--text); font-size: 10px; font-weight: 500; line-height: 1.2; text-align: center; word-break: keep-all; }
+.rl-i:hover { background: var(--bg2); }
+.rl-i[aria-selected="true"] { background: var(--hi-bg); font-weight: 700; }
+/* ☰ 버튼 · 머리줄 왼쪽 로고(펼침 메뉴와 같은 자리) */
+.g-btn { width: 40px; height: 40px; flex: none; display: inline-grid; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--text); }
+.g-btn:hover { background: var(--bg2); }
+.mh-g { display: inline-flex; align-items: center; gap: 10px; margin-right: 12px; flex: none; }
+.mh-g .sd-logo { margin: 0; font-size: 24px; }
+html.pc #mhead { padding-left: 24px; }
+html.pc .mh-l { grid-column: 1; justify-self: start; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.sd-gh { display: none; }
+/* 서랍: 보는 화면·좁은 창에서 ☰ — 펼친 메뉴를 왼쪽 위에 덮고 바깥은 어둡게 */
+#gscrim { display: none; }
+html.pc.g-drawer #gscrim { display: block; position: fixed; inset: 0; z-index: 85; background: rgba(10, 10, 14, .5); animation: g-fade .2s ease-out; }
+html.pc.g-drawer #side { display: flex; position: fixed; z-index: 86; top: 0; left: 0; width: 280px; height: 100vh; padding-top: 0; box-sizing: border-box; box-shadow: 8px 0 30px rgba(0, 0, 0, .25); animation: g-in .2s cubic-bezier(.2, .8, .2, 1); }
+html.pc.g-drawer #side .sd-gh { display: flex; align-items: center; gap: 10px; height: 96px; flex: none; margin: 0 0 4px 4px; }   /* ☰·로고가 머리줄과 같은 자리(머리줄 왼쪽 24 = 서랍 20 + 4) */
+html.pc.g-drawer #side .sd-gh .sd-logo { margin: 0; font-size: 24px; align-self: center; }
+@keyframes g-in { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes g-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { html.pc.g-drawer #side, html.pc.g-drawer #gscrim { animation: none; } }
+/* 홈은 펼침 고정: ☰ 자리만 비워 둠(로고가 움직이지 않게) */
+html.pc.g-full #mhead .g-btn { visibility: hidden; }
+/* 당겨서 열기: 왼쪽 끝 잡는 곳(14px) — 마우스를 올리면 옅은 손잡이 */
+#gedge { display: none; }
+html.pc:is(.g-mini, .g-none):not(.g-drawer) #gedge { display: block; position: fixed; z-index: 40; left: 0; top: 0; bottom: 0; width: 14px; cursor: grab; touch-action: none; }
+#gedge::after { content: ""; position: absolute; left: 4px; top: 50%; width: 4px; height: 56px; margin-top: -28px; border-radius: 4px; background: var(--muted); opacity: 0; transition: opacity .15s; }
+#gedge:hover::after { opacity: .5; }
+html.pc #rail { touch-action: pan-y; }
+/* 끄는 동안: 메뉴가 손을 그대로 따라옴(움직임 효과 없이), 놓으면 0.2초에 자리 잡음 */
+html.pc.g-pull #side { display: flex; position: fixed; z-index: 86; top: 0; left: 0; width: 280px; height: 100vh; padding-top: 0; box-sizing: border-box; box-shadow: 8px 0 30px rgba(0, 0, 0, .25); animation: none; transition: none; }
+html.pc.g-pull #side .sd-gh { display: flex; align-items: center; gap: 10px; height: 96px; flex: none; margin: 0 0 4px 4px; }
+html.pc.g-pull #side .sd-gh .sd-logo { margin: 0; font-size: 24px; align-self: center; }
+html.pc.g-pull #gscrim { display: block; position: fixed; inset: 0; z-index: 85; background: rgba(10, 10, 14, .5); animation: none; transition: none; }
+html.pc.g-pull, html.pc.g-pull * { cursor: grabbing !important; user-select: none; }
+html.pc.g-settle #side { transition: transform .2s cubic-bezier(.2, .8, .2, 1); }
+html.pc.g-settle #gscrim { transition: opacity .2s ease-out; }
+html.pc.g-noanim.g-drawer #side, html.pc.g-noanim.g-drawer #gscrim { animation: none; }
 html.pc #view { max-width: none; margin: 0; padding: 24px 40px 40px; }
 html.pc body > footer { max-width: none; margin: 0; padding: 16px 40px 28px; color: var(--muted); }
 
