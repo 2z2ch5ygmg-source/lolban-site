@@ -8,7 +8,7 @@
 // 좌표: 미니맵 가로·세로 %. 블루 진영 기준. 거리: 맵 1% ≈ 148(게임 거리). 와드 시야 900 ≈ 6%.
 window.VISION = {
   source: { title: "와드 강의 【2026년 최신판】", author: "Destiny (데스티니)", url: "https://www.youtube.com/watch?v=ipObXSCeb-8" },
-  map: "img/map-sr.webp",
+  map: "/img/map-sr.webp",
   phases: [
     { id: "lv1", name: "1레벨", time: "게임 시작 직후", tip: "예전 인베 대비 와드 — 요즘은 1레벨 인베가 적어 덜 중요" },
     { id: "lane", name: "라인전", time: "바텀 도착 ~ 라인전", tip: "첫 와드는 코너 작은 1자 부쉬 우리 쪽 끝, 제어 와드는 삼거리 부쉬 왼쪽 구석" },

@@ -37,5 +37,5 @@ self.addEventListener("fetch", (e) => {
     return;
   }
   if (url.pathname.startsWith("/privacy") || url.pathname.startsWith("/terms")) return;
-  e.respondWith(caches.open(CACHE).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => { if (res.ok && url.search.includes("v=")) c.put(req, res.clone()); return res; }))));
+  e.respondWith(caches.open(CACHE).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => { if (res.ok && url.search.includes("v=")) c.put(req, res.clone()); return res; }))).catch(() => fetch(req)));   // 저장소가 막 지워진 순간 등 실패하면 서버에서 바로(11-26 지도 깨짐)
 });

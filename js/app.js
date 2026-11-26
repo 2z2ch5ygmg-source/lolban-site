@@ -562,6 +562,8 @@
   }
   function toggleGuide() { if (guideMode() !== "full") { document.documentElement.classList.remove("g-noanim"); setDrawer(!DRAWER, true); } }
   function closeGuide() { if (DRAWER) setDrawer(false, true); }
+  // 지도 그림을 못 받으면(배포 직후 서비스 워커가 옛 저장본을 지우는 순간 등) 한 번 더 받음 — 11-26 사용자 「지도도 깨져있는데?」
+  document.addEventListener("error", (ev) => { const t = ev.target; if (!t || t.tagName !== "IMG" || !t.classList.contains("sc-map") || t.dataset.retry) return; t.dataset.retry = "1"; t.src = t.src.split("?")[0] + "?r=" + Date.now(); }, true);
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && DRAWER) { ev.preventDefault(); closeGuide(); } });
   // 당겨서 열기·밀어서 닫기: 메뉴가 손가락(마우스)을 그대로 따라오고, 어두운 정도도 나온 만큼
   const PULL = { on: false, dragging: false, x0: 0, y0: 0, base: 0, last: 0, t: 0, v: 0, id: 0 };
@@ -4639,7 +4641,7 @@
   }
 
   // ---------- 시야 공부: 배우기(애니메이션 장면) · 한눈에 보기(자리 요약) · 문제 모음 ----------
-  // 맵 그림: 공식 미니맵 + 부쉬(img/map-sr.webp, 만드는 법 tools/map-bushes/)
+  // 맵 그림: 공식 미니맵 + 부쉬(/img/map-sr.webp, 만드는 법 tools/map-bushes/)
   const MAP_IMG = () => (window.VISION && window.VISION.map ? window.VISION.map + "?v=60" : `https://ddragon.leagueoflegends.com/cdn/${window.DDRAGON_VERSION}/img/map/map11.png`);
   const vseg = (act, cur, items, label) => `<div class="seg" role="group" aria-label="${label}">${items.map(([v, n]) => `<button data-act="${act}" data-v="${v}" aria-pressed="${cur === v}">${n}</button>`).join("")}</div>`;
   // 레드 진영 좌표: 강을 기준으로 뒤집되, 뒤집으면 강·벽에 걸리는 자리는 따로 잰 rx·ry

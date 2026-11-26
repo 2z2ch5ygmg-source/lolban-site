@@ -2034,3 +2034,9 @@ html[data-theme="dark"] .scr-k { color: var(--hi); }
 a.mv-admin { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: var(--text); }
 .ap-who .nc-a { white-space: nowrap; }
 .ap-who { min-width: 0; } .ap-nm { font-style: normal; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 11-26 메뉴 폭은 여기 한 곳에서(위쪽 옛 규칙들이 220·200px를 다시 박아 메뉴가 접혀도 그 자리가 비어 있었음) */
+html.pc body { --gw: 220px; grid-template-columns: var(--gw) minmax(0, 1fr); }
+@media (max-width: 1599px) { html.pc body { --gw: 200px; } }
+html.pc.g-mini body { --gw: 72px; }
+html.pc.g-none body { --gw: 0px; }
