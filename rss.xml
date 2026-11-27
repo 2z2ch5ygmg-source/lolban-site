@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+<title>롤벤 가이드 — 피어리스 밴픽과 롤 운영 읽을거리</title>
+<link>https://lolban.com/guide/</link>
+<atom:link href="https://lolban.com/rss.xml" rel="self" type="application/rss+xml"/>
+<description>롤벤(lolban)의 리그 오브 레전드 가이드. 피어리스 밴픽 규칙, 대회 1픽 분석, 운영·라인전·시야 이론을 주제별로 정리합니다.</description>
+<language>ko</language>
+<lastBuildDate>Fri, 27 Nov 2026 07:03:07 +0000</lastBuildDate>
+<image><url>https://lolban.com/img/og.png</url><title>롤벤 가이드 — 피어리스 밴픽과 롤 운영 읽을거리</title><link>https://lolban.com/guide/</link></image>
+<item>
+<title>피어리스 밴픽이란? 하드 피어리스와 소프트 피어리스 차이</title>
+<link>https://lolban.com/guide/%ED%94%BC%EC%96%B4%EB%A6%AC%EC%8A%A4-%EB%B0%B4%ED%94%BD/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%ED%94%BC%EC%96%B4%EB%A6%AC%EC%8A%A4-%EB%B0%B4%ED%94%BD/</guid>
+<description>피어리스 밴픽(피어리스 드래프트) 규칙을 쉽게 정리했습니다. 하드 피어리스와 소프트 피어리스의 차이, 세트가 갈수록 달라지는 밴픽, 챔프폭 준비 방법까지.</description>
+<category>밴픽</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>대회에서는 1픽으로 무엇을 뽑을까? 선픽 분석</title>
+<link>https://lolban.com/guide/%EB%8C%80%ED%9A%8C-1%ED%94%BD-%EB%B6%84%EC%84%9D/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EB%8C%80%ED%9A%8C-1%ED%94%BD-%EB%B6%84%EC%84%9D/</guid>
+<description>대회 2648판의 밴픽을 분석했습니다. 1픽의 29%는 정글, 28%는 미드. 먼저 뽑는 라인과 뒤에 뽑는 라인, 선픽으로 자주 나온 챔피언을 정리했습니다.</description>
+<category>밴픽</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 챔프 이해 — 핵심 정리 59가지</title>
+<link>https://lolban.com/guide/%EC%B1%94%ED%94%84-%EC%9D%B4%ED%95%B4/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%B1%94%ED%94%84-%EC%9D%B4%ED%95%B4/</guid>
+<description>리그 오브 레전드 챔프 이해 이론 59가지를 정리했습니다. 솔랭용 미드 챔프 기준, 르블랑 콤보와 딜교, 딜량 1등 제대로 보기 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 오브젝트 — 핵심 정리 24가지</title>
+<link>https://lolban.com/guide/%EC%98%A4%EB%B8%8C%EC%A0%9D%ED%8A%B8/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%98%A4%EB%B8%8C%EC%A0%9D%ED%8A%B8/</guid>
+<description>리그 오브 레전드 오브젝트 이론 24가지를 정리했습니다. 포탑 철거와 오브젝트 순서, 용·바론 전 라인 먼저, 어두운 곳으로 막으러 가지 않기 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 로밍 — 핵심 정리 23가지</title>
+<link>https://lolban.com/guide/%EB%A1%9C%EB%B0%8D/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EB%A1%9C%EB%B0%8D/</guid>
+<description>리그 오브 레전드 로밍 이론 23가지를 정리했습니다. 상대 로밍은 따라가지 말기, 미드는 바텀 로밍과 맵 장악, 미드는 양쪽이 열린 라인 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 웨이브·귀환 — 핵심 정리 20가지</title>
+<link>https://lolban.com/guide/%EC%9B%A8%EC%9D%B4%EB%B8%8C-%EA%B7%80%ED%99%98/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%9B%A8%EC%9D%B4%EB%B8%8C-%EA%B7%80%ED%99%98/</guid>
+<description>리그 오브 레전드 웨이브·귀환 이론 20가지를 정리했습니다. 미니언 먼저 때려 라인 밀기, 죽더라도 라인은 밀고, 웨이브 아꼈다 밀어 넣기 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 미드사이드 운영 — 핵심 정리 19가지</title>
+<link>https://lolban.com/guide/%EB%AF%B8%EB%93%9C%EC%82%AC%EC%9D%B4%EB%93%9C-%EC%9A%B4%EC%98%81/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EB%AF%B8%EB%93%9C%EC%82%AC%EC%9D%B4%EB%93%9C-%EC%9A%B4%EC%98%81/</guid>
+<description>리그 오브 레전드 미드사이드 운영 이론 19가지를 정리했습니다. 사이드 갈 때 필수품, 렌즈로 상대 미드 길 끊기, 상대 정글 시야를 지운 뒤 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 라인전·딜교 — 핵심 정리 16가지</title>
+<link>https://lolban.com/guide/%EB%9D%BC%EC%9D%B8%EC%A0%84-%EB%94%9C%EA%B5%90/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EB%9D%BC%EC%9D%B8%EC%A0%84-%EB%94%9C%EA%B5%90/</guid>
+<description>리그 오브 레전드 라인전·딜교 이론 16가지를 정리했습니다. 라인전은 세 가지 선택, 그랩 안 끌리는 자리, 평타 박자 타기 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 시야·와드 — 핵심 정리 11가지</title>
+<link>https://lolban.com/guide/%EC%8B%9C%EC%95%BC-%EC%99%80%EB%93%9C/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%8B%9C%EC%95%BC-%EC%99%80%EB%93%9C/</guid>
+<description>리그 오브 레전드 시야·와드 이론 11가지를 정리했습니다. 와드 자리와 몰래 박는 법, 사라진 시간으로 제어와드 찾기, 시야는 주도권 쪽으로 뻗는다 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 사이드 운영 심화·스플릿 — 핵심 정리 10가지</title>
+<link>https://lolban.com/guide/%EC%82%AC%EC%9D%B4%EB%93%9C-%EC%9A%B4%EC%98%81-%EC%8B%AC%ED%99%94-%EC%8A%A4%ED%94%8C%EB%A6%BF/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%82%AC%EC%9D%B4%EB%93%9C-%EC%9A%B4%EC%98%81-%EC%8B%AC%ED%99%94-%EC%8A%A4%ED%94%8C%EB%A6%BF/</guid>
+<description>리그 오브 레전드 사이드 운영 심화·스플릿 이론 10가지를 정리했습니다. 텔 있을 때와 없을 때, 낮은 티어는 밀고 바로 합류, 4대5는 4명 쪽이 유리 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 아이템·룬 — 핵심 정리 8가지</title>
+<link>https://lolban.com/guide/%EC%95%84%EC%9D%B4%ED%85%9C-%EB%A3%AC/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%95%84%EC%9D%B4%ED%85%9C-%EB%A3%AC/</guid>
+<description>리그 오브 레전드 아이템·룬 이론 8가지를 정리했습니다. 아리 아이템 방향, 탭키로 아이템이 앞서는 때 읽기, 첫 아이템과 방어템 고르는 기준 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 동선 — 핵심 정리 8가지</title>
+<link>https://lolban.com/guide/%EB%8F%99%EC%84%A0/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EB%8F%99%EC%84%A0/</guid>
+<description>리그 오브 레전드 동선 이론 8가지를 정리했습니다. 실력 차 큰 라인에 힘 싣지 않기, 풀캠프 5초 차이가 커진다, 미드는 정글을 받쳐 준다 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 탑사이드 운영 — 핵심 정리 7가지</title>
+<link>https://lolban.com/guide/%ED%83%91%EC%82%AC%EC%9D%B4%EB%93%9C-%EC%9A%B4%EC%98%81/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%ED%83%91%EC%82%AC%EC%9D%B4%EB%93%9C-%EC%9A%B4%EC%98%81/</guid>
+<description>리그 오브 레전드 탑사이드 운영 이론 7가지를 정리했습니다. 후반 사이드는 먹을 때만, 사이드를 어디까지 밀까, 미드와 사이드 위치 맞추기 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 밴픽·챔프 선택 — 핵심 정리 6가지</title>
+<link>https://lolban.com/guide/%EB%B0%B4%ED%94%BD-%EC%B1%94%ED%94%84-%EC%84%A0%ED%83%9D/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EB%B0%B4%ED%94%BD-%EC%B1%94%ED%94%84-%EC%84%A0%ED%83%9D/</guid>
+<description>리그 오브 레전드 밴픽·챔프 선택 이론 6가지를 정리했습니다. 상대 조합 보고 미드 고르기, 라인 주도권이 정글을 살린다, 조합 기둥에 맞춰 뽑기 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 유리할 때 — 핵심 정리 6가지</title>
+<link>https://lolban.com/guide/%EC%9C%A0%EB%A6%AC%ED%95%A0-%EB%95%8C/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%9C%A0%EB%A6%AC%ED%95%A0-%EB%95%8C/</guid>
+<description>리그 오브 레전드 유리할 때 이론 6가지를 정리했습니다. 탑 혼자 이기면 소용없다, 이길 때도 사이드는 따라가기, 운영은 교전 협박이다 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 한타·포지셔닝 — 핵심 정리 5가지</title>
+<link>https://lolban.com/guide/%ED%95%9C%ED%83%80-%ED%8F%AC%EC%A7%80%EC%85%94%EB%8B%9D/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%ED%95%9C%ED%83%80-%ED%8F%AC%EC%A7%80%EC%85%94%EB%8B%9D/</guid>
+<description>리그 오브 레전드 한타·포지셔닝 이론 5가지를 정리했습니다. 합류할 싸움, 안 할 싸움, 거는 쪽보다 받는 쪽, 한타 끝나기 전에 다음을 말한다 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 합류·텔레포트 — 핵심 정리 5가지</title>
+<link>https://lolban.com/guide/%ED%95%A9%EB%A5%98-%ED%85%94%EB%A0%88%ED%8F%AC%ED%8A%B8/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%ED%95%A9%EB%A5%98-%ED%85%94%EB%A0%88%ED%8F%AC%ED%8A%B8/</guid>
+<description>리그 오브 레전드 합류·텔레포트 이론 5가지를 정리했습니다. 텔 있으면 귀환이 엇갈린다, 텔은 언제 타나, 텔 미드의 합류 기준 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 사이드 운영 기본 — 핵심 정리 5가지</title>
+<link>https://lolban.com/guide/%EC%82%AC%EC%9D%B4%EB%93%9C-%EC%9A%B4%EC%98%81-%EA%B8%B0%EB%B3%B8/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%82%AC%EC%9D%B4%EB%93%9C-%EC%9A%B4%EC%98%81-%EA%B8%B0%EB%B3%B8/</guid>
+<description>리그 오브 레전드 사이드 운영 기본 이론 5가지를 정리했습니다. 미드가 사이드 갈 때 시야와 라인 고르기, 시야 없는 사이드에선 더 밀지 말고 지켜보기, 싸움 뒤엔 사이드부터 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 한타 역할 — 핵심 정리 5가지</title>
+<link>https://lolban.com/guide/%ED%95%9C%ED%83%80-%EC%97%AD%ED%95%A0/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%ED%95%9C%ED%83%80-%EC%97%AD%ED%95%A0/</guid>
+<description>리그 오브 레전드 한타 역할 이론 5가지를 정리했습니다. 미드 암살자·브루저의 한타 자리, 메이지 미드의 한타 자리, 핵심 궁은 아껴라 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 불리할 때 — 핵심 정리 5가지</title>
+<link>https://lolban.com/guide/%EB%B6%88%EB%A6%AC%ED%95%A0-%EB%95%8C/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EB%B6%88%EB%A6%AC%ED%95%A0-%EB%95%8C/</guid>
+<description>리그 오브 레전드 불리할 때 이론 5가지를 정리했습니다. 불리하면 온 기회를 써라, 대각선의 법칙, 오브젝트 뺏긴 뒤 순서 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 소통·콜 — 핵심 정리 3가지</title>
+<link>https://lolban.com/guide/%EC%86%8C%ED%86%B5-%EC%BD%9C/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%86%8C%ED%86%B5-%EC%BD%9C/</guid>
+<description>리그 오브 레전드 소통·콜 이론 3가지를 정리했습니다. 좋은 미드 콜은 행선지 예측, 훈수보다 각자 할 일, 정확하게 콜하기 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 갱킹 대처 — 핵심 정리 3가지</title>
+<link>https://lolban.com/guide/%EA%B0%B1%ED%82%B9-%EB%8C%80%EC%B2%98/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EA%B0%B1%ED%82%B9-%EB%8C%80%EC%B2%98/</guid>
+<description>리그 오브 레전드 갱킹 대처 이론 3가지를 정리했습니다. 라인전 중 신경 나누기, 우리 정글이 죽으면 밀던 라인은 뺀다, 3레벨 미드 갱을 지우지 마라 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 바텀사이드 운영 — 핵심 정리 3가지</title>
+<link>https://lolban.com/guide/%EB%B0%94%ED%85%80%EC%82%AC%EC%9D%B4%EB%93%9C-%EC%9A%B4%EC%98%81/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EB%B0%94%ED%85%80%EC%82%AC%EC%9D%B4%EB%93%9C-%EC%9A%B4%EC%98%81/</guid>
+<description>리그 오브 레전드 바텀사이드 운영 이론 3가지를 정리했습니다. 솔랭은 바텀부터, 이기는 바텀·지는 바텀, 가장 센 라인과 함께 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 라인 스왑·교환 — 핵심 정리 3가지</title>
+<link>https://lolban.com/guide/%EB%9D%BC%EC%9D%B8-%EC%8A%A4%EC%99%91-%EA%B5%90%ED%99%98/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EB%9D%BC%EC%9D%B8-%EC%8A%A4%EC%99%91-%EA%B5%90%ED%99%98/</guid>
+<description>리그 오브 레전드 라인 스왑·교환 이론 3가지를 정리했습니다. 라인 바꿀 때 우선순위, 교전 후 라인 분배, 못 막으면 반대편을 먹는다 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 상성·카운터 — 핵심 정리 3가지</title>
+<link>https://lolban.com/guide/%EC%83%81%EC%84%B1-%EC%B9%B4%EC%9A%B4%ED%84%B0/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%83%81%EC%84%B1-%EC%B9%B4%EC%9A%B4%ED%84%B0/</guid>
+<description>리그 오브 레전드 상성·카운터 이론 3가지를 정리했습니다. 미드 카운터 고르는 공식, 미드 상성표 ① (메이지 상대), 미드 상성표 ② (돌진·기타) 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 운영 우선순위 — 핵심 정리 2가지</title>
+<link>https://lolban.com/guide/%EC%9A%B4%EC%98%81-%EC%9A%B0%EC%84%A0%EC%88%9C%EC%9C%84/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%9A%B4%EC%98%81-%EC%9A%B0%EC%84%A0%EC%88%9C%EC%9C%84/</guid>
+<description>리그 오브 레전드 운영 우선순위 이론 2가지를 정리했습니다. 승리 공식 7단계 우선순위, 라인 주도권을 내주면 멈춤 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 판단 기준 — 핵심 정리 2가지</title>
+<link>https://lolban.com/guide/%ED%8C%90%EB%8B%A8-%EA%B8%B0%EC%A4%80/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%ED%8C%90%EB%8B%A8-%EA%B8%B0%EC%A4%80/</guid>
+<description>리그 오브 레전드 판단 기준 이론 2가지를 정리했습니다. 죽어도 되는 상황의 기준, 내가 만든 이득인지 구분 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 정글 영향력 — 핵심 정리 2가지</title>
+<link>https://lolban.com/guide/%EC%A0%95%EA%B8%80-%EC%98%81%ED%96%A5%EB%A0%A5/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%A0%95%EA%B8%80-%EC%98%81%ED%96%A5%EB%A0%A5/</guid>
+<description>리그 오브 레전드 정글 영향력 이론 2가지를 정리했습니다. 정글 솔킬의 무게, 정글은 라인을 먹어도 된다 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 카정·인베 — 핵심 정리 2가지</title>
+<link>https://lolban.com/guide/%EC%B9%B4%EC%A0%95-%EC%9D%B8%EB%B2%A0/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%B9%B4%EC%A0%95-%EC%9D%B8%EB%B2%A0/</guid>
+<description>리그 오브 레전드 카정·인베 이론 2가지를 정리했습니다. 1레벨 인베 감지와 대처, 미드 주도권이면 카정 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 실력 향상 — 핵심 정리 2가지</title>
+<link>https://lolban.com/guide/%EC%8B%A4%EB%A0%A5-%ED%96%A5%EC%83%81/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%8B%A4%EB%A0%A5-%ED%96%A5%EC%83%81/</guid>
+<description>리그 오브 레전드 실력 향상 이론 2가지를 정리했습니다. 티어를 올리려면 판마다 같은 경험을 쌓는다, 한 번에 하나씩 고치기 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 적 위치 모를 때 — 핵심 정리 2가지</title>
+<link>https://lolban.com/guide/%EC%A0%81-%EC%9C%84%EC%B9%98-%EB%AA%A8%EB%A5%BC-%EB%95%8C/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%A0%81-%EC%9C%84%EC%B9%98-%EB%AA%A8%EB%A5%BC-%EB%95%8C/</guid>
+<description>리그 오브 레전드 적 위치 모를 때 이론 2가지를 정리했습니다. 보이는 정보로 적 위치 읽기, 안 보이는 적은 어디 있나 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 갱킹 — 핵심 정리 1가지</title>
+<link>https://lolban.com/guide/%EA%B0%B1%ED%82%B9/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EA%B0%B1%ED%82%B9/</guid>
+<description>리그 오브 레전드 갱킹 이론 1가지를 정리했습니다. 갱 킬 뒤 미니언 정리법 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 주도권·압박 — 핵심 정리 1가지</title>
+<link>https://lolban.com/guide/%EC%A3%BC%EB%8F%84%EA%B6%8C-%EC%95%95%EB%B0%95/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EC%A3%BC%EB%8F%84%EA%B6%8C-%EC%95%95%EB%B0%95/</guid>
+<description>리그 오브 레전드 주도권·압박 이론 1가지를 정리했습니다. 상대에게 선택을 강요하기 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 마나 관리 — 핵심 정리 1가지</title>
+<link>https://lolban.com/guide/%EB%A7%88%EB%82%98-%EA%B4%80%EB%A6%AC/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%EB%A7%88%EB%82%98-%EA%B4%80%EB%A6%AC/</guid>
+<description>리그 오브 레전드 마나 관리 이론 1가지를 정리했습니다. 미드 마나 관리는 스킬 찍는 순서부터 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+<item>
+<title>롤 포탑 수비 — 핵심 정리 1가지</title>
+<link>https://lolban.com/guide/%ED%8F%AC%ED%83%91-%EC%88%98%EB%B9%84/</link>
+<guid isPermaLink="true">https://lolban.com/guide/%ED%8F%AC%ED%83%91-%EC%88%98%EB%B9%84/</guid>
+<description>리그 오브 레전드 포탑 수비 이론 1가지를 정리했습니다. 포탑 막기 우선순위 등 — 언제 쓰는지와 흔한 실수까지.</description>
+<category>운영·라인전 이론</category>
+<pubDate>Tue, 24 Nov 2026 00:00:00 +0000</pubDate>
+</item>
+</channel>
+</rss>
